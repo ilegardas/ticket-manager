@@ -119,16 +119,17 @@ REST_FRAMEWORK = {
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
-# Configuración ultra flexible para los orígenes de confianza (CSRF)
-CSRF_TRUSTED_ORIGINS = [
-    'https://*.up.railway.app',
-    'http://*.up.railway.app',
-]
-
-# Encabezados proxy indispensables para romper el ciclo del error 403
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
+
+# Configuración ultra flexible para los orígenes de confianza (CSRF)
+CSRF_TRUSTED_ORIGINS = [
+    'https://ticket-manager-production-9d0b.up.railway.app',
+    'http://ticket-manager-production-9d0b.up.railway.app',
+]
+
+CSRF_SERVER_ALLOWS_LOCAL_COOKIE_DECOUPLING = True
 
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True

@@ -9,11 +9,12 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-seech-tickets-dev-key
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
 
-# Permitir que Django reciba peticiones desde este dominio
+# Permitir que Django responda a tu dominio de Railway de cualquier forma
 ALLOWED_HOSTS = [
     'ticket-manager-production-9d0b.up.railway.app',
-    '127.0.0.1',
+    '.up.railway.app',  # Permite cualquier subdominio de Railway por si acaso
     'localhost',
+    '127.0.0.1',
 ]
 
 INSTALLED_APPS = [
@@ -124,10 +125,15 @@ REST_FRAMEWORK = {
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
-# Registrar el dominio como un origen seguro para formularios y logins (CSRF)
+# Configuración ultra flexible para los orígenes de confianza (CSRF)
 CSRF_TRUSTED_ORIGINS = [
     'https://ticket-manager-production-9d0b.up.railway.app',
+    'http://ticket-manager-production-9d0b.up.railway.app',
 ]
+
+# Si lo anterior falla, esto le dice a Django que confíe en el host que envía la petición proxy
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
 EMAIL_HOST = os.environ.get('EMAIL_HOST', '')

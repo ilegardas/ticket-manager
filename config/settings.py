@@ -8,7 +8,13 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-seech-tickets-dev-key
 
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['*']
+
+# Permitir que Django reciba peticiones desde este dominio
+ALLOWED_HOSTS = [
+    'ticket-manager-production-9d0b.up.railway.app',
+    '127.0.0.1',
+    'localhost',
+]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -118,7 +124,10 @@ REST_FRAMEWORK = {
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
-CSRF_TRUSTED_ORIGINS = ['https://ticket-manager-production-9d0b.up.railway.app','https://*.replit.dev', 'https://*.replit.app', 'http://localhost:*']
+# Registrar el dominio como un origen seguro para formularios y logins (CSRF)
+CSRF_TRUSTED_ORIGINS = [
+    'https://ticket-manager-production-9d0b.up.railway.app',
+]
 
 EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
 EMAIL_HOST = os.environ.get('EMAIL_HOST', '')

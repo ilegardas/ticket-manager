@@ -63,13 +63,13 @@ if DATABASE_URL:
         conn_health_checks=True,
     )
     }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+
+Validación estricta: Si por algún motivo dj-database-url queda vacío, 
+# forzamos a que falle explícitamente avisándote, en lugar de usar SQLite.
+if not DATABASES['default']:
+    DATABASES['default'] = dj_database_url.parse(os.environ.get('DATABASE_URL'))
+
+
 
 AUTH_USER_MODEL = 'tickets.Usuario'
 

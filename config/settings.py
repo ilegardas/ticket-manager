@@ -107,7 +107,7 @@ REST_FRAMEWORK = {
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
-CSRF_TRUSTED_ORIGINS = ['https://*.replit.dev', 'https://*.replit.app', 'http://localhost:*']
+CSRF_TRUSTED_ORIGINS = ['https://ticket-manager-production-9d0b.up.railway.app','https://*.replit.dev', 'https://*.replit.app', 'http://localhost:*']
 
 EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
 EMAIL_HOST = os.environ.get('EMAIL_HOST', '')

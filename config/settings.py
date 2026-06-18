@@ -8,14 +8,8 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-seech-tickets-dev-key
 
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
-
-# Permitir que Django responda a tu dominio de Railway de cualquier forma
-ALLOWED_HOSTS = [
-    'ticket-manager-production-9d0b.up.railway.app',
-    '.up.railway.app',  # Permite cualquier subdominio de Railway por si acaso
-    'localhost',
-    '127.0.0.1',
-]
+# Permitir cualquier host en producción para evitar bloqueos del proxy de Railway
+ALLOWED_HOSTS = ['*']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -127,13 +121,14 @@ CORS_ALLOW_CREDENTIALS = True
 
 # Configuración ultra flexible para los orígenes de confianza (CSRF)
 CSRF_TRUSTED_ORIGINS = [
-    'https://ticket-manager-production-9d0b.up.railway.app',
-    'http://ticket-manager-production-9d0b.up.railway.app',
+    'https://*.up.railway.app',
+    'http://*.up.railway.app',
 ]
 
-# Si lo anterior falla, esto le dice a Django que confíe en el host que envía la petición proxy
-USE_X_FORWARDED_HOST = True
+# Encabezados proxy indispensables para romper el ciclo del error 403
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
 
 EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
 EMAIL_HOST = os.environ.get('EMAIL_HOST', '')

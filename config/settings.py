@@ -55,23 +55,27 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
+# 1. Intentamos leer la variable de entorno de Railway
 DATABASE_URL = os.environ.get('DATABASE_URL', '')
+
 if DATABASE_URL:
     DATABASES = {
-    'default': dj_database_url.config(
-        conn_max_age=600,
-        conn_health_checks=True,
-    )
+        'default': dj_database_url.config(
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
     }
-
-Validación estricta: Si por algún motivo dj-database-url queda vacío, 
-# forzamos a que falle explícitamente avisándote, en lugar de usar SQLite.
-if not DATABASES['default']:
-    DATABASES['default'] = dj_database_url.parse(os.environ.get('DATABASE_URL'))
-
+else:
+    # 2. Validación estricta: Si no hay DATABASE_URL, obligamos a que falle.
+    # Esto evita por completo que Django cree o busque un archivo SQLite.
+    raise KeyError(
+        "ERROR CRÍTICO: La variable de entorno 'DATABASE_URL' no está configurada en Railway. "
+        "Asegúrate de haberla agregado en la pestaña 'Variables' de tu servicio Django."
+    )
 
 
 AUTH_USER_MODEL = 'tickets.Usuario'
+
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},

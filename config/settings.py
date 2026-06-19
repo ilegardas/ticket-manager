@@ -127,6 +127,7 @@ USE_X_FORWARDED_PORT = True
 CSRF_TRUSTED_ORIGINS = [
     'https://ticket-manager-production-9d0b.up.railway.app',
     'http://ticket-manager-production-9d0b.up.railway.app',
+    'https://ticket-manager-frontend-production.up.railway.app',
 ]
 
 CSRF_SERVER_ALLOWS_LOCAL_COOKIE_DECOUPLING = True

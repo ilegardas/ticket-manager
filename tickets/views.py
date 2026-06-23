@@ -35,18 +35,52 @@ from . import resend_email
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_view(request):
-    # 🔴 IMPRESIÓN TEMPORAL DE DIAGNÓSTICO
     print("\n📬 DATA RECIBIDA DESDE EL FRONTEND:", request.data)
-    print("Tipo de dato recibido:", type(request.data), "\n")
+    
+    # 🔴 CORRECCIÓN: Si el JSON viene envuelto en un objeto 'data', lo extraemos
+    payload = request.data.get('data') if 'data' in request.data else request.data
+    
+    # Si por alguna razón payload es None, usamos un diccionario vacío para evitar caídas
+    if payload is None:
+        payload = {}
 
     correo = (
-        request.data.get('correo_electronico') or 
-        request.data.get('email') or 
-        request.data.get('username')
+        payload.get('correo_electronico') or 
+        payload.get('email') or 
+        payload.get('username')
     )
-    password = request.data.get('password')
+    password = payload.get('password')
     
-    # ... el resto de tu login_view igual abajo ...
+    if not correo or not password:
+        return Response(
+            {'detail': 'Faltan credenciales obligatorias (correo o password).'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+        
+    try:
+        # Buscamos el usuario en Postgres
+        user = Usuario.objects.get(correo_electronico=correo)
+        
+        # Validamos la contraseña
+        if not user.check_password(password):
+            return Response({'detail': 'Credenciales inválidas.'}, status=status.HTTP_401_UNAUTHORIZED)
+            
+    except Usuario.DoesNotExist:
+        return Response({'detail': 'Credenciales inválidas.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    if not user.activo:
+        return Response({'detail': 'El usuario se encuentra inactivo.'}, status=status.HTTP_403_FORBIDDEN)
+
+    # Recuperamos o creamos el token
+    token, _ = Token.objects.get_or_create(usuario=user)
+    
+    return Response({
+        'id': user.id,
+        'correo_electronico': user.correo_electronico,
+        'nombre_completo': user.nombre_completo,
+        'rol': user.rol,
+        'token': token.key,
+    })
 
 
 @api_view(['POST'])

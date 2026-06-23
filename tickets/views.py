@@ -14,6 +14,9 @@ from .models import (
     Usuario, Sistema, Modulo, Documento, Prioridad, Estado, Categoria,
     Ticket, ChatterEntry, TicketTimeLog, ConocimientoEntry, Token
 )
+# 🔴 IMPORTANTE: Añadir esta línea aquí arriba
+from tickets.authentication import TokenAuthentication
+
 from .serializers import (
     UsuarioSerializer, UsuarioInputSerializer, UsuarioUpdateSerializer,
     SistemaSerializer, ModuloSerializer, DocumentoSerializer,

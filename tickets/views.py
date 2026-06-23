@@ -703,3 +703,48 @@ def actividad_reciente(request):
         }
         for e in entries
     ])
+
+# ─────────────────────────────────────────────────────────────────
+#  FUNCIONES DE COMPATIBILIDAD A PRUEBA DE BALAS PARA EL FRONTEND
+# ─────────────────────────────────────────────────────────────────
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+@authentication_classes([TokenAuthentication])
+def compat_create_usuario(request):
+    """Maneja la creación de usuario forzando la respuesta sin importar el método."""
+    # Desempaquetamos si viene envuelto en 'data'
+    payload = request.data.get('data') if 'data' in request.data else request.data
+    if payload is None:
+        payload = request.data
+
+    serializer = UsuarioInputSerializer(data=payload)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET', 'POST', 'PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+@authentication_classes([TokenAuthentication])
+def compat_update_usuario(request, pk=None):
+    """Maneja la actualización atrapando el ID ya sea de la URL o del body."""
+    # Desempaquetamos si viene envuelto en 'data'
+    payload = request.data.get('data') if 'data' in request.data else request.data
+    if payload is None:
+        payload = request.data
+
+    # Buscamos el ID del usuario a editar (puede venir en el payload o en la URL)
+    usuario_id = pk or payload.get('id')
+    if not usuario_id:
+        return Response({'detail': 'Falta el ID del usuario para actualizar.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        usuario = Usuario.objects.get(id=usuario_id)
+    except Usuario.DoesNotExist:
+        return Response({'detail': 'Usuario no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+    serializer = UsuarioUpdateSerializer(usuario, data=payload, partial=True)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(serializer.data, status=status.HTTP_200_OK)

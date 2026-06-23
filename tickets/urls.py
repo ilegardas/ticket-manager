@@ -37,8 +37,13 @@ urlpatterns = [
     path('sistema', views.SistemaViewSet.as_view({'get': 'list', 'post': 'create'})),
     path('sistema/', views.SistemaViewSet.as_view({'get': 'list', 'post': 'create'})),
     
-    path('createusuario', views.UsuarioViewSet.as_view({'post': 'create'})),
-    path('createusuario/', views.UsuarioViewSet.as_view({'post': 'create'})),
+    # 🔴 CAMBIO PARA USUARIOS: Permitir que 'create' (que usa POST) maneje la actualización en este endpoint custom
+    path('updateusuario', views.UsuarioViewSet.as_view({'post': 'create', 'put': 'update', 'patch': 'partial_update'})),
+    path('updateusuario/', views.UsuarioViewSet.as_view({'post': 'create', 'put': 'update', 'patch': 'partial_update'})),
+
+    # 🆕 AGREGAR MÓDULOS: Mapear la ruta que el front busca para crear módulos
+    path('createmodulo', views.ModuloViewSet.as_view({'post': 'create'})),
+    path('createmodulo/', views.ModuloViewSet.as_view({'post': 'create'})),
     
     path('updateusuario', views.UsuarioViewSet.as_view({'put': 'update', 'patch': 'partial_update'})),
     path('updateusuario/', views.UsuarioViewSet.as_view({'put': 'update', 'patch': 'partial_update'})),

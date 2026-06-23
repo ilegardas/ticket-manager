@@ -166,6 +166,17 @@ class TicketViewSet(viewsets.ModelViewSet):
     ordering_fields = ['fecha_creacion', 'prioridad__orden', 'estado__orden']
     ordering = ['-fecha_creacion']
 
+    # 🆕 AÑADIR ESTE MÉTODO PARA DESENVOLVER EL JSON DEL FRONTEND
+    def create(self, request, *args, **kwargs):
+        # Si el frontend envía los datos envueltos en {'data': {...}}, los extraemos
+        data = request.data.get('data') if 'data' in request.data else request.data
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    
     def get_queryset(self):
         qs = super().get_queryset()
         vista = self.request.query_params.get('vista')

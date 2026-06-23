@@ -152,3 +152,7 @@ LOGGING = {
     },
     'root': {'handlers': ['console'], 'level': 'INFO'},
 }
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',  # El backend por defecto
+]

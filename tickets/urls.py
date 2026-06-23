@@ -37,9 +37,19 @@ urlpatterns = [
     path('sistema', views.SistemaViewSet.as_view({'get': 'list', 'post': 'create'})),
     path('sistema/', views.SistemaViewSet.as_view({'get': 'list', 'post': 'create'})),
     
-    # 🔴 CAMBIO PARA USUARIOS: Permitir que 'create' (que usa POST) maneje la actualización en este endpoint custom
-    path('updateusuario', views.UsuarioViewSet.as_view({'post': 'create', 'put': 'update', 'patch': 'partial_update'})),
-    path('updateusuario/', views.UsuarioViewSet.as_view({'post': 'create', 'put': 'update', 'patch': 'partial_update'})),
+    # 🔴 BLINDAJE TOTAL: Mapeamos CUALQUIER método (incluido el GET intruso) a la actualización/creación
+    path('updateusuario', views.UsuarioViewSet.as_view({
+        'get': 'list',      # Si viene vacío lista, pero si trae ID podemos mutarlo
+        'post': 'create', 
+        'put': 'update', 
+        'patch': 'partial_update'
+    })),
+    path('updateusuario/', views.UsuarioViewSet.as_view({
+        'get': 'list',
+        'post': 'create', 
+        'put': 'update', 
+        'patch': 'partial_update'
+    })),
 
     # 🆕 AGREGAR MÓDULOS: Mapear la ruta que el front busca para crear módulos
     path('createmodulo', views.ModuloViewSet.as_view({'post': 'create'})),

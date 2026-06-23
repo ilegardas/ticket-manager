@@ -116,9 +116,11 @@ REST_FRAMEWORK = {
 }
 
 
+# 1. Permitir que viajen las cabeceras de autorización y contenido
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
+# Añade esta lista explícita para que el backend acepte el Bearer Token del front
 CORS_ALLOW_HEADERS = [
     'accept',
     'accept-encoding',

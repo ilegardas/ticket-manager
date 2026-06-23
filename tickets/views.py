@@ -4,6 +4,7 @@ from django.db.models import Count, Q, Avg
 from django.conf import settings
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.decorators import authentication_classes
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
@@ -57,6 +58,7 @@ def logout_view(request):
 
 
 @api_view(['GET'])
+@authentication_classes([TokenAuthentication]) # 🔴 ADICIÓN AQUÍ: Forzamos el uso de tu Token custom
 @permission_classes([IsAuthenticated])
 def me_view(request):
     serializer = UsuarioSerializer(request.user)

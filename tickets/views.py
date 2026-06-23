@@ -33,7 +33,10 @@ from . import resend_email
 def login_view(request):
     correo = request.data.get('correo_electronico')
     password = request.data.get('password')
-    user = authenticate(request, correo_electronico=correo, password=password)
+    
+    # 🔴 CAMBIO AQUÍ: Cambiamos 'correo_electronico=' por 'username='
+    user = authenticate(request, username=correo, password=password)
+    
     if user is None:
         return Response({'detail': 'Credenciales inválidas.'}, status=status.HTTP_401_UNAUTHORIZED)
     token, _ = Token.objects.get_or_create(usuario=user)

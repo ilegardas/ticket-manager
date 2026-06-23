@@ -33,7 +33,7 @@ urlpatterns = [
     # 🔴 ALIAS DE COMPATIBILIDAD PARA EL FRONTEND (RESUELVE LOS 404)
     # ─────────────────────────────────────────────────────────────────
     
-    # Compatibilidad para Catálogos y Entidades en Singular (Sistemas / Usuarios)
+    # Compatibilidad para Catálogos y Creación/Edición Directa
     path('sistema', views.SistemaViewSet.as_view({'get': 'list', 'post': 'create'})),
     path('sistema/', views.SistemaViewSet.as_view({'get': 'list', 'post': 'create'})),
     
@@ -42,6 +42,13 @@ urlpatterns = [
     
     path('updateusuario', views.UsuarioViewSet.as_view({'put': 'update', 'patch': 'partial_update'})),
     path('updateusuario/', views.UsuarioViewSet.as_view({'put': 'update', 'patch': 'partial_update'})),
+    
+    # 🆕 AGREGADOS: Creación de Tickets y Conocimiento según tus logs
+    path('createticket', views.TicketViewSet.as_view({'post': 'create'})),
+    path('createticket/', views.TicketViewSet.as_view({'post': 'create'})),
+    
+    path('createconocimiento', views.ConocimientoViewSet.as_view({'post': 'create'})),
+    path('createconocimiento/', views.ConocimientoViewSet.as_view({'post': 'create'})),
 
     # Compatibilidad para los Reportes y Métodos Auxiliares
     path('reporteresumen', views.reporte_resumen),
@@ -61,4 +68,14 @@ urlpatterns = [
     
     path('actividadreciente', views.actividad_reciente),
     path('actividadreciente/', views.actividad_reciente),
+    
+    # 🆕 AGREGADOS: Reportes faltantes que salieron en los logs
+    path('reporteporregion', views.reporte_por_region),
+    path('reporteporregion/', views.reporte_por_region),
+    
+    path('reportesla', views.reporte_sla),
+    path('reportesla/', views.reporte_sla),
+    
+    path('reportetickets', views.reporte_tickets),
+    path('reportetickets/', views.reporte_tickets),
 ]

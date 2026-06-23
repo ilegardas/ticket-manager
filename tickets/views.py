@@ -38,12 +38,26 @@ def login_view(request):
     correo = request.data.get('correo_electronico')
     password = request.data.get('password')
     
-    # 🔴 CAMBIO AQUÍ: Cambiamos 'correo_electronico=' por 'username='
-    user = authenticate(request, username=correo, password=password)
-    
-    if user is None:
+    if not correo or not password:
+        return Response({'detail': 'Por favor proporcione correo y contraseña.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    try:
+        # 1. Buscamos directamente en tu tabla Usuario de Postgres usando el correo
+        user = Usuario.objects.get(correo_electronico=correo)
+        
+        # 2. Validamos el hash de la contraseña usando el método nativo del modelo
+        if not user.check_password(password):
+            return Response({'detail': 'Credenciales inválidas.'}, status=status.HTTP_401_UNAUTHORIZED)
+            
+    except Usuario.DoesNotExist:
         return Response({'detail': 'Credenciales inválidas.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    if not user.activo:
+        return Response({'detail': 'El usuario se encuentra inactivo.'}, status=status.HTTP_403_FORBIDDEN)
+
+    # 3. Si todo coincide bien, recuperamos o generamos el token usando tu relación 'usuario'
     token, _ = Token.objects.get_or_create(usuario=user)
+    
     return Response({
         'id': user.id,
         'correo_electronico': user.correo_electronico,

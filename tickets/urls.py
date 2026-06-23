@@ -14,6 +14,7 @@ router.register(r'categorias', views.CategoriaViewSet, basename='categoria')
 router.register(r'conocimiento', views.ConocimientoViewSet, basename='conocimiento')
 
 urlpatterns = [
+    # Tu enrutamiento original estructurado
     path('', include(router.urls)),
     path('auth/login', views.login_view),
     path('auth/logout', views.logout_view),
@@ -27,4 +28,37 @@ urlpatterns = [
     path('reportes/por-region', views.reporte_por_region),
     path('reportes/tickets', views.reporte_tickets),
     path('reportes/actividad-reciente', views.actividad_reciente),
+
+    # ─────────────────────────────────────────────────────────────────
+    # 🔴 ALIAS DE COMPATIBILIDAD PARA EL FRONTEND (RESUELVE LOS 404)
+    # ─────────────────────────────────────────────────────────────────
+    
+    # Compatibilidad para Catálogos y Entidades en Singular (Sistemas / Usuarios)
+    path('sistema', views.SistemaViewSet.as_view({'get': 'list', 'post': 'create'})),
+    path('sistema/', views.SistemaViewSet.as_view({'get': 'list', 'post': 'create'})),
+    
+    path('createusuario', views.UsuarioViewSet.as_view({'post': 'create'})),
+    path('createusuario/', views.UsuarioViewSet.as_view({'post': 'create'})),
+    
+    path('updateusuario', views.UsuarioViewSet.as_view({'put': 'update', 'patch': 'partial_update'})),
+    path('updateusuario/', views.UsuarioViewSet.as_view({'put': 'update', 'patch': 'partial_update'})),
+
+    # Compatibilidad para los Reportes y Métodos Auxiliares
+    path('reporteresumen', views.reporte_resumen),
+    path('reporteresumen/', views.reporte_resumen),
+    
+    path('reporteporsistema', views.reporte_por_sistema),
+    path('reporteporsistema/', views.reporte_por_sistema),
+    
+    path('reporteporestado', views.reporte_por_estado),
+    path('reporteporestado/', views.reporte_por_estado),
+    
+    path('reporteporprioridad', views.reporte_por_prioridad),
+    path('reporteporprioridad/', views.reporte_por_prioridad),
+    
+    path('reportetendencias', views.reporte_tendencias),
+    path('reportetendencias/', views.reporte_tendencias),
+    
+    path('actividadreciente', views.actividad_reciente),
+    path('actividadreciente/', views.actividad_reciente),
 ]

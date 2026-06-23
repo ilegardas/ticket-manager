@@ -35,7 +35,10 @@ from . import resend_email
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_view(request):
-    # Intentamos jalar el correo de las 3 formas posibles que suele mandar el front
+    # 🔴 IMPRESIÓN TEMPORAL DE DIAGNÓSTICO
+    print("\n📬 DATA RECIBIDA DESDE EL FRONTEND:", request.data)
+    print("Tipo de dato recibido:", type(request.data), "\n")
+
     correo = (
         request.data.get('correo_electronico') or 
         request.data.get('email') or 
@@ -43,36 +46,7 @@ def login_view(request):
     )
     password = request.data.get('password')
     
-    if not correo or not password:
-        return Response(
-            {'detail': 'Faltan credenciales obligatorias (correo o password).'}, 
-            status=status.HTTP_400_BAD_REQUEST
-        )
-        
-    try:
-        # Buscamos directamente en tu tabla de Postgres
-        user = Usuario.objects.get(correo_electronico=correo)
-        
-        # Validamos el hash de la contraseña
-        if not user.check_password(password):
-            return Response({'detail': 'Credenciales inválidas.'}, status=status.HTTP_401_UNAUTHORIZED)
-            
-    except Usuario.DoesNotExist:
-        return Response({'detail': 'Credenciales inválidas.'}, status=status.HTTP_401_UNAUTHORIZED)
-
-    if not user.activo:
-        return Response({'detail': 'El usuario se encuentra inactivo.'}, status=status.HTTP_403_FORBIDDEN)
-
-    # Si todo coincide bien, recuperamos o generamos el token
-    token, _ = Token.objects.get_or_create(usuario=user)
-    
-    return Response({
-        'id': user.id,
-        'correo_electronico': user.correo_electronico,
-        'nombre_completo': user.nombre_completo,
-        'rol': user.rol,
-        'token': token.key,
-    })
+    # ... el resto de tu login_view igual abajo ...
 
 
 @api_view(['POST'])

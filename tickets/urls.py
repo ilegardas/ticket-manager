@@ -37,26 +37,20 @@ urlpatterns = [
     path('sistema', views.SistemaViewSet.as_view({'get': 'list', 'post': 'create'})),
     path('sistema/', views.SistemaViewSet.as_view({'get': 'list', 'post': 'create'})),
     
-    # 🔴 BLINDAJE TOTAL: Mapeamos CUALQUIER método (incluido el GET intruso) a la actualización/creación
-    path('updateusuario', views.UsuarioViewSet.as_view({
-        'get': 'list',      # Si viene vacío lista, pero si trae ID podemos mutarlo
-        'post': 'create', 
-        'put': 'update', 
-        'patch': 'partial_update'
-    })),
-    path('updateusuario/', views.UsuarioViewSet.as_view({
-        'get': 'list',
-        'post': 'create', 
-        'put': 'update', 
-        'patch': 'partial_update'
-    })),
+    # Cambiamos los ViewSets por las funciones planas e indestructibles que acabamos de crear
+    path('createusuario', views.compat_create_usuario),
+    path('createusuario/', views.compat_create_usuario),
+    
+    path('updateusuario', views.compat_update_usuario),
+    path('updateusuario/', views.compat_update_usuario),
+    path('updateusuario/<int:pk>', views.compat_update_usuario),
+    path('updateusuario/<int:pk>/', views.compat_update_usuario),
+
+    
 
     # 🆕 AGREGAR MÓDULOS: Mapear la ruta que el front busca para crear módulos
     path('createmodulo', views.ModuloViewSet.as_view({'post': 'create'})),
     path('createmodulo/', views.ModuloViewSet.as_view({'post': 'create'})),
-    
-    path('updateusuario', views.UsuarioViewSet.as_view({'put': 'update', 'patch': 'partial_update'})),
-    path('updateusuario/', views.UsuarioViewSet.as_view({'put': 'update', 'patch': 'partial_update'})),
     
     # 🆕 AGREGADOS: Creación de Tickets y Conocimiento según tus logs
     path('createticket', views.TicketViewSet.as_view({'post': 'create'})),

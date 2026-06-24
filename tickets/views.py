@@ -725,22 +725,49 @@ def compat_create_usuario(request):
 @permission_classes([IsAuthenticated])
 @authentication_classes([TokenAuthentication])
 def compat_update_usuario(request, pk=None):
+    """Maneja la actualización de usuarios desenvolviendo el payload de Axios."""
+    # 🔴 DESEMPAQUETADO FORZADO: Si viene envuelto en 'data', lo extraemos
     payload = request.data.get('data') if 'data' in request.data else request.data
-    if payload is None: payload = request.data
+    if payload is None: 
+        payload = request.data
     
-    usuario_id = pk or payload.get('id')
+    # El frontend puede mandar el ID en la URL, en los parámetros o dentro del cuerpo
+    usuario_id = pk or payload.get('id') or request.query_params.get('id')
     if not usuario_id:
-        return Response({'detail': 'Falta el ID del usuario.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'detail': 'Falta el ID del usuario para actualizar.'}, status=status.HTTP_400_BAD_REQUEST)
         
     try:
         usuario = Usuario.objects.get(id=usuario_id)
     except Usuario.DoesNotExist:
         return Response({'detail': 'Usuario no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
         
+    # Validamos y guardamos parcialmente
     serializer = UsuarioUpdateSerializer(usuario, data=payload, partial=True)
     serializer.is_valid(raise_exception=True)
     serializer.save()
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST', 'DELETE'])
+@permission_classes([IsAuthenticated])
+@authentication_classes([TokenAuthentication])
+def compat_delete_usuario(request, pk=None):
+    """🆕 ALIAS PARA ELIMINAR USUARIO: Atrapa la petición POST de borrado del frontend."""
+    payload = request.data.get('data') if 'data' in request.data else request.data
+    if payload is None: 
+        payload = request.data
+
+    usuario_id = pk or payload.get('id') or request.query_params.get('id')
+    if not usuario_id:
+        return Response({'detail': 'Falta el ID del usuario para eliminar.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        usuario = Usuario.objects.get(id=usuario_id)
+        usuario.delete()
+        return Response({'detail': 'Usuario eliminado correctamente.'}, status=status.HTTP_200_OK)
+    except Usuario.DoesNotExist:
+        return Response({'detail': 'Usuario no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
 
 
 @api_view(['POST', 'GET'])

@@ -39,8 +39,8 @@ class UsuarioInputSerializer(serializers.ModelSerializer):
 
 
 class UsuarioUpdateSerializer(serializers.ModelSerializer):
-    # 🔴 CAMBIO CLAVE: Usamos CharField temporalmente en lugar de BooleanField
-    # Esto evita que DRF lance el error automático de "Debe ser un booleano válido"
+    # 🔴 CAMBIO MAESTRO: Declaramos 'activo' como CharField temporal de forma explícita.
+    # Esto rompe el validador por defecto de DRF que bloquea los strings como "Activo".
     activo = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     id = serializers.IntegerField(read_only=True, required=False)
     correo_electronico = serializers.EmailField(read_only=True, required=False)
@@ -54,13 +54,13 @@ class UsuarioUpdateSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'correo_electronico']
 
     def validate_activo(self, value):
-        # Traducimos limpiamente cualquier variante que mande el frontend de React
+        """Traduce de forma segura las variantes de texto del frontend a booleanos reales."""
         if value in ['Activo', 'activo', 'true', 'True', True, 1, '1']:
             return True
         if value in ['Inactivo', 'inactivo', 'false', 'False', False, 0, '0']:
             return False
         
-        # Si viene vacío o no se seleccionó, preservamos el valor actual del usuario
+        # Si no viene el campo o viene vacío, dejamos el valor actual del usuario
         if self.instance:
             return self.instance.activo
         return True
@@ -68,7 +68,7 @@ class UsuarioUpdateSerializer(serializers.ModelSerializer):
     def to_internal_value(self, data):
         custom_data = data.copy() if hasattr(data, 'copy') else dict(data)
         
-        # Mapeo de compatibilidad por si el frontend manda la propiedad como 'estado'
+        # Si el frontend mandó el estado en la propiedad alternativa 'estado', la unificamos
         if 'estado' in custom_data:
             custom_data['activo'] = custom_data['estado']
             

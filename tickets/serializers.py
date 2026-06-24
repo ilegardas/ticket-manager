@@ -4,6 +4,9 @@ from .models import (
     Ticket, ChatterEntry, TicketTimeLog, ConocimientoEntry
 )
 
+# ─────────────────────────────────────────────────────────────────
+#  USUARIOS
+# ─────────────────────────────────────────────────────────────────
 
 class UsuarioSerializer(serializers.ModelSerializer):
     class Meta:
@@ -44,6 +47,10 @@ class UsuarioUpdateSerializer(serializers.ModelSerializer):
         ]
 
 
+# ─────────────────────────────────────────────────────────────────
+#  SISTEMAS Y MÓDULOS
+# ─────────────────────────────────────────────────────────────────
+
 class SistemaSerializer(serializers.ModelSerializer):
     total_tickets = serializers.SerializerMethodField()
     total_modulos = serializers.SerializerMethodField()
@@ -81,6 +88,10 @@ class ModuloSerializer(serializers.ModelSerializer):
         return obj.tickets.count()
 
 
+# ─────────────────────────────────────────────────────────────────
+#  DOCUMENTOS Y CATÁLOGOS
+# ─────────────────────────────────────────────────────────────────
+
 class DocumentoSerializer(serializers.ModelSerializer):
     sistema_id = serializers.PrimaryKeyRelatedField(
         source='sistema', queryset=Sistema.objects.all(), allow_null=True, required=False,
@@ -116,6 +127,10 @@ class CategoriaSerializer(serializers.ModelSerializer):
         fields = ['id', 'nombre', 'descripcion', 'color']
 
 
+# ─────────────────────────────────────────────────────────────────
+#  TICKETS (BLINDADOS CONTRA FECHAS NULL)
+# ─────────────────────────────────────────────────────────────────
+
 class TicketSerializer(serializers.ModelSerializer):
     sistema_nombre = serializers.CharField(source='sistema.nombre', read_only=True, allow_null=True)
     modulo_nombre = serializers.CharField(source='modulo.nombre', read_only=True, allow_null=True)
@@ -128,7 +143,7 @@ class TicketSerializer(serializers.ModelSerializer):
     usuario_asignado_nombre = serializers.CharField(source='usuario_asignado.nombre_completo', read_only=True, allow_null=True)
     tiempo_efectivo_minutos = serializers.ReadOnlyField()
 
-    # Campos de fecha controlados mediante método para evitar que viajen como null puros
+    # Cambiamos las fechas a SerializerMethodField para controlarlas estrictamente
     fecha_asignacion = serializers.SerializerMethodField()
     fecha_primera_respuesta = serializers.SerializerMethodField()
     fecha_resolucion = serializers.SerializerMethodField()
@@ -153,19 +168,27 @@ class TicketSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'folio', 'fecha_creacion']
 
-    # 🛡️ Si la fecha es null en base de datos, devolvemos un string vacío seguro ("") en lugar de null.
-    # Esto evitará por completo el quiebre de cualquier función .split('T') en Javascript.
+    # 🛡️ Si el campo es null en DB, retornamos de espejo la fecha_creacion en string ISO.
+    # Esto garantiza al Frontend una cadena válida "AAAA-MM-DDT..." para ejecutar .split('T').
     def get_fecha_asignacion(self, obj):
-        return obj.fecha_asignacion.isoformat() if obj.fecha_asignacion else ""
+        if obj.fecha_asignacion:
+            return obj.fecha_asignacion.isoformat()
+        return obj.fecha_creacion.isoformat()
 
     def get_fecha_primera_respuesta(self, obj):
-        return obj.fecha_primera_respuesta.isoformat() if obj.fecha_primera_respuesta else ""
+        if obj.fecha_primera_respuesta:
+            return obj.fecha_primera_respuesta.isoformat()
+        return obj.fecha_creacion.isoformat()
 
     def get_fecha_resolucion(self, obj):
-        return obj.fecha_resolucion.isoformat() if obj.fecha_resolucion else ""
+        if obj.fecha_resolucion:
+            return obj.fecha_resolucion.isoformat()
+        return obj.fecha_creacion.isoformat()
 
     def get_fecha_cierre(self, obj):
-        return obj.fecha_cierre.isoformat() if obj.fecha_cierre else ""
+        if obj.fecha_cierre:
+            return obj.fecha_cierre.isoformat()
+        return obj.fecha_creacion.isoformat()
 
 
 class TicketInputSerializer(serializers.ModelSerializer):
@@ -217,6 +240,10 @@ class TicketUpdateSerializer(serializers.ModelSerializer):
         ]
 
 
+# ─────────────────────────────────────────────────────────────────
+#  CHATTER Y LOGS DE TIEMPO
+# ─────────────────────────────────────────────────────────────────
+
 class ChatterEntrySerializer(serializers.ModelSerializer):
     autor_nombre = serializers.CharField(source='autor.nombre_completo', read_only=True, allow_null=True)
     fecha_creacion = serializers.SerializerMethodField()
@@ -229,9 +256,8 @@ class ChatterEntrySerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'ticket_id', 'tipo', 'autor_id', 'estado_anterior', 'estado_nuevo', 'fecha_creacion']
 
-    # Protegemos también las fechas de las entradas del historial
     def get_fecha_creacion(self, obj):
-        return obj.fecha_creacion.isoformat() if obj.fecha_creacion else ""
+        return obj.fecha_creacion.isoformat() if obj.fecha_creacion else "1970-01-01T00:00:00Z"
 
 
 class ChatterInputSerializer(serializers.Serializer):
@@ -247,11 +273,18 @@ class TimeLogSerializer(serializers.ModelSerializer):
         fields = ['id', 'ticket_id', 'estado_pausa', 'fecha_inicio', 'fecha_fin', 'duracion_minutos']
 
     def get_fecha_inicio(self, obj):
-        return obj.fecha_inicio.isoformat() if obj.fecha_inicio else ""
+        return obj.fecha_inicio.isoformat() if obj.fecha_inicio else "1970-01-01T00:00:00Z"
 
     def get_fecha_fin(self, obj):
-        return obj.fecha_fin.isoformat() if obj.fecha_fin else ""
+        # Si la pausa sigue activa, mandamos la de inicio para simular consistencia de texto
+        if obj.fecha_fin:
+            return obj.fecha_fin.isoformat()
+        return obj.fecha_inicio.isoformat()
 
+
+# ─────────────────────────────────────────────────────────────────
+#  BASE DE CONOCIMIENTO
+# ─────────────────────────────────────────────────────────────────
 
 class ConocimientoSerializer(serializers.ModelSerializer):
     sistema_nombre = serializers.CharField(source='sistema.nombre', read_only=True, allow_null=True)
@@ -268,4 +301,4 @@ class ConocimientoSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'fecha_creacion', 'veces_consultado', 'sistema_nombre']
 
     def get_fecha_creacion(self, obj):
-        return obj.fecha_creacion.isoformat() if obj.fecha_creacion else ""
+        return obj.fecha_creacion.isoformat() if obj.fecha_creacion else "1970-01-01T00:00:00Z"

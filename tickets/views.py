@@ -724,10 +724,21 @@ def compat_create_usuario(request):
 @permission_classes([IsAuthenticated])
 @authentication_classes([TokenAuthentication])
 def compat_update_usuario(request, pk=None):
+    """Maneja la actualización de usuarios inyectando el mapeo booleano directo."""
+    # 1. Extraemos el payload plano que nos manda React
     payload = request.data.get('data') if 'data' in request.data else request.data
-    if payload is None: payload = request.data
+    if payload is None: 
+        payload = request.data
+
+    # Convertimos a un diccionario mutable de Python para poder meterle mano
+    custom_data = payload.copy() if hasattr(payload, 'copy') else dict(payload)
+
+    # 2. 🔴 TRADUCCIÓN INMEDIATA: Si viene 'estado', inyectamos el booleano 'activo' que Django exige
+    if 'estado' in custom_data:
+        custom_data['activo'] = custom_data['estado'] in ['Activo', 'activo', True, 'true', 'True', 1, '1']
     
-    usuario_id = pk or payload.get('id') or request.query_params.get('id')
+    # 3. Recuperamos el ID del usuario
+    usuario_id = pk or custom_data.get('id') or request.query_params.get('id')
     if not usuario_id:
         return Response({'detail': 'Falta el ID del usuario.'}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -736,7 +747,9 @@ def compat_update_usuario(request, pk=None):
     except Usuario.DoesNotExist:
         return Response({'detail': 'Usuario no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
         
-    serializer = UsuarioUpdateSerializer(usuario, data=payload, partial=True)
+    # 4. Le pasamos los datos ya corregidos al serializador base de usuarios
+    # Usamos UsuarioSerializer directamente ya que custom_data tiene exactamente el formato que espera
+    serializer = UsuarioSerializer(usuario, data=custom_data, partial=True)
     serializer.is_valid(raise_exception=True)
     serializer.save()
     return Response(serializer.data, status=status.HTTP_200_OK)

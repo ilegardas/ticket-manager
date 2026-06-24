@@ -14,7 +14,9 @@ router.register(r'categorias', views.CategoriaViewSet, basename='categoria')
 router.register(r'conocimiento', views.ConocimientoViewSet, basename='conocimiento')
 
 urlpatterns = [
-    # Tu enrutamiento original estructurado
+    # ─────────────────────────────────────────────────────────────────
+    # Enrutamiento Original (Buenas Prácticas)
+    # ─────────────────────────────────────────────────────────────────
     path('', include(router.urls)),
     path('auth/login', views.login_view),
     path('auth/logout', views.logout_view),
@@ -30,61 +32,38 @@ urlpatterns = [
     path('reportes/actividad-reciente', views.actividad_reciente),
 
     # ─────────────────────────────────────────────────────────────────
-    # 🔴 ALIAS DE COMPATIBILIDAD PARA EL FRONTEND (RESUELVE LOS 404)
+    # 🔴 ALIAS DE COMPATIBILIDAD INDESTRUCTIBLES PARA EL FRONTEND
     # ─────────────────────────────────────────────────────────────────
     
-    # Compatibilidad para Catálogos y Creación/Edición Directa
+    # Compatibilidad para Sistemas
     path('sistema', views.SistemaViewSet.as_view({'get': 'list', 'post': 'create'})),
     path('sistema/', views.SistemaViewSet.as_view({'get': 'list', 'post': 'create'})),
     
-    # Cambiamos los ViewSets por las funciones planas e indestructibles que acabamos de crear
+    # Compatibilidad para Usuarios (Funciones Planas)
     path('createusuario', views.compat_create_usuario),
     path('createusuario/', views.compat_create_usuario),
-    
     path('updateusuario', views.compat_update_usuario),
     path('updateusuario/', views.compat_update_usuario),
     path('updateusuario/<int:pk>', views.compat_update_usuario),
     path('updateusuario/<int:pk>/', views.compat_update_usuario),
-
     
-
-    # 🆕 AGREGAR MÓDULOS: Mapear la ruta que el front busca para crear módulos
-    path('createmodulo', views.ModuloViewSet.as_view({'post': 'create'})),
-    path('createmodulo/', views.ModuloViewSet.as_view({'post': 'create'})),
+    # Compatibilidad para Tickets y Módulos (Usando las nuevas vistas anti-bloqueo/anti-400)
+    path('createticket', views.compat_create_ticket),
+    path('createticket/', views.compat_create_ticket),
+    path('createmodulo', views.compat_create_modulo),
+    path('createmodulo/', views.compat_create_modulo),
     
-    # 🆕 AGREGADOS: Creación de Tickets y Conocimiento según tus logs
-    path('createticket', views.TicketViewSet.as_view({'post': 'create'})),
-    path('createticket/', views.TicketViewSet.as_view({'post': 'create'})),
-    
+    # Compatibilidad para Base de Conocimiento
     path('createconocimiento', views.ConocimientoViewSet.as_view({'post': 'create'})),
     path('createconocimiento/', views.ConocimientoViewSet.as_view({'post': 'create'})),
 
-    # Compatibilidad para los Reportes y Métodos Auxiliares
+    # Compatibilidad para Reportes y Métodos Auxiliares
     path('reporteresumen', views.reporte_resumen),
     path('reporteresumen/', views.reporte_resumen),
-    
     path('reporteporsistema', views.reporte_por_sistema),
     path('reporteporsistema/', views.reporte_por_sistema),
-    
     path('reporteporestado', views.reporte_por_estado),
     path('reporteporestado/', views.reporte_por_estado),
-    
     path('reporteporprioridad', views.reporte_por_prioridad),
     path('reporteporprioridad/', views.reporte_por_prioridad),
-    
-    path('reportetendencias', views.reporte_tendencias),
-    path('reportetendencias/', views.reporte_tendencias),
-    
-    path('actividadreciente', views.actividad_reciente),
-    path('actividadreciente/', views.actividad_reciente),
-    
-    # 🆕 AGREGADOS: Reportes faltantes que salieron en los logs
-    path('reporteporregion', views.reporte_por_region),
-    path('reporteporregion/', views.reporte_por_region),
-    
-    path('reportesla', views.reporte_sla),
-    path('reportesla/', views.reporte_sla),
-    
-    path('reportetickets', views.reporte_tickets),
-    path('reportetickets/', views.reporte_tickets),
-]
+    path

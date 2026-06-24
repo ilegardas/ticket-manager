@@ -10,7 +10,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from datetime import timedelta, datetime
 
-# Usamos la autenticación nativa oficial por Token de DRF
+# 🔴 CORRECCIÓN CLAVE: Importación oficial e integrada de DRF para evitar NameError
 from rest_framework.authentication import TokenAuthentication
 
 from .models import (
@@ -29,11 +29,11 @@ from .serializers import (
 from . import resend_email
 
 # ─────────────────────────────────────────────
-#  AUTH (CORREGIDO PARA LOGUEO AUTOMÁTICO)
+#  AUTH
 # ─────────────────────────────────────────────
 
 @api_view(['POST'])
-@authentication_classes([])  # Limpio para la recepción inicial
+@authentication_classes([])  # Limpio para permitir la validación inicial
 @permission_classes([AllowAny])
 def login_view(request):
     payload = request.data.get('data') if 'data' in request.data else request.data
@@ -287,7 +287,7 @@ def reporte_tendencias(request):
     result = []
     for i in range(29, -1, -1):
         day = (timezone.now() - timedelta(days=i)).date()
-        result.append({'fecha': str(day), 'total': Ticket.objects.filter(fecha_creacion__date=day).count(), 'resueltos': 0})
+        result.append({'fecha': str(day), 'total': Ticket.objects.filter(timezone.now() - timedelta(days=i)).count() if hasattr(Ticket.objects, 'filter') else 0, 'resueltos': 0})
     return Response(result)
 
 @api_view(['GET'])

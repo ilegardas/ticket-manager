@@ -10,8 +10,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from datetime import timedelta, datetime
 
-# 🔴 SOLUCIÓN DE RAÍZ: Usamos la autenticación nativa por Token de DRF. 
-# Esto elimina la dependencia de 'tickets.authentication' y evita caídas de importación.
+# Usamos la autenticación nativa oficial por Token de DRF
 from rest_framework.authentication import TokenAuthentication
 
 from .models import (
@@ -30,10 +29,11 @@ from .serializers import (
 from . import resend_email
 
 # ─────────────────────────────────────────────
-#  AUTH
+#  AUTH (CORREGIDO PARA LOGUEO AUTOMÁTICO)
 # ─────────────────────────────────────────────
 
 @api_view(['POST'])
+@authentication_classes([])  # Limpio para la recepción inicial
 @permission_classes([AllowAny])
 def login_view(request):
     payload = request.data.get('data') if 'data' in request.data else request.data
@@ -65,6 +65,7 @@ def login_view(request):
     })
 
 @api_view(['POST'])
+@authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def logout_view(request):
     Token.objects.filter(usuario=request.user).delete()
@@ -122,6 +123,8 @@ class TicketViewSet(viewsets.ModelViewSet):
     search_fields = ['folio', 'titulo', 'descripcion', 'codigo_error']
     ordering_fields = ['fecha_creacion', 'prioridad__orden', 'estado__orden']
     ordering = ['-fecha_creacion']
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
 
     def create(self, request, *args, **kwargs):
         data = request.data.get('data') if 'data' in request.data else request.data
@@ -166,20 +169,28 @@ class SistemaViewSet(viewsets.ModelViewSet):
     queryset = Sistema.objects.prefetch_related('modulos', 'tickets').all()
     serializer_class = SistemaSerializer
     pagination_class = None
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
 
 class ModuloViewSet(viewsets.ModelViewSet):
     queryset = Modulo.objects.select_related('sistema').prefetch_related('tickets').all()
     serializer_class = ModuloSerializer
     pagination_class = None
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
 
 class DocumentoViewSet(viewsets.ModelViewSet):
     queryset = Documento.objects.select_related('sistema', 'modulo').all()
     serializer_class = DocumentoSerializer
     pagination_class = None
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
 
 class UsuarioViewSet(viewsets.ModelViewSet):
     queryset = Usuario.objects.all()
     pagination_class = None
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     def get_serializer_class(self):
         if self.action == 'create': return UsuarioInputSerializer
         if self.action in ['partial_update', 'update']: return UsuarioUpdateSerializer
@@ -204,9 +215,11 @@ class ConocimientoViewSet(viewsets.ModelViewSet):
     queryset = ConocimientoEntry.objects.select_related('sistema', 'modulo').all()
     serializer_class = ConocimientoSerializer
     pagination_class = None
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
 
 # ─────────────────────────────────────────────
-#  REPORTES CORE (RESTABLECE EL DASHBOARD)
+#  REPORTES CORE
 # ─────────────────────────────────────────────
 
 @api_view(['GET'])

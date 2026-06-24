@@ -39,12 +39,16 @@ class UsuarioInputSerializer(serializers.ModelSerializer):
 
 
 class UsuarioUpdateSerializer(serializers.ModelSerializer):
+    # Incluimos correo electrónico por si el frontend lo envía en el payload (como read_only para evitar romper la petición)
+    correo_electronico = serializers.EmailField(read_only=True)
+
     class Meta:
         model = Usuario
         fields = [
-            'nombre_completo', 'numero_empleado', 'puesto_cargo', 'cct',
-            'region_zona', 'nivel_educativo', 'rol', 'activo',
+            'id', 'correo_electronico', 'nombre_completo', 'numero_empleado', 
+            'puesto_cargo', 'cct', 'region_zona', 'nivel_educativo', 'rol', 'activo',
         ]
+        read_only_fields = ['id', 'correo_electronico']
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -64,10 +68,10 @@ class SistemaSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'fecha_creacion']
 
     def get_total_tickets(self, obj):
-        return obj.tickets.count()
+        return obj.tickets.count() if hasattr(obj, 'tickets') else 0
 
     def get_total_modulos(self, obj):
-        return obj.modulos.count()
+        return obj.modulos.count() if hasattr(obj, 'modulos') else 0
 
 
 class ModuloSerializer(serializers.ModelSerializer):
@@ -85,7 +89,7 @@ class ModuloSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'fecha_creacion', 'sistema_nombre']
 
     def get_total_tickets(self, obj):
-        return obj.tickets.count()
+        return obj.tickets.count() if hasattr(obj, 'tickets') else 0
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -128,22 +132,31 @@ class CategoriaSerializer(serializers.ModelSerializer):
 
 
 # ─────────────────────────────────────────────────────────────────
-#  TICKETS (BLINDADOS CONTRA FECHAS NULL)
+#  TICKETS (VISTA COMPLETA Y ESCRITURA UNIFICADA)
 # ─────────────────────────────────────────────────────────────────
 
 class TicketSerializer(serializers.ModelSerializer):
-    sistema_nombre = serializers.CharField(source='sistema.nombre', read_only=True, allow_null=True)
-    modulo_nombre = serializers.CharField(source='modulo.nombre', read_only=True, allow_null=True)
-    prioridad_nombre = serializers.CharField(source='prioridad.nombre', read_only=True, allow_null=True)
-    prioridad_color = serializers.CharField(source='prioridad.color', read_only=True, allow_null=True)
-    estado_nombre = serializers.CharField(source='estado.nombre', read_only=True, allow_null=True)
-    estado_color = serializers.CharField(source='estado.color', read_only=True, allow_null=True)
-    categoria_nombre = serializers.CharField(source='categoria.nombre', read_only=True, allow_null=True)
-    usuario_reporta_nombre = serializers.CharField(source='usuario_reporta.nombre_completo', read_only=True, allow_null=True)
-    usuario_asignado_nombre = serializers.CharField(source='usuario_asignado.nombre_completo', read_only=True, allow_null=True)
+    # Campos de solo lectura para el Frontend
+    sistema_nombre = serializers.CharField(source='sistema.nombre', read_only=True, default="")
+    modulo_nombre = serializers.CharField(source='modulo.nombre', read_only=True, default="")
+    prioridad_nombre = serializers.CharField(source='prioridad.nombre', read_only=True, default="")
+    prioridad_color = serializers.CharField(source='prioridad.color', read_only=True, default="")
+    estado_nombre = serializers.CharField(source='estado.nombre', read_only=True, default="")
+    estado_color = serializers.CharField(source='estado.color', read_only=True, default="")
+    categoria_nombre = serializers.CharField(source='categoria.nombre', read_only=True, default="")
+    usuario_reporta_nombre = serializers.CharField(source='usuario_reporta.nombre_completo', read_only=True, default="")
+    usuario_asignado_nombre = serializers.CharField(source='usuario_asignado.nombre_completo', read_only=True, default="")
     tiempo_efectivo_minutos = serializers.ReadOnlyField()
 
-    # Cambiamos las fechas a SerializerMethodField para controlarlas estrictamente
+    # Mapeos explícitos de ID de confianza tanto para lectura como para prevenir fallas al guardar/actualizar
+    sistema_id = serializers.PrimaryKeyRelatedField(source='sistema', queryset=Sistema.objects.all(), allow_null=True, required=False)
+    modulo_id = serializers.PrimaryKeyRelatedField(source='modulo', queryset=Modulo.objects.all(), allow_null=True, required=False)
+    prioridad_id = serializers.PrimaryKeyRelatedField(source='prioridad', queryset=Prioridad.objects.all(), allow_null=True, required=False)
+    estado_id = serializers.PrimaryKeyRelatedField(source='estado', queryset=Estado.objects.all(), allow_null=True, required=False)
+    categoria_id = serializers.PrimaryKeyRelatedField(source='categoria', queryset=Categoria.objects.all(), allow_null=True, required=False)
+    usuario_reporta_id = serializers.PrimaryKeyRelatedField(source='usuario_reporta', queryset=Usuario.objects.all(), allow_null=True, required=False)
+    usuario_asignado_id = serializers.PrimaryKeyRelatedField(source='usuario_asignado', queryset=Usuario.objects.all(), allow_null=True, required=False)
+
     fecha_asignacion = serializers.SerializerMethodField()
     fecha_primera_respuesta = serializers.SerializerMethodField()
     fecha_resolucion = serializers.SerializerMethodField()
@@ -153,8 +166,7 @@ class TicketSerializer(serializers.ModelSerializer):
         model = Ticket
         fields = [
             'id', 'folio', 'titulo', 'descripcion', 'impacto_proceso', 'medio_ingreso',
-            'sistema_id', 'sistema_nombre',
-            'modulo_id', 'modulo_nombre',
+            'sistema_id', 'sistema_nombre', 'modulo_id', 'modulo_nombre',
             'prioridad_id', 'prioridad_nombre', 'prioridad_color',
             'estado_id', 'estado_nombre', 'estado_color',
             'categoria_id', 'categoria_nombre',
@@ -168,44 +180,27 @@ class TicketSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'folio', 'fecha_creacion']
 
-    # 🛡️ Si el campo es null en DB, retornamos de espejo la fecha_creacion en string ISO.
-    # Esto garantiza al Frontend una cadena válida "AAAA-MM-DDT..." para ejecutar .split('T').
     def get_fecha_asignacion(self, obj):
-        if obj.fecha_asignacion:
-            return obj.fecha_asignacion.isoformat()
-        return obj.fecha_creacion.isoformat()
+        return obj.fecha_asignacion.isoformat() if obj.fecha_asignacion else obj.fecha_creacion.isoformat()
 
     def get_fecha_primera_respuesta(self, obj):
-        if obj.fecha_primera_respuesta:
-            return obj.fecha_primera_respuesta.isoformat()
-        return obj.fecha_creacion.isoformat()
+        return obj.fecha_primera_respuesta.isoformat() if obj.fecha_primera_respuesta else obj.fecha_creacion.isoformat()
 
     def get_fecha_resolucion(self, obj):
-        if obj.fecha_resolucion:
-            return obj.fecha_resolucion.isoformat()
-        return obj.fecha_creacion.isoformat()
+        return obj.fecha_resolucion.isoformat() if obj.fecha_resolucion else obj.fecha_creacion.isoformat()
 
     def get_fecha_cierre(self, obj):
-        if obj.fecha_cierre:
-            return obj.fecha_cierre.isoformat()
-        return obj.fecha_creacion.isoformat()
+        return obj.fecha_cierre.isoformat() if obj.fecha_cierre else obj.fecha_creacion.isoformat()
 
 
 class TicketInputSerializer(serializers.ModelSerializer):
-    sistema_id = serializers.PrimaryKeyRelatedField(
-        source='sistema', queryset=Sistema.objects.all(), allow_null=True, required=False)
-    modulo_id = serializers.PrimaryKeyRelatedField(
-        source='modulo', queryset=Modulo.objects.all(), allow_null=True, required=False)
-    prioridad_id = serializers.PrimaryKeyRelatedField(
-        source='prioridad', queryset=Prioridad.objects.all(), allow_null=True, required=False)
-    estado_id = serializers.PrimaryKeyRelatedField(
-        source='estado', queryset=Estado.objects.all(), allow_null=True, required=False)
-    categoria_id = serializers.PrimaryKeyRelatedField(
-        source='categoria', queryset=Categoria.objects.all(), allow_null=True, required=False)
-    usuario_reporta_id = serializers.PrimaryKeyRelatedField(
-        source='usuario_reporta', queryset=Usuario.objects.all(), allow_null=True, required=False)
-    usuario_asignado_id = serializers.PrimaryKeyRelatedField(
-        source='usuario_asignado', queryset=Usuario.objects.all(), allow_null=True, required=False)
+    sistema_id = serializers.PrimaryKeyRelatedField(source='sistema', queryset=Sistema.objects.all(), allow_null=True, required=False)
+    modulo_id = serializers.PrimaryKeyRelatedField(source='modulo', queryset=Modulo.objects.all(), allow_null=True, required=False)
+    prioridad_id = serializers.PrimaryKeyRelatedField(source='prioridad', queryset=Prioridad.objects.all(), allow_null=True, required=False)
+    estado_id = serializers.PrimaryKeyRelatedField(source='estado', queryset=Estado.objects.all(), allow_null=True, required=False)
+    categoria_id = serializers.PrimaryKeyRelatedField(source='categoria', queryset=Categoria.objects.all(), allow_null=True, required=False)
+    usuario_reporta_id = serializers.PrimaryKeyRelatedField(source='usuario_reporta', queryset=Usuario.objects.all(), allow_null=True, required=False)
+    usuario_asignado_id = serializers.PrimaryKeyRelatedField(source='usuario_asignado', queryset=Usuario.objects.all(), allow_null=True, required=False)
 
     class Meta:
         model = Ticket
@@ -217,18 +212,12 @@ class TicketInputSerializer(serializers.ModelSerializer):
 
 
 class TicketUpdateSerializer(serializers.ModelSerializer):
-    sistema_id = serializers.PrimaryKeyRelatedField(
-        source='sistema', queryset=Sistema.objects.all(), allow_null=True, required=False)
-    modulo_id = serializers.PrimaryKeyRelatedField(
-        source='modulo', queryset=Modulo.objects.all(), allow_null=True, required=False)
-    prioridad_id = serializers.PrimaryKeyRelatedField(
-        source='prioridad', queryset=Prioridad.objects.all(), allow_null=True, required=False)
-    estado_id = serializers.PrimaryKeyRelatedField(
-        source='estado', queryset=Estado.objects.all(), allow_null=True, required=False)
-    categoria_id = serializers.PrimaryKeyRelatedField(
-        source='categoria', queryset=Categoria.objects.all(), allow_null=True, required=False)
-    usuario_asignado_id = serializers.PrimaryKeyRelatedField(
-        source='usuario_asignado', queryset=Usuario.objects.all(), allow_null=True, required=False)
+    sistema_id = serializers.PrimaryKeyRelatedField(source='sistema', queryset=Sistema.objects.all(), allow_null=True, required=False)
+    modulo_id = serializers.PrimaryKeyRelatedField(source='modulo', queryset=Modulo.objects.all(), allow_null=True, required=False)
+    prioridad_id = serializers.PrimaryKeyRelatedField(source='prioridad', queryset=Prioridad.objects.all(), allow_null=True, required=False)
+    estado_id = serializers.PrimaryKeyRelatedField(source='estado', queryset=Estado.objects.all(), allow_null=True, required=False)
+    categoria_id = serializers.PrimaryKeyRelatedField(source='categoria', queryset=Categoria.objects.all(), allow_null=True, required=False)
+    usuario_asignado_id = serializers.PrimaryKeyRelatedField(source='usuario_asignado', queryset=Usuario.objects.all(), allow_null=True, required=False)
 
     class Meta:
         model = Ticket
@@ -245,7 +234,7 @@ class TicketUpdateSerializer(serializers.ModelSerializer):
 # ─────────────────────────────────────────────────────────────────
 
 class ChatterEntrySerializer(serializers.ModelSerializer):
-    autor_nombre = serializers.CharField(source='autor.nombre_completo', read_only=True, allow_null=True)
+    autor_nombre = serializers.CharField(source='autor.nombre_completo', read_only=True, default="")
     fecha_creacion = serializers.SerializerMethodField()
 
     class Meta:
@@ -276,7 +265,6 @@ class TimeLogSerializer(serializers.ModelSerializer):
         return obj.fecha_inicio.isoformat() if obj.fecha_inicio else "1970-01-01T00:00:00Z"
 
     def get_fecha_fin(self, obj):
-        # Si la pausa sigue activa, mandamos la de inicio para simular consistencia de texto
         if obj.fecha_fin:
             return obj.fecha_fin.isoformat()
         return obj.fecha_inicio.isoformat()
@@ -287,7 +275,7 @@ class TimeLogSerializer(serializers.ModelSerializer):
 # ─────────────────────────────────────────────────────────────────
 
 class ConocimientoSerializer(serializers.ModelSerializer):
-    sistema_nombre = serializers.CharField(source='sistema.nombre', read_only=True, allow_null=True)
+    sistema_nombre = serializers.CharField(source='sistema.nombre', read_only=True, default="")
     fecha_creacion = serializers.SerializerMethodField()
 
     class Meta:

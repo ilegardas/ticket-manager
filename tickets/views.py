@@ -705,7 +705,7 @@ def actividad_reciente(request):
     ])
 
 # ─────────────────────────────────────────────────────────────────
-#  FUNCIONES DE COMPATIBILIDAD A PRUEBA DE BALAS
+#  NUEVAS VISTAS PLANAS DE COMPATIBILIDAD (EVITAN ENRUTAMIENTOS RAROS)
 # ─────────────────────────────────────────────────────────────────
 
 @api_view(['POST', 'GET'])
@@ -747,15 +747,12 @@ def compat_update_usuario(request, pk=None):
 @permission_classes([IsAuthenticated])
 @authentication_classes([TokenAuthentication])
 def compat_create_ticket(request):
-    """Desenuelve el JSON de Axios y fuerza la creación del Ticket."""
     payload = request.data.get('data') if 'data' in request.data else request.data
     if payload is None: payload = request.data
     
     serializer = TicketInputSerializer(data=payload)
     serializer.is_valid(raise_exception=True)
-    
-    # Pasamos el usuario autenticado explícitamente en el perform_create manual
-    ticket = serializer.save()
+    serializer.save()
     return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
@@ -763,7 +760,6 @@ def compat_create_ticket(request):
 @permission_classes([IsAuthenticated])
 @authentication_classes([TokenAuthentication])
 def compat_create_modulo(request):
-    """Crea el módulo de forma plana evitando bucles de redirección de ViewSets."""
     payload = request.data.get('data') if 'data' in request.data else request.data
     if payload is None: payload = request.data
     

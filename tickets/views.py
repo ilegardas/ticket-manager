@@ -767,3 +767,19 @@ def compat_create_modulo(request):
     serializer.is_valid(raise_exception=True)
     serializer.save()
     return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['POST', 'GET'])
+@permission_classes([IsAuthenticated])
+@authentication_classes([TokenAuthentication])
+def compat_create_conocimiento(request):
+    """Desenuelve el JSON de Axios y fuerza la creación de Entradas de Conocimiento."""
+    payload = request.data.get('data') if 'data' in request.data else request.data
+    if payload is None: 
+        payload = request.data
+    
+    # Usamos tu serializador correspondiente para validar y guardar en Postgres
+    serializer = ConocimientoEntrySerializer(data=payload)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(serializer.data, status=status.HTTP_201_CREATED)

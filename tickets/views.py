@@ -450,3 +450,47 @@ def compat_timelogs_list(request):
         logs = TicketTimeLog.objects.filter(ticket_id=ticket_id).order_by('fecha_inicio')
         return Response(TimeLogSerializer(logs, many=True).data)
     return Response([])
+
+
+
+@api_view(['GET', 'PUT', 'PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated])
+@authentication_classes([TokenAuthentication])
+def compat_ticket_detail(request, pk):
+    """🆕 ALIAS DETALLE DE TICKET: Intercepta /api/ticket/<id> de forma directa y atiende el CRUD."""
+    try:
+        # Buscamos el ticket de forma optimizada trayendo sus relaciones
+        ticket = Ticket.objects.select_related(
+            'sistema', 'modulo', 'prioridad', 'estado', 'categoria', 
+            'usuario_reporta', 'usuario_asignado'
+        ).get(pk=pk)
+    except Ticket.DoesNotExist:
+        return Response({'detail': 'El ticket solicitado no existe.'}, status=status.HTTP_404_NOT_FOUND)
+
+    # ACCIÓN: Obtener información del ticket
+    if request.method == 'GET':
+        serializer = TicketSerializer(ticket)
+        return Response(serializer.data)
+
+    # ACCIÓN: Actualización parcial o completa del ticket
+    elif request.method in ['PUT', 'PATCH']:
+        payload = request.data.get('data') if 'data' in request.data else request.data
+        if payload is None: payload = request.data
+        
+        old_estado = ticket.estado
+        serializer = TicketUpdateSerializer(ticket, data=payload, partial=True)
+        serializer.is_valid(raise_exception=True)
+        ticket_actualizado = serializer.save()
+        
+        # Disparamos la lógica del SLA si cambió el estado
+        new_estado = ticket_actualizado.estado
+        if old_estado != new_estado:
+            _handle_state_change(ticket_actualizado, old_estado, new_estado, request.user)
+            
+        # Retornamos el ticket actualizado con el formato completo
+        return Response(TicketSerializer(ticket_actualizado).data)
+
+    # ACCIÓN: Eliminar el ticket
+    elif request.method == 'DELETE':
+        ticket.delete()
+        return Response({'detail': 'Ticket eliminado correctamente.'}, status=status.HTTP_200_OK)

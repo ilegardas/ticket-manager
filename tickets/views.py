@@ -29,7 +29,7 @@ from .serializers import (
 from . import resend_email
 
 # ─────────────────────────────────────────────────────────────────
-#  🔴 AUTENTICACIÓN HÍBRIDA ROBUSTA ANTI-401 (TOKEN / BEARER)
+#  AUTENTICACIÓN HÍBRIDA ROBUSTA (TOKEN / BEARER)
 # ─────────────────────────────────────────────────────────────────
 class TokenAuthentication(BaseAuthentication):
     def authenticate(self, request):
@@ -113,7 +113,7 @@ def _handle_state_change(ticket, old_estado, new_estado, user):
 class TicketViewSet(viewsets.ModelViewSet):
     queryset = Ticket.objects.select_related('sistema', 'modulo', 'prioridad', 'estado', 'categoria', 'usuario_reporta', 'usuario_asignado').all()
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['estado', 'prioridad', 'categoria', 'sistema', 'modulo', 'usuario_assigned', 'usuario_reporta']
+    filterset_fields = ['estado', 'prioridad', 'categoria', 'sistema', 'modulo', 'usuario_asignado', 'usuario_reporta']
     search_fields = ['folio', 'titulo', 'descripcion', 'codigo_error']
     ordering_fields = ['fecha_creacion', 'prioridad__orden', 'estado__orden']
     ordering = ['-fecha_creacion']
@@ -126,6 +126,17 @@ class TicketViewSet(viewsets.ModelViewSet):
         ticket = serializer.save()
         if ticket.estado and ticket.estado.pausa_sla: TicketTimeLog.objects.create(ticket=ticket, estado_pausa=ticket.estado.nombre, fecha_inicio=timezone.now())
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    def get_queryset(self):
+        qs = super().get_queryset()
+        vista = self.request.query_params.get('vista')
+        if not vista or vista == 'todos': return qs
+        now = timezone.now()
+        if vista == 'abiertos': return qs.filter(estado__es_estado_cierre=False)
+        if vista == 'en_proceso': return qs.filter(estado__es_estado_cierre=False, usuario_asignado__isnull=False)
+        if vista == 'resueltos': return qs.filter(estado__es_estado_cierre=True, fecha_cierre__isnull=True)
+        if vista == 'cerrados': return qs.filter(estado__es_estado_cierre=True)
+        if vista == 'hoy': return qs.filter(fecha_creacion__date=now.date())
+        return qs
     def get_serializer_class(self):
         if self.action == 'create': return TicketInputSerializer
         if self.action in ['partial_update', 'update']: return TicketUpdateSerializer
@@ -219,13 +230,20 @@ def reporte_tendencias(request):
 
 @api_view(['GET'])
 def reporte_por_region(request): return Response([])
+
 @api_view(['GET'])
-def reporte_tickets(request): return Response(TicketSerializer(Ticket.objects.all()[:100], many=True).data)
+@permission_classes([AllowAny])
+def reporte_tickets(request): 
+    # 🔴 RESTABLECIMIENTO CRÍTICO: Serializa el QuerySet completo de tickets con el formato adecuado
+    qs = Ticket.objects.select_related('sistema', 'modulo', 'prioridad', 'estado', 'categoria', 'usuario_reporta', 'usuario_asignado').all()[:100]
+    serializer = TicketSerializer(qs, many=True)
+    return Response(serializer.data)
+
 @api_view(['GET'])
 def actividad_reciente(request): return Response([])
 
 # ─────────────────────────────────────────────────────────────────
-#  VISTAS DE COMPATIBILIDAD DESEMPAQUETADORAS (CRUD)
+#  ENDPOINTS DE COMPATIBILIDAD (CRUD)
 # ─────────────────────────────────────────────────────────────────
 
 @api_view(['POST', 'GET'])
@@ -323,9 +341,13 @@ def compat_timelogs_list(request):
 @authentication_classes([TokenAuthentication])
 def compat_ticket_detail(request, pk):
     try:
-        ticket = Ticket.objects.select_related('sistema', 'modulo', 'prioridad', 'estado', 'categoria', 'usuario_reporta', 'usuario_asignado').get(pk=pk)
+        ticket = Ticket.objects.select_related('sistema', 'modulo', 'prioridad', 'estado', 'categoria', 'usuario_reporta', 'usuario_assigned').get(pk=pk)
     except Ticket.DoesNotExist:
-        return Response({'detail': 'No encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            ticket = Ticket.objects.select_related('sistema', 'modulo', 'prioridad', 'estado', 'categoria', 'usuario_reporta', 'usuario_asignado').get(pk=pk)
+        except Ticket.DoesNotExist:
+            return Response({'detail': 'No encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+            
     if request.method == 'GET':
         return Response(TicketSerializer(ticket).data)
     elif request.method in ['PUT', 'PATCH']:

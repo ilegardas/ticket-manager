@@ -32,7 +32,7 @@ urlpatterns = [
     path('reportes/actividad-reciente', views.actividad_reciente),
 
     # ─────────────────────────────────────────────────────────────────
-    # 🔴 ALIAS DE COMPATIBILIDAD INDESTRUCTIBLES PARA EL FRONTEND
+    # 🔴 ALIAS DE COMPATIBILIDAD PARA EL FRONTEND (RESUELVE LOS 404)
     # ─────────────────────────────────────────────────────────────────
     
     # Compatibilidad para Sistemas
@@ -47,7 +47,7 @@ urlpatterns = [
     path('updateusuario/<int:pk>', views.compat_update_usuario),
     path('updateusuario/<int:pk>/', views.compat_update_usuario),
     
-    # Compatibilidad para Tickets y Módulos (Usando las nuevas vistas anti-bloqueo/anti-400)
+    # Compatibilidad para Tickets y Módulos (Vistas anti-bloqueo y anti-400)
     path('createticket', views.compat_create_ticket),
     path('createticket/', views.compat_create_ticket),
     path('createmodulo', views.compat_create_modulo),
@@ -66,4 +66,15 @@ urlpatterns = [
     path('reporteporestado/', views.reporte_por_estado),
     path('reporteporprioridad', views.reporte_por_prioridad),
     path('reporteporprioridad/', views.reporte_por_prioridad),
-    path
+    path('reportetendencias', views.reporte_tendencias),
+    path('reportetendencias/', views.reporte_tendencias),
+    path('actividadreciente', views.actividad_reciente),
+    path('actividadreciente/', views.actividad_reciente),
+    path('reporteporregion', views.reporte_por_region),
+    path('reporteporregion/', views.reporte_por_region),
+    path('reportesla', views.reporte_sla),
+    path('reportesla/', views.reporte_sla),
+    path('reportettickets', views.reporte_tickets),
+    path('reportetickets', views.reporte_tickets),
+    path('reportetickets/', views.reporte_tickets),
+] # <- Aquí se cierra correctamente la lista

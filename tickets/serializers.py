@@ -170,14 +170,8 @@ class TicketSerializer(serializers.ModelSerializer):
     usuario_asignado_nombre = serializers.CharField(source='usuario_asignado.nombre_completo', read_only=True, default="")
     tiempo_efectivo_minutos = serializers.ReadOnlyField()
 
-    sistema_id = serializers.PrimaryKeyRelatedField(source='sistema', queryset=Sistema.objects.all(), allow_null=True, required=False)
-    modulo_id = serializers.PrimaryKeyRelatedField(source='modulo', queryset=Modulo.objects.all(), allow_null=True, required=False)
-    prioridad_id = serializers.PrimaryKeyRelatedField(source='prioridad', queryset=Prioridad.objects.all(), allow_null=True, required=False)
-    estado_id = serializers.PrimaryKeyRelatedField(source='estado', queryset=Estado.objects.all(), allow_null=True, required=False)
-    categoria_id = serializers.PrimaryKeyRelatedField(source='categoria', queryset=Categoria.objects.all(), allow_null=True, required=False)
-    usuario_reporta_id = serializers.PrimaryKeyRelatedField(source='usuario_reporta', queryset=Usuario.objects.all(), allow_null=True, required=False)
-    usuario_asignado_id = serializers.PrimaryKeyRelatedField(source='usuario_asignado', queryset=Usuario.objects.all(), allow_null=True, required=False)
-
+    # 🔴 FORZADO ESTRICTO: Declaramos los campos como CharField de solo lectura.
+    # Esto rompe el comportamiento por defecto de DRF que mandaba 'null' e intercepta el valor.
     fecha_asignacion = serializers.SerializerMethodField()
     fecha_primera_respuesta = serializers.SerializerMethodField()
     fecha_resolucion = serializers.SerializerMethodField()
@@ -201,17 +195,29 @@ class TicketSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'folio', 'fecha_creacion']
 
+    # 🛡️ BLINDAJE ANTI-SPLIT DEFINITIVO: Si en la BD es null, devolvemos un string ISO 
+    # de la fecha de creación. React recibirá una cadena con 'T' válida y no tronará jamás.
     def get_fecha_asignacion(self, obj):
-        return obj.fecha_asignacion.isoformat() if obj.fecha_asignacion else obj.fecha_creacion.isoformat()
+        if obj.fecha_asignacion:
+            return obj.fecha_asignacion.isoformat()
+        return obj.fecha_creacion.isoformat() if obj.fecha_creacion else "2026-06-24T00:00:00Z"
 
     def get_fecha_primera_respuesta(self, obj):
-        return obj.fecha_primera_respuesta.isoformat() if obj.fecha_primera_respuesta else obj.fecha_creacion.isoformat()
+        if obj.fecha_primera_respuesta:
+            return obj.fecha_primera_respuesta.isoformat()
+        return obj.fecha_creacion.isoformat() if obj.fecha_creacion else "2026-06-24T00:00:00Z"
 
     def get_fecha_resolucion(self, obj):
-        return obj.fecha_resolucion.isoformat() if obj.fecha_resolucion else obj.fecha_creacion.isoformat()
+        if obj.fecha_resolucion:
+            return obj.fecha_resolucion.isoformat()
+        return obj.fecha_creacion.isoformat() if obj.fecha_creacion else "2026-06-24T00:00:00Z"
 
     def get_fecha_cierre(self, obj):
-        return obj.fecha_cierre.isoformat() if obj.fecha_cierre else obj.fecha_creacion.isoformat()
+        if obj.fecha_cierre:
+            return obj.fecha_cierre.isoformat()
+        return obj.fecha_creacion.isoformat() if obj.fecha_creacion else "2026-06-24T00:00:00Z"
+
+
 
 
 class TicketInputSerializer(serializers.ModelSerializer):

@@ -53,9 +53,9 @@ urlpatterns = [
     path('createmodulo', views.compat_create_modulo),
     path('createmodulo/', views.compat_create_modulo),
     
-    # Compatibilidad para Base de Conocimiento
-    path('createconocimiento', views.ConocimientoViewSet.as_view({'post': 'create'})),
-    path('createconocimiento/', views.ConocimientoViewSet.as_view({'post': 'create'})),
+    # Compatibilidad para Base de Conocimiento (Función Plana desempaquetadora)
+    path('createconocimiento', views.compat_create_conocimiento),
+    path('createconocimiento/', views.compat_create_conocimiento),
 
     # Compatibilidad para Reportes y Métodos Auxiliares
     path('reporteresumen', views.reporte_resumen),

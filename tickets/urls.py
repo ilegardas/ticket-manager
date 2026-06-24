@@ -30,17 +30,15 @@ urlpatterns = [
     path('reportes/tickets', views.reporte_tickets),
     path('reportes/actividad-reciente', views.actividad_reciente),
 
-    # Alias de Compatibilidad
+    # ─────────────────────────────────────────────────────────────────
+    # 🔴 ALIAS DE COMPATIBILIDAD FLUIDA TICKET INDIVIDUAL (ANTI-404)
+    # ─────────────────────────────────────────────────────────────────
     path('ticket', views.TicketViewSet.as_view({'get': 'list', 'post': 'create'})),
     path('ticket/', views.TicketViewSet.as_view({'get': 'list', 'post': 'create'})),
     
-    # Expresión regular forzada para interceptar la consulta detallada de tickets individuales sin arrojar el index.html
-    re_path(r'^ticket/(?P<pk>\d+)/?$', views.TicketViewSet.as_view({
-        'get': 'retrieve', 
-        'put': 'update', 
-        'patch': 'partial_update', 
-        'delete': 'destroy'
-    })),
+    # Enrutamiento forzado directo a vista funcional compatible con y sin diagonal
+    path('ticket/<int:pk>', views.compat_ticket_detail),
+    path('ticket/<int:pk>/', views.compat_ticket_detail),
     
     path('chatter', views.compat_chatter_list), 
     path('chatter/', views.compat_chatter_list),
@@ -90,5 +88,5 @@ urlpatterns = [
     path('reportettickets', views.reporte_tickets),
     path('reportettickets/', views.reporte_tickets),
     path('reportetickets', views.reporte_tickets),
-    path('reportetickets/', views.reporte_tickets),
+    path('reportetickets/', views.reportetickets),
 ]

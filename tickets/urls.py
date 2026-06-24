@@ -19,7 +19,7 @@ urlpatterns = [
     path('auth/logout', views.logout_view),
     path('auth/me', views.me_view),
     
-    # Reportes e Historiales del Dashboard
+    # Endpoints Dashboard & Gráficas
     path('reportes/resumen', views.reporte_resumen),
     path('reportes/por-sistema', views.reporte_por_sistema),
     path('reportes/por-estado', views.reporte_por_estado),
@@ -34,7 +34,7 @@ urlpatterns = [
     path('ticket', views.TicketViewSet.as_view({'get': 'list', 'post': 'create'})),
     path('ticket/', views.TicketViewSet.as_view({'get': 'list', 'post': 'create'})),
     
-    # Expresión regular unificada para atrapar las consultas detalladas de tickets individuales
+    # Expresión regular forzada para interceptar la consulta detallada de tickets individuales sin arrojar el index.html
     re_path(r'^ticket/(?P<pk>\d+)/?$', views.TicketViewSet.as_view({
         'get': 'retrieve', 
         'put': 'update', 
@@ -62,7 +62,7 @@ urlpatterns = [
     path('deleteusuario/<int:pk>', views.compat_delete_usuario),
     path('deleteusuario/<int:pk>/', views.compat_delete_usuario),
     
-    # Automatizaciones y Formulario Auxiliares
+    # Formularios y Acciones
     path('createticket', views.compat_create_ticket),
     path('createticket/', views.compat_create_ticket),
     path('createmodulo', views.compat_create_modulo),
@@ -70,7 +70,7 @@ urlpatterns = [
     path('createconocimiento', views.compat_create_conocimiento),
     path('createconocimiento/', views.compat_create_conocimiento),
 
-    # Duplicados históricos heredados para los widgets de reportes
+    # Duplicados históricos heredados para los widgets del dashboard
     path('reporteresumen', views.reporte_resumen),
     path('reporteresumen/', views.reporte_resumen),
     path('reporteporsistema', views.reporte_por_sistema),

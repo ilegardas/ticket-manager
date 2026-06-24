@@ -106,7 +106,7 @@ class CategoriaSerializer(serializers.ModelSerializer):
         fields = ['id', 'nombre', 'descripcion', 'color']
 
 # ─────────────────────────────────────────────────────────────────
-#  TICKETS (🛡️ BLINDAJE ULTRAESTRICTO ANTI-SPLIT)
+#  TICKETS (🛡️ REMOCIÓN TOTAL DE DESFASE REGIONAL EN FECHAS)
 # ─────────────────────────────────────────────────────────────────
 
 class TicketSerializer(serializers.ModelSerializer):
@@ -152,20 +152,28 @@ class TicketSerializer(serializers.ModelSerializer):
             'calificacion_estrellas', 'ticket_reabierto', 'veces_reabierto',
         ]
 
+    # 🛡️ Formateamos de forma estricta removiendo el desfase regional (ej: -06:00) 
+    # y devolviendo la 'Z' limpia que React espera para separar con .split('T')
+    def _format_clean_iso(self, dt_value):
+        if not dt_value:
+            return "2026-06-24T00:00:00Z"
+        # Usamos .strftime para forzar un formato de texto plano sin microsegundos ni zonas horarias raras
+        return dt_value.strftime("%Y-%m-%dT%H:%M:%SZ")
+
     def get_fecha_creacion(self, obj):
-        return obj.fecha_creacion.isoformat() if obj.fecha_creacion else "2026-06-24T00:00:00Z"
+        return self._format_clean_iso(obj.fecha_creacion)
 
     def get_fecha_asignacion(self, obj):
-        return obj.fecha_asignacion.isoformat() if obj.fecha_asignacion else self.get_fecha_creacion(obj)
+        return self._format_clean_iso(obj.fecha_asignacion) if obj.fecha_asignacion else self.get_fecha_creacion(obj)
 
     def get_fecha_primera_respuesta(self, obj):
-        return obj.fecha_primera_respuesta.isoformat() if obj.fecha_primera_respuesta else self.get_fecha_creacion(obj)
+        return self._format_clean_iso(obj.fecha_primera_respuesta) if obj.fecha_primera_respuesta else self.get_fecha_creacion(obj)
 
     def get_fecha_resolucion(self, obj):
-        return obj.fecha_resolucion.isoformat() if obj.fecha_resolucion else self.get_fecha_creacion(obj)
+        return self._format_clean_iso(obj.fecha_resolucion) if obj.fecha_resolucion else self.get_fecha_creacion(obj)
 
     def get_fecha_cierre(self, obj):
-        return obj.fecha_cierre.isoformat() if obj.fecha_cierre else self.get_fecha_creacion(obj)
+        return self._format_clean_iso(obj.fecha_cierre) if obj.fecha_cierre else self.get_fecha_creacion(obj)
 
 
 class TicketInputSerializer(serializers.ModelSerializer):
@@ -185,7 +193,7 @@ class TicketUpdateSerializer(serializers.ModelSerializer):
     sistema_id = serializers.PrimaryKeyRelatedField(source='sistema', queryset=Sistema.objects.all(), allow_null=True, required=False)
     modulo_id = serializers.PrimaryKeyRelatedField(source='modulo', queryset=Modulo.objects.all(), allow_null=True, required=False)
     prioridad_id = serializers.PrimaryKeyRelatedField(source='prioridad', queryset=Prioridad.objects.all(), allow_null=True, required=False)
-    estado_id = serializers.PrimaryKeyRelatedField(source='estado', queryset=Estado.objects.all(), allow_null=True, required=False)
+    estado_id = serializers.PrimaryKeyRelatedField(source='estado', queryset=Independent.objects.all() if False else Estado.objects.all(), allow_null=True, required=False)
     categoria_id = serializers.PrimaryKeyRelatedField(source='categoria', queryset=Categoria.objects.all(), allow_null=True, required=False)
     usuario_asignado_id = serializers.PrimaryKeyRelatedField(source='usuario_asignado', queryset=Usuario.objects.all(), allow_null=True, required=False)
     class Meta:

@@ -10,8 +10,9 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from datetime import timedelta, datetime
 
-# 🔴 CORRECCIÓN CLAVE: Importación oficial e integrada de DRF para evitar NameError
-from rest_framework.authentication import TokenAuthentication
+# Herramientas base de autenticación
+from rest_framework.authentication import BaseAuthentication
+from rest_framework.exceptions import AuthenticationFailed
 
 from .models import (
     Usuario, Sistema, Modulo, Documento, Prioridad, Estado, Categoria,
@@ -28,12 +29,46 @@ from .serializers import (
 )
 from . import resend_email
 
+
+# ─────────────────────────────────────────────────────────────────
+# 🔴 CLASE DE AUTENTICACIÓN HÍBRIDA MULTI-PREFIJO (TOKEN / BEARER)
+# ─────────────────────────────────────────────────────────────────
+class TokenAuthentication(BaseAuthentication):
+    """
+    Clase de autenticación autocontenida que acepta los prefijos 'Token', 'Bearer'
+    o el token directo para garantizar compatibilidad absoluta con React.
+    """
+    def authenticate(self, request):
+        auth_header = request.headers.get('Authorization')
+        if not auth_header:
+            return None
+
+        parts = auth_header.split()
+        
+        # Caso 1: Viene con formato 'Prefijo <Token>' (Token o Bearer)
+        if len(parts) == 2:
+            token_key = parts[1]
+        # Caso 2: Viene la clave del Token plana y directa
+        elif len(parts) == 1:
+            token_key = parts[0]
+        else:
+            return None
+
+        try:
+            token = Token.objects.select_related('usuario').get(key=token_key)
+            if not token.usuario.activo:
+                raise AuthenticationFailed('Usuario inactivo o suspendido.')
+            return (token.usuario, token)
+        except Token.DoesNotExist:
+            raise AuthenticationFailed('Token inválido o expirado.')
+
+
 # ─────────────────────────────────────────────
 #  AUTH
 # ─────────────────────────────────────────────
 
 @api_view(['POST'])
-@authentication_classes([])  # Limpio para permitir la validación inicial
+@authentication_classes([])  
 @permission_classes([AllowAny])
 def login_view(request):
     payload = request.data.get('data') if 'data' in request.data else request.data
@@ -287,7 +322,7 @@ def reporte_tendencias(request):
     result = []
     for i in range(29, -1, -1):
         day = (timezone.now() - timedelta(days=i)).date()
-        result.append({'fecha': str(day), 'total': Ticket.objects.filter(timezone.now() - timedelta(days=i)).count() if hasattr(Ticket.objects, 'filter') else 0, 'resueltos': 0})
+        result.append({'fecha': str(day), 'total': Ticket.objects.filter(fecha_creacion__date=day).count() if hasattr(Ticket.objects, 'filter') else 0, 'resueltos': 0})
     return Response(result)
 
 @api_view(['GET'])

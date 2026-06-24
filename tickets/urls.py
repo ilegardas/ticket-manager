@@ -1,4 +1,4 @@
-from django.urls import path, include
+from django.urls import path, include, re_path
 from rest_framework.routers import DefaultRouter
 from . import views
 
@@ -14,11 +14,13 @@ router.register(r'categorias', views.CategoriaViewSet, basename='categoria')
 router.register(r'conocimiento', views.ConocimientoViewSet, basename='conocimiento')
 
 urlpatterns = [
+    # Enrutamiento Nátivo del Router (Buenas Prácticas)
     path('', include(router.urls)),
     path('auth/login', views.login_view),
     path('auth/logout', views.logout_view),
     path('auth/me', views.me_view),
     
+    # Endpoints de Reportes
     path('reportes/resumen', views.reporte_resumen),
     path('reportes/por-sistema', views.reporte_por_sistema),
     path('reportes/por-estado', views.reporte_por_estado),
@@ -34,9 +36,16 @@ urlpatterns = [
     # ─────────────────────────────────────────────────────────────────
     path('ticket', views.TicketViewSet.as_view({'get': 'list', 'post': 'create'})),
     path('ticket/', views.TicketViewSet.as_view({'get': 'list', 'post': 'create'})),
-    path('ticket/<int:pk>', views.TicketViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})),
-    path('ticket/<int:pk>/', views.TicketViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})),
     
+    # Expresión regular forzada para atrapar consultas de ticket individual sin/con diagonal
+    re_path(r'^ticket/(?P<pk>\d+)/?$', views.TicketViewSet.as_view({
+        'get': 'retrieve', 
+        'put': 'update', 
+        'patch': 'partial_update', 
+        'delete': 'destroy'
+    })),
+    
+    # Historial (Chatter) y Tiempos de Pausa
     path('chatter', views.compat_chatter_list), 
     path('chatter/', views.compat_chatter_list),
     path('timelogs', views.compat_timelogs_list),
@@ -45,6 +54,7 @@ urlpatterns = [
     path('sistema', views.SistemaViewSet.as_view({'get': 'list', 'post': 'create'})),
     path('sistema/', views.SistemaViewSet.as_view({'get': 'list', 'post': 'create'})),
     
+    # CRUD de Usuarios mediante Vistas de Compatibilidad
     path('createusuario', views.compat_create_usuario),
     path('createusuario/', views.compat_create_usuario),
     
@@ -58,6 +68,7 @@ urlpatterns = [
     path('deleteusuario/<int:pk>', views.compat_delete_usuario),
     path('deleteusuario/<int:pk>/', views.compat_delete_usuario),
     
+    # Formularios de Creación Auxiliares
     path('createticket', views.compat_create_ticket),
     path('createticket/', views.compat_create_ticket),
     path('createmodulo', views.compat_create_modulo),
@@ -65,6 +76,7 @@ urlpatterns = [
     path('createconocimiento', views.compat_create_conocimiento),
     path('createconocimiento/', views.compat_create_conocimiento),
 
+    # Duplicados heredados para asegurar la compatibilidad de reportes históricos
     path('reporteresumen', views.reporte_resumen),
     path('reporteresumen/', views.reporte_resumen),
     path('reporteporsistema', views.reporte_por_sistema),
@@ -84,5 +96,4 @@ urlpatterns = [
     path('reportettickets', views.reporte_tickets),
     path('reportettickets/', views.reporte_tickets),
     path('reportetickets', views.reporte_tickets),
-    path('reportetickets/', views.reporte_tickets),
-]
+    path

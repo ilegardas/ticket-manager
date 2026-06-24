@@ -1,4 +1,4 @@
-from django.urls import path, include, re_path
+from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
 
@@ -19,7 +19,7 @@ urlpatterns = [
     path('auth/logout', views.logout_view),
     path('auth/me', views.me_view),
     
-    # Endpoints Dashboard & Gráficas
+    # Endpoints Dashboard
     path('reportes/resumen', views.reporte_resumen),
     path('reportes/por-sistema', views.reporte_por_sistema),
     path('reportes/por-estado', views.reporte_por_estado),
@@ -30,13 +30,11 @@ urlpatterns = [
     path('reportes/tickets', views.reporte_tickets),
     path('reportes/actividad-reciente', views.actividad_reciente),
 
-    # ─────────────────────────────────────────────────────────────────
-    # 🔴 ALIAS DE COMPATIBILIDAD FLUIDA TICKET INDIVIDUAL (ANTI-404)
-    # ─────────────────────────────────────────────────────────────────
+    # Alias de Compatibilidad
     path('ticket', views.TicketViewSet.as_view({'get': 'list', 'post': 'create'})),
     path('ticket/', views.TicketViewSet.as_view({'get': 'list', 'post': 'create'})),
     
-    # Enrutamiento forzado directo a vista funcional compatible con y sin diagonal
+    # 🔴 Mapeo directo y seguro a la función plana de compatibilidad individual
     path('ticket/<int:pk>', views.compat_ticket_detail),
     path('ticket/<int:pk>/', views.compat_ticket_detail),
     
@@ -60,7 +58,7 @@ urlpatterns = [
     path('deleteusuario/<int:pk>', views.compat_delete_usuario),
     path('deleteusuario/<int:pk>/', views.compat_delete_usuario),
     
-    # Formularios y Acciones
+    # Formularios Auxiliares
     path('createticket', views.compat_create_ticket),
     path('createticket/', views.compat_create_ticket),
     path('createmodulo', views.compat_create_modulo),
@@ -68,7 +66,7 @@ urlpatterns = [
     path('createconocimiento', views.compat_create_conocimiento),
     path('createconocimiento/', views.compat_create_conocimiento),
 
-    # Duplicados históricos heredados para los widgets del dashboard
+    # Duplicados históricos heredados para los widgets de reportes
     path('reporteresumen', views.reporte_resumen),
     path('reporteresumen/', views.reporte_resumen),
     path('reporteporsistema', views.reporte_por_sistema),
@@ -88,5 +86,5 @@ urlpatterns = [
     path('reportettickets', views.reporte_tickets),
     path('reportettickets/', views.reporte_tickets),
     path('reportetickets', views.reporte_tickets),
-    path('reportetickets/', views.reportetickets),
+    path('reportetickets/', views.reporte_tickets),
 ]

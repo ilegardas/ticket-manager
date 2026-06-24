@@ -39,18 +39,36 @@ class UsuarioInputSerializer(serializers.ModelSerializer):
 
 
 class UsuarioUpdateSerializer(serializers.ModelSerializer):
+    # Declaramos estos campos de lectura por si el frontend los envía en el payload,
+    # evitando que DRF arroje un error 400 por campos inesperados o inmutables.
+    correo_electronico = serializers.EmailField(read_only=True, required=False)
+    id = serializers.IntegerField(read_only=True, required=False)
+
     class Meta:
         model = Usuario
         fields = [
-            'nombre_completo', 'numero_empleado', 'puesto_cargo', 'cct',
-            'region_zona', 'nivel_educativo', 'rol', 'activo',
+            'id', 'correo_electronico', 'nombre_completo', 'numero_empleado', 
+            'puesto_cargo', 'cct', 'region_zona', 'nivel_educativo', 'rol', 'activo',
         ]
+        read_only_fields = ['id', 'correo_electronico']
 
     def to_internal_value(self, data):
-        # El frontend manda el estado como texto ("Activo"). Lo transformamos a booleano seguro.
-        if 'estado' in data:
-            data['activo'] = data['estado'] == 'Activo' or data['estado'] is True
-        return super().to_internal_value(data)
+        # 🛡️ NORMALIZACIÓN ANTI-400: Copiamos los datos para poder manipularlos
+        custom_data = data.copy() if hasattr(data, 'copy') else dict(data)
+        
+        # 1. Si el frontend envía un campo llamado 'estado' (ej: "Activo" / "Inactivo"),
+        # lo transformamos al campo booleano 'activo' que espera el modelo de Django.
+        if 'estado' in custom_data:
+            val = custom_data['estado']
+            custom_data['activo'] = val in ['Activo', 'activo', True, 'true', 'True', 1, '1']
+        
+        # 2. Si viene el campo 'activo' como string (ej: "true" o "False"), aseguramos su conversión
+        elif 'activo' in custom_data:
+            val = custom_data['activo']
+            if isinstance(val, str):
+                custom_data['activo'] = val.lower() in ['true', 'activo', '1']
+
+        return super().to_internal_value(custom_data)
 
 
 # ─────────────────────────────────────────────────────────────────

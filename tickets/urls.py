@@ -14,13 +14,13 @@ router.register(r'categorias', views.CategoriaViewSet, basename='categoria')
 router.register(r'conocimiento', views.ConocimientoViewSet, basename='conocimiento')
 
 urlpatterns = [
-    # ─────────────────────────────────────────────────────────────────
-    # Enrutamiento Original (Buenas Prácticas)
-    # ─────────────────────────────────────────────────────────────────
+    # Enrutamiento estándar
     path('', include(router.urls)),
     path('auth/login', views.login_view),
     path('auth/logout', views.logout_view),
     path('auth/me', views.me_view),
+    
+    # Reportes Oficiales
     path('reportes/resumen', views.reporte_resumen),
     path('reportes/por-sistema', views.reporte_por_sistema),
     path('reportes/por-estado', views.reporte_por_estado),
@@ -32,26 +32,21 @@ urlpatterns = [
     path('reportes/actividad-reciente', views.actividad_reciente),
 
     # ─────────────────────────────────────────────────────────────────
-    # 🔴 ALIAS DE COMPATIBILIDAD DETALLADA DE TICKETS
+    # ALIAS DE COMPATIBILIDAD PARA EL FRONTEND (RESUELVE LOS 404 Y 500)
     # ─────────────────────────────────────────────────────────────────
-    
-    # Soporte para la ruta en singular que busca el frontend al abrir un ticket
     path('ticket', views.TicketViewSet.as_view({'get': 'list', 'post': 'create'})),
     path('ticket/', views.TicketViewSet.as_view({'get': 'list', 'post': 'create'})),
     path('ticket/<int:pk>', views.TicketViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})),
     path('ticket/<int:pk>/', views.TicketViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})),
     
-    # 🔴 CORRECCIÓN: Vinculamos los endpoints a funciones funcionales en views para Chatter y Timelogs
     path('chatter', views.compat_chatter_list), 
     path('chatter/', views.compat_chatter_list),
     path('timelogs', views.compat_timelogs_list),
     path('timelogs/', views.compat_timelogs_list),
     
-    # Compatibilidad para Sistemas
     path('sistema', views.SistemaViewSet.as_view({'get': 'list', 'post': 'create'})),
     path('sistema/', views.SistemaViewSet.as_view({'get': 'list', 'post': 'create'})),
     
-    # Compatibilidad para Usuarios (Funciones Planas)
     path('createusuario', views.compat_create_usuario),
     path('createusuario/', views.compat_create_usuario),
     path('updateusuario', views.compat_update_usuario),
@@ -59,17 +54,13 @@ urlpatterns = [
     path('updateusuario/<int:pk>', views.compat_update_usuario),
     path('updateusuario/<int:pk>/', views.compat_update_usuario),
     
-    # Compatibilidad para Tickets y Módulos
     path('createticket', views.compat_create_ticket),
     path('createticket/', views.compat_create_ticket),
     path('createmodulo', views.compat_create_modulo),
     path('createmodulo/', views.compat_create_modulo),
-    
-    # Compatibilidad para Base de Conocimiento
     path('createconocimiento', views.compat_create_conocimiento),
     path('createconocimiento/', views.compat_create_conocimiento),
 
-    # Compatibilidad para Reportes y Métodos Auxiliares
     path('reporteresumen', views.reporte_resumen),
     path('reporteresumen/', views.reporte_resumen),
     path('reporteporsistema', views.reporte_por_sistema),
@@ -90,3 +81,4 @@ urlpatterns = [
     path('reportettickets/', views.reporte_tickets),
     path('reportetickets', views.reporte_tickets),
     path('reportetickets/', views.reporte_tickets),
+]

@@ -705,46 +705,69 @@ def actividad_reciente(request):
     ])
 
 # ─────────────────────────────────────────────────────────────────
-#  FUNCIONES DE COMPATIBILIDAD A PRUEBA DE BALAS PARA EL FRONTEND
+#  FUNCIONES DE COMPATIBILIDAD A PRUEBA DE BALAS
 # ─────────────────────────────────────────────────────────────────
 
-@api_view(['GET', 'POST'])
+@api_view(['POST', 'GET'])
 @permission_classes([IsAuthenticated])
 @authentication_classes([TokenAuthentication])
 def compat_create_usuario(request):
-    """Maneja la creación de usuario forzando la respuesta sin importar el método."""
-    # Desempaquetamos si viene envuelto en 'data'
     payload = request.data.get('data') if 'data' in request.data else request.data
-    if payload is None:
-        payload = request.data
-
+    if payload is None: payload = request.data
+    
     serializer = UsuarioInputSerializer(data=payload)
     serializer.is_valid(raise_exception=True)
     serializer.save()
     return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-@api_view(['GET', 'POST', 'PUT', 'PATCH'])
+@api_view(['POST', 'PUT', 'PATCH', 'GET'])
 @permission_classes([IsAuthenticated])
 @authentication_classes([TokenAuthentication])
 def compat_update_usuario(request, pk=None):
-    """Maneja la actualización atrapando el ID ya sea de la URL o del body."""
-    # Desempaquetamos si viene envuelto en 'data'
     payload = request.data.get('data') if 'data' in request.data else request.data
-    if payload is None:
-        payload = request.data
-
-    # Buscamos el ID del usuario a editar (puede venir en el payload o en la URL)
+    if payload is None: payload = request.data
+    
     usuario_id = pk or payload.get('id')
     if not usuario_id:
-        return Response({'detail': 'Falta el ID del usuario para actualizar.'}, status=status.HTTP_400_BAD_REQUEST)
-
+        return Response({'detail': 'Falta el ID del usuario.'}, status=status.HTTP_400_BAD_REQUEST)
+        
     try:
         usuario = Usuario.objects.get(id=usuario_id)
     except Usuario.DoesNotExist:
         return Response({'detail': 'Usuario no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
-
+        
     serializer = UsuarioUpdateSerializer(usuario, data=payload, partial=True)
     serializer.is_valid(raise_exception=True)
     serializer.save()
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST', 'GET'])
+@permission_classes([IsAuthenticated])
+@authentication_classes([TokenAuthentication])
+def compat_create_ticket(request):
+    """Desenuelve el JSON de Axios y fuerza la creación del Ticket."""
+    payload = request.data.get('data') if 'data' in request.data else request.data
+    if payload is None: payload = request.data
+    
+    serializer = TicketInputSerializer(data=payload)
+    serializer.is_valid(raise_exception=True)
+    
+    # Pasamos el usuario autenticado explícitamente en el perform_create manual
+    ticket = serializer.save()
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['POST', 'GET'])
+@permission_classes([IsAuthenticated])
+@authentication_classes([TokenAuthentication])
+def compat_create_modulo(request):
+    """Crea el módulo de forma plana evitando bucles de redirección de ViewSets."""
+    payload = request.data.get('data') if 'data' in request.data else request.data
+    if payload is None: payload = request.data
+    
+    serializer = ModuloSerializer(data=payload)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(serializer.data, status=status.HTTP_201_CREATED)

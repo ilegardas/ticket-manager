@@ -39,16 +39,18 @@ class UsuarioInputSerializer(serializers.ModelSerializer):
 
 
 class UsuarioUpdateSerializer(serializers.ModelSerializer):
-    # Incluimos correo electrónico por si el frontend lo envía en el payload (como read_only para evitar romper la petición)
-    correo_electronico = serializers.EmailField(read_only=True)
-
     class Meta:
         model = Usuario
         fields = [
-            'id', 'correo_electronico', 'nombre_completo', 'numero_empleado', 
-            'puesto_cargo', 'cct', 'region_zona', 'nivel_educativo', 'rol', 'activo',
+            'nombre_completo', 'numero_empleado', 'puesto_cargo', 'cct',
+            'region_zona', 'nivel_educativo', 'rol', 'activo',
         ]
-        read_only_fields = ['id', 'correo_electronico']
+
+    def to_internal_value(self, data):
+        # El frontend manda el estado como texto ("Activo"). Lo transformamos a booleano seguro.
+        if 'estado' in data:
+            data['activo'] = data['estado'] == 'Activo' or data['estado'] is True
+        return super().to_internal_value(data)
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -132,11 +134,10 @@ class CategoriaSerializer(serializers.ModelSerializer):
 
 
 # ─────────────────────────────────────────────────────────────────
-#  TICKETS (VISTA COMPLETA Y ESCRITURA UNIFICADA)
+#  TICKETS
 # ─────────────────────────────────────────────────────────────────
 
 class TicketSerializer(serializers.ModelSerializer):
-    # Campos de solo lectura para el Frontend
     sistema_nombre = serializers.CharField(source='sistema.nombre', read_only=True, default="")
     modulo_nombre = serializers.CharField(source='modulo.nombre', read_only=True, default="")
     prioridad_nombre = serializers.CharField(source='prioridad.nombre', read_only=True, default="")
@@ -148,7 +149,6 @@ class TicketSerializer(serializers.ModelSerializer):
     usuario_asignado_nombre = serializers.CharField(source='usuario_asignado.nombre_completo', read_only=True, default="")
     tiempo_efectivo_minutos = serializers.ReadOnlyField()
 
-    # Mapeos explícitos de ID de confianza tanto para lectura como para prevenir fallas al guardar/actualizar
     sistema_id = serializers.PrimaryKeyRelatedField(source='sistema', queryset=Sistema.objects.all(), allow_null=True, required=False)
     modulo_id = serializers.PrimaryKeyRelatedField(source='modulo', queryset=Modulo.objects.all(), allow_null=True, required=False)
     prioridad_id = serializers.PrimaryKeyRelatedField(source='prioridad', queryset=Prioridad.objects.all(), allow_null=True, required=False)

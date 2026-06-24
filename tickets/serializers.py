@@ -39,8 +39,6 @@ class UsuarioInputSerializer(serializers.ModelSerializer):
 
 
 class UsuarioUpdateSerializer(serializers.ModelSerializer):
-    # 🔴 CAMBIO MAESTRO: Declaramos 'activo' como CharField temporal de forma explícita.
-    # Esto rompe el validador por defecto de DRF que bloquea los strings como "Activo".
     activo = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     id = serializers.IntegerField(read_only=True, required=False)
     correo_electronico = serializers.EmailField(read_only=True, required=False)
@@ -54,25 +52,14 @@ class UsuarioUpdateSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'correo_electronico']
 
     def validate_activo(self, value):
-        """Traduce de forma segura las variantes de texto del frontend a booleanos reales."""
         if value in ['Activo', 'activo', 'true', 'True', True, 1, '1']:
             return True
         if value in ['Inactivo', 'inactivo', 'false', 'False', False, 0, '0']:
             return False
-        
-        # Si no viene el campo o viene vacío, dejamos el valor actual del usuario
         if self.instance:
             return self.instance.activo
         return True
 
-    def to_internal_value(self, data):
-        custom_data = data.copy() if hasattr(data, 'copy') else dict(data)
-        
-        # Si el frontend mandó el estado en la propiedad alternativa 'estado', la unificamos
-        if 'estado' in custom_data:
-            custom_data['activo'] = custom_data['estado']
-            
-        return super().to_internal_value(custom_data)
 
 # ─────────────────────────────────────────────────────────────────
 #  SISTEMAS Y MÓDULOS
@@ -155,7 +142,7 @@ class CategoriaSerializer(serializers.ModelSerializer):
 
 
 # ─────────────────────────────────────────────────────────────────
-#  TICKETS
+#  TICKETS (BLINDAJE DE CADENAS DE FECHAS)
 # ─────────────────────────────────────────────────────────────────
 
 class TicketSerializer(serializers.ModelSerializer):
@@ -170,8 +157,14 @@ class TicketSerializer(serializers.ModelSerializer):
     usuario_asignado_nombre = serializers.CharField(source='usuario_asignado.nombre_completo', read_only=True, default="")
     tiempo_efectivo_minutos = serializers.ReadOnlyField()
 
-    # 🔴 FORZADO ESTRICTO: Declaramos los campos como CharField de solo lectura.
-    # Esto rompe el comportamiento por defecto de DRF que mandaba 'null' e intercepta el valor.
+    sistema_id = serializers.PrimaryKeyRelatedField(source='sistema', queryset=Sistema.objects.all(), allow_null=True, required=False)
+    modulo_id = serializers.PrimaryKeyRelatedField(source='modulo', queryset=Modulo.objects.all(), allow_null=True, required=False)
+    prioridad_id = serializers.PrimaryKeyRelatedField(source='prioridad', queryset=Prioridad.objects.all(), allow_null=True, required=False)
+    estado_id = serializers.PrimaryKeyRelatedField(source='estado', queryset=Estado.objects.all(), allow_null=True, required=False)
+    categoria_id = serializers.PrimaryKeyRelatedField(source='categoria', queryset=Categoria.objects.all(), allow_null=True, required=False)
+    usuario_reporta_id = serializers.PrimaryKeyRelatedField(source='usuario_reporta', queryset=Usuario.objects.all(), allow_null=True, required=False)
+    usuario_asignado_id = serializers.PrimaryKeyRelatedField(source='usuario_asignado', queryset=Usuario.objects.all(), allow_null=True, required=False)
+
     fecha_asignacion = serializers.SerializerMethodField()
     fecha_primera_respuesta = serializers.SerializerMethodField()
     fecha_resolucion = serializers.SerializerMethodField()
@@ -195,8 +188,6 @@ class TicketSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'folio', 'fecha_creacion']
 
-    # 🛡️ BLINDAJE ANTI-SPLIT DEFINITIVO: Si en la BD es null, devolvemos un string ISO 
-    # de la fecha de creación. React recibirá una cadena con 'T' válida y no tronará jamás.
     def get_fecha_asignacion(self, obj):
         if obj.fecha_asignacion:
             return obj.fecha_asignacion.isoformat()
@@ -216,8 +207,6 @@ class TicketSerializer(serializers.ModelSerializer):
         if obj.fecha_cierre:
             return obj.fecha_cierre.isoformat()
         return obj.fecha_creacion.isoformat() if obj.fecha_creacion else "2026-06-24T00:00:00Z"
-
-
 
 
 class TicketInputSerializer(serializers.ModelSerializer):

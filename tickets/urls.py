@@ -32,21 +32,21 @@ urlpatterns = [
     path('reportes/actividad-reciente', views.actividad_reciente),
 
     # ─────────────────────────────────────────────────────────────────
-    # 🔴 ALIAS DE COMPATIBILIDAD PARA EL FRONTEND (RESUELVE LOS 404)
+    # 🔴 ALIAS DE COMPATIBILIDAD DETALLADA DE TICKETS
     # ─────────────────────────────────────────────────────────────────
     
-    # 🆕 AGREGADOS: Compatibilidad para consultas detalladas en singular (Evita carga infinita)
+    # Soporte para la ruta en singular que busca el frontend al abrir un ticket
     path('ticket', views.TicketViewSet.as_view({'get': 'list', 'post': 'create'})),
     path('ticket/', views.TicketViewSet.as_view({'get': 'list', 'post': 'create'})),
     path('ticket/<int:pk>', views.TicketViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})),
     path('ticket/<int:pk>/', views.TicketViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})),
     
-    path('chatter', views.TicketViewSet.as_view({'get': 'list', 'post': 'create'})), # Cambiar por ChatterViewSet si tienes uno separado
-    path('chatter/', views.TicketViewSet.as_view({'get': 'list', 'post': 'create'})),
+    # Redirigir chatter y timelogs al enrutador correcto para que no den 404
+    path('chatter', views.TicketViewSet.as_view({'get': 'list'})), 
+    path('chatter/', views.TicketViewSet.as_view({'get': 'list'})),
+    path('timelogs', views.TicketViewSet.as_view({'get': 'list'})),
+    path('timelogs/', views.TicketViewSet.as_view({'get': 'list'})),
     
-    path('timelogs', views.TicketViewSet.as_view({'get': 'list', 'post': 'create'})), # Cambiar por TicketTimeLogViewSet si tienes uno separado
-    path('timelogs/', views.TicketViewSet.as_view({'get': 'list', 'post': 'create'})),
-
     # Compatibilidad para Sistemas
     path('sistema', views.SistemaViewSet.as_view({'get': 'list', 'post': 'create'})),
     path('sistema/', views.SistemaViewSet.as_view({'get': 'list', 'post': 'create'})),

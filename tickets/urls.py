@@ -35,6 +35,18 @@ urlpatterns = [
     # 🔴 ALIAS DE COMPATIBILIDAD PARA EL FRONTEND (RESUELVE LOS 404)
     # ─────────────────────────────────────────────────────────────────
     
+    # 🆕 AGREGADOS: Compatibilidad para consultas detalladas en singular (Evita carga infinita)
+    path('ticket', views.TicketViewSet.as_view({'get': 'list', 'post': 'create'})),
+    path('ticket/', views.TicketViewSet.as_view({'get': 'list', 'post': 'create'})),
+    path('ticket/<int:pk>', views.TicketViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})),
+    path('ticket/<int:pk>/', views.TicketViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})),
+    
+    path('chatter', views.TicketViewSet.as_view({'get': 'list', 'post': 'create'})), # Cambiar por ChatterViewSet si tienes uno separado
+    path('chatter/', views.TicketViewSet.as_view({'get': 'list', 'post': 'create'})),
+    
+    path('timelogs', views.TicketViewSet.as_view({'get': 'list', 'post': 'create'})), # Cambiar por TicketTimeLogViewSet si tienes uno separado
+    path('timelogs/', views.TicketViewSet.as_view({'get': 'list', 'post': 'create'})),
+
     # Compatibilidad para Sistemas
     path('sistema', views.SistemaViewSet.as_view({'get': 'list', 'post': 'create'})),
     path('sistema/', views.SistemaViewSet.as_view({'get': 'list', 'post': 'create'})),
@@ -53,7 +65,7 @@ urlpatterns = [
     path('createmodulo', views.compat_create_modulo),
     path('createmodulo/', views.compat_create_modulo),
     
-    # Compatibilidad para Base de Conocimiento (Función Plana desempaquetadora)
+    # Compatibilidad para Base de Conocimiento
     path('createconocimiento', views.compat_create_conocimiento),
     path('createconocimiento/', views.compat_create_conocimiento),
 
@@ -75,6 +87,7 @@ urlpatterns = [
     path('reportesla', views.reporte_sla),
     path('reportesla/', views.reporte_sla),
     path('reportettickets', views.reporte_tickets),
+    path('reportettickets/', views.reporte_tickets),
     path('reportetickets', views.reporte_tickets),
     path('reportetickets/', views.reporte_tickets),
-] # <- Aquí se cierra correctamente la lista
+]

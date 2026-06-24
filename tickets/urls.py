@@ -14,7 +14,7 @@ router.register(r'categorias', views.CategoriaViewSet, basename='categoria')
 router.register(r'conocimiento', views.ConocimientoViewSet, basename='conocimiento')
 
 urlpatterns = [
-    # Enrutamiento Nátivo del Router (Buenas Prácticas)
+    # Enrutamiento Estándar
     path('', include(router.urls)),
     path('auth/login', views.login_view),
     path('auth/logout', views.logout_view),
@@ -32,12 +32,12 @@ urlpatterns = [
     path('reportes/actividad-reciente', views.actividad_reciente),
 
     # ─────────────────────────────────────────────────────────────────
-    # ALIAS DE COMPATIBILIDAD FLUIDA PARA EL FRONTEND
+    # ALIAS DE COMPATIBILIDAD PARA EL FRONTEND (SINGULARES Y MÉTODOS)
     # ─────────────────────────────────────────────────────────────────
     path('ticket', views.TicketViewSet.as_view({'get': 'list', 'post': 'create'})),
     path('ticket/', views.TicketViewSet.as_view({'get': 'list', 'post': 'create'})),
     
-    # Expresión regular forzada para atrapar consultas de ticket individual sin/con diagonal
+    # 🔴 CORREGIDO: '?P<pk>' con P mayúscula para evitar el SyntaxError de Railway
     re_path(r'^ticket/(?P<pk>\d+)/?$', views.TicketViewSet.as_view({
         'get': 'retrieve', 
         'put': 'update', 
@@ -96,4 +96,5 @@ urlpatterns = [
     path('reportettickets', views.reporte_tickets),
     path('reportettickets/', views.reporte_tickets),
     path('reportetickets', views.reporte_tickets),
-    path
+    path('reportetickets/', views.reporte_tickets),
+]

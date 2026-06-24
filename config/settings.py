@@ -170,3 +170,9 @@ LOGGING = {
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',  # El backend por defecto
 ]
+
+
+REST_FRAMEWORK = {
+    # ... tus otras configuraciones si existen ...
+    'DATETIME_FORMAT': '%Y-%m-%dT%H:%M:%SZ',
+}

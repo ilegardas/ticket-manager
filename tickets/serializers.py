@@ -39,8 +39,9 @@ class UsuarioInputSerializer(serializers.ModelSerializer):
 
 
 class UsuarioUpdateSerializer(serializers.ModelSerializer):
-    # 🛡️ BLINDAJE ANTI-400: Marcamos 'activo' como opcional para que no marque campo obligatorio
-    activo = serializers.BooleanField(required=False, default=True)
+    # 🔴 CAMBIO CLAVE: Usamos CharField temporalmente en lugar de BooleanField
+    # Esto evita que DRF lance el error automático de "Debe ser un booleano válido"
+    activo = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     id = serializers.IntegerField(read_only=True, required=False)
     correo_electronico = serializers.EmailField(read_only=True, required=False)
 
@@ -52,27 +53,26 @@ class UsuarioUpdateSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'correo_electronico']
 
+    def validate_activo(self, value):
+        # Traducimos limpiamente cualquier variante que mande el frontend de React
+        if value in ['Activo', 'activo', 'true', 'True', True, 1, '1']:
+            return True
+        if value in ['Inactivo', 'inactivo', 'false', 'False', False, 0, '0']:
+            return False
+        
+        # Si viene vacío o no se seleccionó, preservamos el valor actual del usuario
+        if self.instance:
+            return self.instance.activo
+        return True
+
     def to_internal_value(self, data):
-        # Hacemos una copia mutable de los datos que envía React
         custom_data = data.copy() if hasattr(data, 'copy') else dict(data)
         
-        # 1. Si el frontend envía el estado como string ("Activo" / "Inactivo") en la llave 'estado'
+        # Mapeo de compatibilidad por si el frontend manda la propiedad como 'estado'
         if 'estado' in custom_data:
-            val = custom_data['estado']
-            custom_data['activo'] = val in ['Activo', 'activo', True, 'true', 'True', 1, '1']
-        
-        # 2. Si viene la llave 'activo' pero como string de texto ("true" / "false")
-        elif 'activo' in custom_data:
-            val = custom_data['activo']
-            if isinstance(val, str):
-                custom_data['activo'] = val.lower() in ['true', 'activo', '1']
-                
-        # 3. Si el frontend omitió el campo por completo al guardar, mantenemos el valor actual del usuario
-        elif self.instance and not 'activo' in custom_data:
-            custom_data['activo'] = self.instance.activo
-
+            custom_data['activo'] = custom_data['estado']
+            
         return super().to_internal_value(custom_data)
-
 
 # ─────────────────────────────────────────────────────────────────
 #  SISTEMAS Y MÓDULOS

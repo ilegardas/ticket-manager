@@ -65,7 +65,7 @@ class TokenAuthentication(BaseAuthentication):
 # ─────────────────────────────────────────────
 
 @api_view(['POST'])
-@authentication_classes([])  # Limpio para la recepción inicial de credenciales
+@authentication_classes([])  
 @permission_classes([AllowAny])
 def login_view(request):
     payload = request.data.get('data') if 'data' in request.data else request.data
@@ -245,4 +245,235 @@ class CategoriaViewSet(viewsets.ModelViewSet):
 
 class ConocimientoViewSet(viewsets.ModelViewSet):
     queryset = ConocimientoEntry.objects.select_related('sistema', 'modulo').all()
-    serializer_class = Conoc
+    serializer_class = ConocimientoSerializer
+    pagination_class = None
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+# ─────────────────────────────────────────────
+#  REPORTES CORE
+# ─────────────────────────────────────────────
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def reporte_resumen(request):
+    now = timezone.now()
+    today = now.date()
+    week_ago = now - timedelta(days=7)
+
+    total = Ticket.objects.count()
+    abiertos = Ticket.objects.filter(estado__es_estado_cierre=False).count()
+    resueltos = Ticket.objects.filter(estado__es_estado_cierre=True, fecha_cierre__isnull=True).count()
+    cerrados = Ticket.objects.filter(estado__es_estado_cierre=True).count()
+    en_proceso = Ticket.objects.filter(estado__es_estado_cierre=False, usuario_asignado__isnull=False).count()
+
+    vencidos = 0
+    for ticket in Ticket.objects.filter(estado__es_estado_cierre=False, prioridad__isnull=False).select_related('prioridad'):
+        if ticket.prioridad and ticket.prioridad.sla_horas:
+            if now > (ticket.fecha_creacion + timedelta(hours=ticket.prioridad.sla_horas)):
+                vencidos += 1
+
+    avg_resolucion = Ticket.objects.filter(tiempo_atencion_minutos__isnull=False).aggregate(avg=Avg('tiempo_atencion_minutos'))['avg'] or 0
+    avg_calificacion = Ticket.objects.filter(calificacion_estrellas__isnull=False).aggregate(avg=Avg('calificacion_estrellas'))['avg'] or 0
+
+    return Response({
+        'total_tickets': total,
+        'abiertos': abiertos,
+        'en_proceso': en_proceso,
+        'resueltos': resueltos,
+        'cerrados': cerrados,
+        'vencidos': vencidos,
+        'tickets_hoy': Ticket.objects.filter(fecha_creacion__date=today).count(),
+        'tickets_semana': Ticket.objects.filter(fecha_creacion__gte=week_ago).count(),
+        'promedio_resolucion_horas': round(avg_resolucion / 60, 2),
+        'satisfaccion_promedio': round(avg_calificacion, 2) if avg_calificacion else None,
+        'porcentaje_sla_cumplido': 100.0,
+    })
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def reporte_por_sistema(request):
+    data = Ticket.objects.values('sistema__id', 'sistema__nombre').annotate(total=Count('id')).order_by('-total')
+    return Response([{'id': r['sistema__id'], 'nombre': r['sistema__nombre'] or 'Sin sistema', 'total': r['total'], 'color': None} for r in data])
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def reporte_por_estado(request):
+    data = Ticket.objects.values('estado__id', 'estado__nombre', 'estado__color').annotate(total=Count('id')).order_by('-total')
+    return Response([{'id': r['estado__id'], 'nombre': r['estado__nombre'] or 'Sin estado', 'total': r['total'], 'color': r['estado__color']} for r in data])
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def reporte_por_prioridad(request):
+    data = Ticket.objects.values('prioridad__id', 'prioridad__nombre', 'prioridad__color').annotate(total=Count('id')).order_by('prioridad__orden')
+    return Response([{'id': r['prioridad__id'], 'nombre': r['prioridad__nombre'] or 'Sin prioridad', 'total': r['total'], 'color': r['prioridad__color']} for r in data])
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def reporte_sla(request):
+    return Response({'promedio_primera_respuesta_horas': 0, 'promedio_resolucion_horas': 0, 'cumplimiento_sla_porcentaje': 100, 'por_prioridad': []})
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def reporte_tendencias(request):
+    result = []
+    for i in range(29, -1, -1):
+        day = (timezone.now() - timedelta(days=i)).date()
+        # 🔴 CORREGIDO FULMINANTE: Quitamos el argumento posicional repetido que rompía el servidor
+        result.append({'fecha': str(day), 'total': Ticket.objects.filter(fecha_creacion__date=day).count(), 'resueltos': 0})
+    return Response(result)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def reporte_por_region(request):
+    data = Ticket.objects.filter(usuario_reporta__isnull=False).values('usuario_reporta__region_zona').annotate(total=Count('id')).order_by('-total')
+    return Response([{'id': None, 'nombre': r['usuario_reporta__region_zona'] or 'Sin región', 'total': r['total'], 'color': None} for r in data])
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def reporte_tickets(request):
+    qs = Ticket.objects.select_related('sistema', 'modulo', 'prioridad', 'estado', 'categoria', 'usuario_reporta', 'usuario_asignado').all()[:100]
+    return Response(TicketSerializer(qs, many=True).data)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def actividad_reciente(request):
+    entries = ChatterEntry.objects.select_related('autor', 'ticket').order_by('-fecha_creacion')[:10]
+    return Response([{
+        'id': e.id, 'tipo': e.tipo, 'descripcion': e.contenido or '', 'ticket_id': e.ticket_id,
+        'ticket_folio': e.ticket.folio if e.ticket else None, 'usuario_nombre': e.autor.nombre_completo if e.autor else None,
+        'fecha': e.fecha_creacion.isoformat()
+    } for e in entries])
+
+# ─────────────────────────────────────────────────────────────────
+#  NUEVAS VISTAS DE COMPATIBILIDAD DESEMPAQUETADORAS (CRUD)
+# ─────────────────────────────────────────────────────────────────
+
+@api_view(['POST', 'GET'])
+@permission_classes([IsAuthenticated])
+@authentication_classes([TokenAuthentication])
+def compat_create_usuario(request):
+    payload = request.data.get('data') if 'data' in request.data else request.data
+    if payload is None: payload = request.data
+    serializer = UsuarioInputSerializer(data=payload)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+@api_view(['POST', 'PUT', 'PATCH', 'GET'])
+@permission_classes([IsAuthenticated])
+@authentication_classes([TokenAuthentication])
+def compat_update_usuario(request, pk=None):
+    payload = request.data.get('data') if 'data' in request.data else request.data
+    if payload is None: payload = request.data
+    
+    custom_data = payload.copy() if hasattr(payload, 'copy') else dict(payload)
+    if 'estado' in custom_data:
+        custom_data['activo'] = custom_data['estado'] in ['Activo', 'activo', True, 'true', 'True', 1, '1']
+
+    usuario_id = pk or custom_data.get('id') or request.query_params.get('id')
+    if not usuario_id:
+        return Response({'detail': 'Falta el ID del usuario.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    try:
+        usuario = Usuario.objects.get(id=usuario_id)
+    except Usuario.DoesNotExist:
+        return Response({'detail': 'Usuario no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+        
+    serializer = UsuarioSerializer(usuario, data=custom_data, partial=True)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['POST', 'DELETE'])
+@permission_classes([IsAuthenticated])
+@authentication_classes([TokenAuthentication])
+def compat_delete_usuario(request, pk=None):
+    payload = request.data.get('data') if 'data' in request.data else request.data
+    if payload is None: payload = request.data
+    usuario_id = pk or payload.get('id') or request.query_params.get('id')
+    try:
+        usuario = Usuario.objects.get(id=usuario_id)
+        usuario.delete()
+        return Response({'detail': 'Usuario eliminado.'}, status=status.HTTP_200_OK)
+    except Usuario.DoesNotExist:
+        return Response({'detail': 'No encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['POST', 'GET'])
+@permission_classes([IsAuthenticated])
+@authentication_classes([TokenAuthentication])
+def compat_create_ticket(request):
+    payload = request.data.get('data') if 'data' in request.data else request.data
+    serializer = TicketInputSerializer(data=payload)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+@api_view(['POST', 'GET'])
+@permission_classes([IsAuthenticated])
+@authentication_classes([TokenAuthentication])
+def compat_create_modulo(request):
+    payload = request.data.get('data') if 'data' in request.data else request.data
+    serializer = ModuloSerializer(data=payload)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+@api_view(['POST', 'GET'])
+@permission_classes([IsAuthenticated])
+@authentication_classes([TokenAuthentication])
+def compat_create_conocimiento(request):
+    payload = request.data.get('data') if 'data' in request.data else request.data
+    serializer = ConocimientoSerializer(data=payload)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+@authentication_classes([TokenAuthentication])
+def compat_chatter_list(request):
+    ticket_id = request.query_params.get('ticket') or request.query_params.get('ticket_id')
+    if ticket_id:
+        entries = ChatterEntry.objects.filter(ticket_id=ticket_id).select_related('autor').order_by('fecha_creacion')
+        return Response(ChatterEntrySerializer(entries, many=True).data)
+    return Response([])
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+@authentication_classes([TokenAuthentication])
+def compat_timelogs_list(request):
+    ticket_id = request.query_params.get('ticket') or request.query_params.get('ticket_id')
+    if ticket_id:
+        logs = TicketTimeLog.objects.filter(ticket_id=ticket_id).order_by('fecha_inicio')
+        return Response(TimeLogSerializer(logs, many=True).data)
+    return Response([])
+
+@api_view(['GET', 'PUT', 'PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated])
+@authentication_classes([TokenAuthentication])
+def compat_ticket_detail(request, pk):
+    """Maneja el detalle individual del ticket de forma plana para evitar colisiones."""
+    try:
+        ticket = Ticket.objects.select_related('sistema', 'modulo', 'prioridad', 'estado', 'categoria', 'usuario_reporta', 'usuario_asignado').get(pk=pk)
+    except Ticket.DoesNotExist:
+        return Response({'detail': 'No encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        serializer = TicketSerializer(ticket)
+        return Response(serializer.data)
+
+    elif request.method in ['PUT', 'PATCH']:
+        payload = request.data.get('data') if 'data' in request.data else request.data
+        if payload is None: payload = request.data
+        old_estado = ticket.estado
+        serializer = TicketUpdateSerializer(ticket, data=payload, partial=True)
+        serializer.is_valid(raise_exception=True)
+        ticket_upd = serializer.save()
+        if old_estado != ticket_upd.estado:
+            _handle_state_change(ticket_upd, old_estado, ticket_upd.estado, request.user)
+        return Response(TicketSerializer(ticket_upd).data)
+
+    elif request.method == 'DELETE':
+        ticket.delete()
+        return Response({'detail': 'Eliminado.'}, status=status.HTTP_200_OK)

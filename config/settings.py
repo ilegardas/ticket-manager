@@ -172,7 +172,4 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 
-REST_FRAMEWORK = {
-    # ... tus otras configuraciones si existen ...
-    'DATETIME_FORMAT': '%Y-%m-%dT%H:%M:%SZ',
-}
+

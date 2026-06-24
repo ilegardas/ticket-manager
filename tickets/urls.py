@@ -34,7 +34,7 @@ urlpatterns = [
     path('ticket', views.TicketViewSet.as_view({'get': 'list', 'post': 'create'})),
     path('ticket/', views.TicketViewSet.as_view({'get': 'list', 'post': 'create'})),
     
-    # 🔴 Mapeo directo y seguro a la función plana de compatibilidad individual
+    # Redirección estricta al interceptor manual del ticket individual
     path('ticket/<int:pk>', views.compat_ticket_detail),
     path('ticket/<int:pk>/', views.compat_ticket_detail),
     
@@ -57,6 +57,14 @@ urlpatterns = [
     path('deleteusuario/', views.compat_delete_usuario),
     path('deleteusuario/<int:pk>', views.compat_delete_usuario),
     path('deleteusuario/<int:pk>/', views.compat_delete_usuario),
+
+    # Solución de Rutas Espejo 404 para Módulos y Conocimiento
+    path('deletemodulo', views.compat_delete_modulo),
+    path('deletemodulo/', views.compat_delete_modulo),
+    path('deletemodulo/<int:pk>', views.compat_delete_modulo),
+    path('deleteconocimiento', views.compat_delete_conocimiento),
+    path('deleteconocimiento/', views.compat_delete_conocimiento),
+    path('deleteconocimiento/<int:pk>', views.compat_delete_conocimiento),
     
     # Formularios Auxiliares
     path('createticket', views.compat_create_ticket),
@@ -66,7 +74,7 @@ urlpatterns = [
     path('createconocimiento', views.compat_create_conocimiento),
     path('createconocimiento/', views.compat_create_conocimiento),
 
-    # Duplicados históricos heredados para los widgets de reportes
+    # Widgets de Reportes Históricos
     path('reporteresumen', views.reporte_resumen),
     path('reporteresumen/', views.reporte_resumen),
     path('reporteporsistema', views.reporte_por_sistema),

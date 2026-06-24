@@ -41,11 +41,11 @@ urlpatterns = [
     path('ticket/<int:pk>', views.TicketViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})),
     path('ticket/<int:pk>/', views.TicketViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})),
     
-    # Redirigir chatter y timelogs al enrutador correcto para que no den 404
-    path('chatter', views.TicketViewSet.as_view({'get': 'list'})), 
-    path('chatter/', views.TicketViewSet.as_view({'get': 'list'})),
-    path('timelogs', views.TicketViewSet.as_view({'get': 'list'})),
-    path('timelogs/', views.TicketViewSet.as_view({'get': 'list'})),
+    # 🔴 CORRECCIÓN: Vinculamos los endpoints a funciones funcionales en views para Chatter y Timelogs
+    path('chatter', views.compat_chatter_list), 
+    path('chatter/', views.compat_chatter_list),
+    path('timelogs', views.compat_timelogs_list),
+    path('timelogs/', views.compat_timelogs_list),
     
     # Compatibilidad para Sistemas
     path('sistema', views.SistemaViewSet.as_view({'get': 'list', 'post': 'create'})),
@@ -59,7 +59,7 @@ urlpatterns = [
     path('updateusuario/<int:pk>', views.compat_update_usuario),
     path('updateusuario/<int:pk>/', views.compat_update_usuario),
     
-    # Compatibilidad para Tickets y Módulos (Vistas anti-bloqueo y anti-400)
+    # Compatibilidad para Tickets y Módulos
     path('createticket', views.compat_create_ticket),
     path('createticket/', views.compat_create_ticket),
     path('createmodulo', views.compat_create_modulo),
@@ -90,4 +90,3 @@ urlpatterns = [
     path('reportettickets/', views.reporte_tickets),
     path('reportetickets', views.reporte_tickets),
     path('reportetickets/', views.reporte_tickets),
-]

@@ -776,8 +776,36 @@ def compat_create_conocimiento(request):
     payload = request.data.get('data') if 'data' in request.data else request.data
     if payload is None: payload = request.data
     
-    # 🔴 CORRECCIÓN: Usamos ConocimientoSerializer que sí existe en tu app
+    # 🔴 CORRECCIÓN: Nombre exacto del serializador sincronizado
     serializer = ConocimientoSerializer(data=payload)
     serializer.is_valid(raise_exception=True)
     serializer.save()
     return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+# ─────────────────────────────────────────────────────────────────
+# 🆕 COMPATIBILIDAD DE SUB-RECURSOS DEL DETALLE DE TICKET
+# ─────────────────────────────────────────────────────────────────
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+@authentication_classes([TokenAuthentication])
+def compat_chatter_list(request):
+    """Devuelve las entradas de chatter filtradas por el ticket solicitado por el frontend."""
+    ticket_id = request.query_params.get('ticket') or request.query_params.get('ticket_id')
+    if ticket_id:
+        entries = ChatterEntry.objects.filter(ticket_id=ticket_id).select_related('autor').order_by('fecha_creacion')
+        return Response(ChatterEntrySerializer(entries, many=True).data)
+    return Response([]) # Retorna lista vacía segura para evitar errores de .split()
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+@authentication_classes([TokenAuthentication])
+def compat_timelogs_list(request):
+    """Devuelve los registros de tiempo filtrados por el ticket solicitado."""
+    ticket_id = request.query_params.get('ticket') or request.query_params.get('ticket_id')
+    if ticket_id:
+        logs = TicketTimeLog.objects.filter(ticket_id=ticket_id).order_by('fecha_inicio')
+        return Response(TimeLogSerializer(logs, many=True).data)
+    return Response([])

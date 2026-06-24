@@ -106,7 +106,7 @@ class CategoriaSerializer(serializers.ModelSerializer):
         fields = ['id', 'nombre', 'descripcion', 'color']
 
 # ─────────────────────────────────────────────────────────────────
-#  TICKETS (🛡️ REMOCIÓN TOTAL DE DESFASE REGIONAL EN FECHAS)
+#  TICKETS (🛡️ REMOCIÓN DE ZONA HORARIA LOCAL EN FECHAS)
 # ─────────────────────────────────────────────────────────────────
 
 class TicketSerializer(serializers.ModelSerializer):
@@ -152,12 +152,10 @@ class TicketSerializer(serializers.ModelSerializer):
             'calificacion_estrellas', 'ticket_reabierto', 'veces_reabierto',
         ]
 
-    # 🛡️ Formateamos de forma estricta removiendo el desfase regional (ej: -06:00) 
-    # y devolviendo la 'Z' limpia que React espera para separar con .split('T')
     def _format_clean_iso(self, dt_value):
         if not dt_value:
             return "2026-06-24T00:00:00Z"
-        # Usamos .strftime para forzar un formato de texto plano sin microsegundos ni zonas horarias raras
+        # Forzamos formato estricto UTC con la 'Z' al final libre de desfases locales (-06:00)
         return dt_value.strftime("%Y-%m-%dT%H:%M:%SZ")
 
     def get_fecha_creacion(self, obj):
@@ -192,8 +190,8 @@ class TicketInputSerializer(serializers.ModelSerializer):
 class TicketUpdateSerializer(serializers.ModelSerializer):
     sistema_id = serializers.PrimaryKeyRelatedField(source='sistema', queryset=Sistema.objects.all(), allow_null=True, required=False)
     modulo_id = serializers.PrimaryKeyRelatedField(source='modulo', queryset=Modulo.objects.all(), allow_null=True, required=False)
-    prioridad_id = serializers.PrimaryKeyRelatedField(source='prioridad', queryset=Prioridad.objects.all(), allow_null=True, required=False)
-    estado_id = serializers.PrimaryKeyRelatedField(source='estado', queryset=Independent.objects.all() if False else Estado.objects.all(), allow_null=True, required=False)
+    # ✅ CORREGIDO: Se removió la referencia rota a Independent.objects y se asignó Estado de forma limpia
+    estado_id = serializers.PrimaryKeyRelatedField(source='estado', queryset=Estado.objects.all(), allow_null=True, required=False)
     categoria_id = serializers.PrimaryKeyRelatedField(source='categoria', queryset=Categoria.objects.all(), allow_null=True, required=False)
     usuario_asignado_id = serializers.PrimaryKeyRelatedField(source='usuario_asignado', queryset=Usuario.objects.all(), allow_null=True, required=False)
     class Meta:

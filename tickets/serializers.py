@@ -106,7 +106,7 @@ class CategoriaSerializer(serializers.ModelSerializer):
         fields = ['id', 'nombre', 'descripcion', 'color']
 
 # ─────────────────────────────────────────────────────────────────
-#  TICKETS (🛡️ BLINDAJE ULTRAESTRICTO ANTI-SPLIT EN FECHAS)
+#  TICKETS (🛡️ BLINDAJE ULTRAESTRICTO ANTI-SPLIT)
 # ─────────────────────────────────────────────────────────────────
 
 class TicketSerializer(serializers.ModelSerializer):

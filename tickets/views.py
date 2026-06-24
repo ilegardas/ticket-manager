@@ -778,8 +778,8 @@ def compat_create_conocimiento(request):
     if payload is None: 
         payload = request.data
     
-    # Usamos tu serializador correspondiente para validar y guardar en Postgres
-    serializer = ConocimientoEntrySerializer(data=payload)
+    # 🔴 CAMBIO: Cambiado de ConocimientoEntrySerializer a ConocimientoSerializer
+    serializer = ConocimientoSerializer(data=payload)
     serializer.is_valid(raise_exception=True)
     serializer.save()
     return Response(serializer.data, status=status.HTTP_201_CREATED)

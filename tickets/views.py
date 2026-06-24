@@ -773,12 +773,10 @@ def compat_create_modulo(request):
 @permission_classes([IsAuthenticated])
 @authentication_classes([TokenAuthentication])
 def compat_create_conocimiento(request):
-    """Desenuelve el JSON de Axios y fuerza la creación de Entradas de Conocimiento."""
     payload = request.data.get('data') if 'data' in request.data else request.data
-    if payload is None: 
-        payload = request.data
+    if payload is None: payload = request.data
     
-    # 🔴 CAMBIO: Cambiado de ConocimientoEntrySerializer a ConocimientoSerializer
+    # 🔴 CORRECCIÓN: Usamos ConocimientoSerializer que sí existe en tu app
     serializer = ConocimientoSerializer(data=payload)
     serializer.is_valid(raise_exception=True)
     serializer.save()

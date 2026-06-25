@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
 
-# Inicializamos el router para los ViewSets estándar
+# Inicializamos el router para los ViewSets estándar  
 router = DefaultRouter(trailing_slash=False)
 router.register(r'tickets', views.TicketViewSet, basename='ticket')
 router.register(r'sistemas', views.SistemaViewSet, basename='sistema')

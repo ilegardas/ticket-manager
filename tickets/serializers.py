@@ -110,6 +110,16 @@ class CategoriaSerializer(serializers.ModelSerializer):
 # ─────────────────────────────────────────────────────────────────
 
 class TicketSerializer(serializers.ModelSerializer):
+    # Campos detallados para lectura (Modo Vista en React)
+    sistema_detail = SistemaSerializer(source='sistema', read_only=True)
+    modulo_detail = ModuloSerializer(source='modulo', read_only=True)
+    prioridad_detail = PrioridadSerializer(source='prioridad', read_only=True)
+    estado_detail = EstadoSerializer(source='estado', read_only=True)
+    categoria_detail = CategoriaSerializer(source='categoria', read_only=True)
+    usuario_reporta_detail = UsuarioSerializer(source='usuario_reporta', read_only=True)
+    usuario_asignado_detail = UsuarioSerializer(source='usuario_asignado', read_only=True)
+
+    # Nombres planos para compatibilidad directa con las etiquetas antiguas
     sistema_nombre = serializers.CharField(source='sistema.nombre', read_only=True, default="—")
     modulo_nombre = serializers.CharField(source='modulo.nombre', read_only=True, default="—")
     prioridad_nombre = serializers.CharField(source='prioridad.nombre', read_only=True, default="—")
@@ -119,16 +129,8 @@ class TicketSerializer(serializers.ModelSerializer):
     categoria_nombre = serializers.CharField(source='categoria.nombre', read_only=True, default="—")
     usuario_reporta_nombre = serializers.CharField(source='usuario_reporta.nombre_completo', read_only=True, default="—")
     usuario_asignado_nombre = serializers.CharField(source='usuario_asignado.nombre_completo', read_only=True, default="Sin asignar")
-    tiempo_efectivo_minutos = serializers.ReadOnlyField()
 
-    sistema_id = serializers.PrimaryKeyRelatedField(source='sistema', queryset=Sistema.objects.all(), allow_null=True, required=False)
-    modulo_id = serializers.PrimaryKeyRelatedField(source='modulo', queryset=Modulo.objects.all(), allow_null=True, required=False)
-    prioridad_id = serializers.PrimaryKeyRelatedField(source='prioridad', queryset=Prioridad.objects.all(), allow_null=True, required=False)
-    estado_id = serializers.PrimaryKeyRelatedField(source='estado', queryset=Estado.objects.all(), allow_null=True, required=False)
-    categoria_id = serializers.PrimaryKeyRelatedField(source='categoria', queryset=Categoria.objects.all(), allow_null=True, required=False)
-    usuario_reporta_id = serializers.PrimaryKeyRelatedField(source='usuario_reporta', queryset=Usuario.objects.all(), allow_null=True, required=False)
-    usuario_asignado_id = serializers.PrimaryKeyRelatedField(source='usuario_asignado', queryset=Usuario.objects.all(), allow_null=True, required=False)
-
+    # Mapeo de campos de fecha limpios y estrictos para evitar el crash de date-fns
     fecha_creacion = serializers.SerializerMethodField()
     fecha_asignacion = serializers.SerializerMethodField()
     fecha_primera_respuesta = serializers.SerializerMethodField()
@@ -137,40 +139,18 @@ class TicketSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Ticket
-        fields = [
-            'id', 'folio', 'titulo', 'descripcion', 'impacto_proceso', 'medio_ingreso',
-            'sistema_id', 'sistema_nombre', 'modulo_id', 'modulo_nombre',
-            'prioridad_id', 'prioridad_nombre', 'prioridad_color',
-            'estado_id', 'estado_nombre', 'estado_color',
-            'categoria_id', 'categoria_nombre',
-            'usuario_reporta_id', 'usuario_reporta_nombre',
-            'usuario_asignado_id', 'usuario_asignado_nombre',
-            'fecha_creacion', 'fecha_asignacion', 'fecha_primera_respuesta',
-            'fecha_resolucion', 'fecha_cierre',
-            'tiempo_atencion_minutos', 'tiempo_efectivo_minutos', 'tiempo_pausa_minutos',
-            'codigo_error', 'solucion_aplicada', 'causa_raiz',
-            'calificacion_estrellas', 'ticket_reabierto', 'veces_reabierto',
-        ]
+        fields = '__all__' # Trae todos los campos nativos (id, titulo, descripcion, etc.) y les monta los detalles arriba
 
     def _format_clean_iso(self, dt_value):
         if not dt_value:
-            return "2026-06-24T00:00:00Z"
+            return "2026-06-25T00:00:00Z"
         return dt_value.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    def get_fecha_creacion(self, obj):
-        return self._format_clean_iso(obj.fecha_creacion)
-
-    def get_fecha_asignacion(self, obj):
-        return self._format_clean_iso(obj.fecha_asignacion) if obj.fecha_asignacion else self.get_fecha_creacion(obj)
-
-    def get_fecha_primera_respuesta(self, obj):
-        return self._format_clean_iso(obj.fecha_primera_respuesta) if obj.fecha_primera_respuesta else self.get_fecha_creacion(obj)
-
-    def get_fecha_resolucion(self, obj):
-        return self._format_clean_iso(obj.fecha_resolucion) if obj.fecha_resolucion else self.get_fecha_creacion(obj)
-
-    def get_fecha_cierre(self, obj):
-        return self._format_clean_iso(obj.fecha_cierre) if obj.fecha_cierre else self.get_fecha_creacion(obj)
+    def get_fecha_creacion(self, obj): return self._format_clean_iso(obj.fecha_creacion)
+    def get_fecha_asignacion(self, obj): return self._format_clean_iso(obj.fecha_asignacion) if obj.fecha_asignacion else self.get_fecha_creacion(obj)
+    def get_fecha_primera_respuesta(self, obj): return self._format_clean_iso(obj.fecha_primera_respuesta) if obj.fecha_primera_respuesta else self.get_fecha_creacion(obj)
+    def get_fecha_resolucion(self, obj): return self._format_clean_iso(obj.fecha_resolucion) if obj.fecha_resolucion else self.get_fecha_creacion(obj)
+    def get_fecha_cierre(self, obj): return self._format_clean_iso(obj.fecha_cierre) if obj.fecha_cierre else self.get_fecha_creacion(obj)
 
 
 class TicketInputSerializer(serializers.ModelSerializer):

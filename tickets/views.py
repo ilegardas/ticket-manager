@@ -336,28 +336,59 @@ def compat_timelogs_list(request):
     tid = request.query_params.get('ticket') or request.query_params.get('ticket_id')
     return Response(TimeLogSerializer(TicketTimeLog.objects.filter(ticket_id=tid).order_by('fecha_inicio'), many=True).data if tid else [])
 
+
+
 @api_view(['GET', 'PUT', 'PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated])
 @authentication_classes([TokenAuthentication])
 def compat_ticket_detail(request, pk):
+    """
+    🎯 ENDPOINT DE DETALLE INDIVIDUAL BLINDADO CONTRA ELEMENTOS VACÍOS EN DATE-FNS
+    """
     try:
-        ticket = Ticket.objects.select_related('sistema', 'modulo', 'prioridad', 'estado', 'categoria', 'usuario_reporta', 'usuario_assigned').get(pk=pk)
+        ticket = Ticket.objects.select_related(
+            'sistema', 'modulo', 'prioridad', 'estado', 'categoria', 
+            'usuario_reporta', 'usuario_asignado'
+        ).get(pk=pk)
     except Ticket.DoesNotExist:
-        try:
-            ticket = Ticket.objects.select_related('sistema', 'modulo', 'prioridad', 'estado', 'categoria', 'usuario_reporta', 'usuario_asignado').get(pk=pk)
-        except Ticket.DoesNotExist:
-            return Response({'detail': 'No encontrado.'}, status=status.HTTP_404_NOT_FOUND)
-            
+        return Response({'detail': 'No encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
     if request.method == 'GET':
-        return Response(TicketSerializer(ticket).data)
+        # Obtenemos la serialización base sin alterar el comportamiento global
+        serializer = TicketSerializer(ticket)
+        data = serializer.data
+
+        # 🛡️ VALIDACIÓN QUIRÚRGICA: Aseguramos que date-fns nunca reciba nulos en parseISO
+        base_date = data.get('fecha_creacion') or "2026-06-25T00:00:00Z"
+        
+        if not data.get('fecha_creacion'): data['fecha_creacion'] = base_date
+        if not data.get('fecha_asignacion'): data['fecha_asignacion'] = base_date
+        if not data.get('fecha_primera_respuesta'): data['fecha_primera_respuesta'] = base_date
+        if not data.get('fecha_resolucion'): data['fecha_resolucion'] = base_date
+        if not data.get('fecha_cierre'): data['fecha_cierre'] = base_date
+
+        return Response(data)
+
     elif request.method in ['PUT', 'PATCH']:
         payload = request.data.get('data', request.data)
         old_est = ticket.estado
         serializer = TicketUpdateSerializer(ticket, data=payload, partial=True)
         serializer.is_valid(raise_exception=True)
         ticket_upd = serializer.save()
-        if old_est != ticket_upd.estado: _handle_state_change(ticket_upd, old_est, ticket_upd.estado, request.user)
-        return Response(TicketSerializer(ticket_upd).data)
+        
+        if old_est != ticket_upd.estado: 
+            _handle_state_change(ticket_upd, old_est, ticket_upd.estado, request.user)
+            
+        # Volvemos a aplicar el blindaje al retornar la respuesta de guardado
+        return_serializer = TicketSerializer(ticket_upd)
+        return_data = return_serializer.data
+        base_date = return_data.get('fecha_creacion') or "2026-06-25T00:00:00Z"
+        
+        if not return_data.get('fecha_asignacion'): return_data['fecha_asignacion'] = base_date
+        if not return_data.get('fecha_cierre'): return_data['fecha_cierre'] = base_date
+        
+        return Response(return_data)
+
     elif request.method == 'DELETE':
         ticket.delete()
         return Response({'detail': 'Eliminado.'}, status=status.HTTP_200_OK)

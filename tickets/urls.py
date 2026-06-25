@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
 
-# Inicializamos el router para los ViewSets estándar  ivan legarda
+# Inicializamos el router para los ViewSets estándar de la app
 router = DefaultRouter(trailing_slash=False)
 router.register(r'tickets', views.TicketViewSet, basename='ticket')
 router.register(r'sistemas', views.SistemaViewSet, basename='sistema')
@@ -15,7 +15,7 @@ router.register(r'categorias', views.CategoriaViewSet, basename='categoria')
 router.register(r'conocimiento', views.ConocimientoViewSet, basename='conocimiento')
 
 urlpatterns = [
-    # 🔐 1. RUTAS DE AUTENTICACIÓN (Con y sin barra para blindar al frontend)
+    # 🔐 1. AUTENTICACIÓN (Responde a: /api/auth/login, /api/auth/me, etc.)
     path('auth/login', views.login_view),
     path('auth/login/', views.login_view),
     path('auth/logout', views.logout_view),
@@ -23,7 +23,7 @@ urlpatterns = [
     path('auth/me', views.me_view),
     path('auth/me/', views.me_view),
     
-    # 🔄 2. ENDPOINTS RPC REQUERIDOS POR EL CLIENTE DE REACT
+    # 🔄 2. ENDPOINTS RPC REQUERIDOS POR TU CLIENTE DE REACT
     path('addchatter', views.compat_add_chatter, name='compat_add_chatter'),
     path('addchatter/', views.compat_add_chatter, name='compat_add_chatter_cb'),
     path('updateticket', views.compat_update_ticket, name='compat_update_ticket'),
@@ -42,6 +42,6 @@ urlpatterns = [
     path('reportes/tickets', views.reporte_tickets),
     path('reportes/actividad-reciente', views.actividad_reciente),
 
-    # 🔌 4. RUTAS AUTOMÁTICAS DE LOS VIEWSETS (Siempre al final)
+    # 🔌 4. RUTAS AUTOMÁTICAS DE LOS VIEWSETS (Responde a: /api/tickets, /api/sistemas, etc.)
     path('', include(router.urls)),
 ]

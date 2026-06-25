@@ -136,7 +136,7 @@ class TicketViewSet(viewsets.ModelViewSet):
 
 
 
-    # 🛡️ RETRIEVE DEFINITIVO: Tolerante a relaciones nulas y blindado para React
+    # 🛡️ RETRIEVE HÍBRIDO DEFINITIVO: Satisface tanto campos planos (IDs) como strings relacionales
     def retrieve(self, request, pk=None, *args, **kwargs):
         try:
             instance = Ticket.objects.select_related(
@@ -148,7 +148,16 @@ class TicketViewSet(viewsets.ModelViewSet):
         serializer = TicketSerializer(instance)
         data = serializer.data
 
-        # 🛡️ Validaciones seguras contra nulos: Si no tienen asignación, no truenan la pantalla
+        # 1. 🛡️ Inyección de IDs directos para alimentar los selectores en modo edición (EditMode)
+        data['sistema_id'] = instance.sistema.id if instance.sistema else None
+        data['modulo_id'] = instance.modulo.id if instance.modulo else None
+        data['prioridad_id'] = instance.prioridad.id if instance.prioridad else None
+        data['estado_id'] = instance.estado.id if instance.estado else None
+        data['categoria_id'] = instance.categoria.id if instance.categoria else None
+        data['usuario_reporta_id'] = instance.usuario_reporta.id if instance.usuario_reporta else None
+        data['usuario_asignado_id'] = instance.usuario_asignado.id if instance.usuario_asignado else None
+
+        # 2. 🛡️ Inyección de Nombres para el modo lectura (Evita guiones vacíos)
         data['sistema_nombre'] = instance.sistema.nombre if instance.sistema else "—"
         data['modulo_nombre'] = instance.modulo.nombre if instance.modulo else "—"
         data['prioridad_nombre'] = instance.prioridad.nombre if instance.prioridad else "—"
@@ -159,7 +168,7 @@ class TicketViewSet(viewsets.ModelViewSet):
         data['usuario_reporta_nombre'] = instance.usuario_reporta.nombre_completo if instance.usuario_reporta else "—"
         data['usuario_asignado_nombre'] = instance.usuario_asignado.nombre_completo if instance.usuario_asignado else "Sin asignar"
 
-        # Aplicamos la limpieza de fechas UTC string para date-fns
+        # 3. 🛡️ Inmunidad y limpieza estricta de strings de fechas UTC 'Z' para date-fns
         base_date = _clean_view_date_string(data.get('fecha_creacion'))
         data['fecha_creacion'] = _clean_view_date_string(data.get('fecha_creacion'))
         data['fecha_asignacion'] = _clean_view_date_string(data.get('fecha_asignacion')) if data.get('fecha_asignacion') else base_date
@@ -168,6 +177,7 @@ class TicketViewSet(viewsets.ModelViewSet):
         data['fecha_cierre'] = _clean_view_date_string(data.get('fecha_cierre')) if data.get('fecha_cierre') else base_date
 
         return Response(data)
+        
         
 
     def create(self, request, *args, **kwargs):

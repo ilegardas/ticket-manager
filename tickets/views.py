@@ -335,7 +335,7 @@ def reporte_por_region(request): return Response([])
 @permission_classes([AllowAny])
 def reporte_tickets(request): 
     """
-    🛡️ CONTROL ESTRICTO DE ARREGLO: Garantiza un [] nativo para evitar el crash de .slice()
+    🛡️ CONTROL ABSOLUTO DE ARREGLO: Garantiza un [] nativo para evitar el crash de .slice()
     """
     try:
         # Obtenemos los últimos 100 tickets optimizando las relaciones
@@ -345,7 +345,6 @@ def reporte_tickets(request):
         
         result = []
         for instance in qs:
-            # Construimos un mapeo plano e híbrido super seguro por cada fila para que no falle nada
             row = {
                 'id': instance.id,
                 'folio': instance.folio or "—",
@@ -374,7 +373,7 @@ def reporte_tickets(request):
                 'usuario_asignado_nombre': instance.usuario_asignado.nombre_completo if instance.usuario_asignado else "Sin asignar",
             }
             
-            # Formateo estricto e inmune de fechas ISO UTC 'Z'
+            # Formateo estricto de fechas ISO UTC 'Z'
             def _clean_date(dt):
                 if not dt:
                     return "2026-06-25T00:00:00Z"
@@ -388,11 +387,10 @@ def reporte_tickets(request):
             
             result.append(row)
             
-        # Forzamos con la función list() que la respuesta sea un Array JSON puro de datos planos
+        # Forzamos con la función list() que la respuesta sea un Array JSON puro
         return Response(list(result), status=status.HTTP_200_OK)
         
     except Exception:
-        # Si algo extremo truena en la base de datos, devolvemos una lista vacía para que la UI no se rompa
         return Response([], status=status.HTTP_200_OK)
         
 

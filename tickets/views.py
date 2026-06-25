@@ -68,8 +68,30 @@ def login_view(request):
         return Response({'detail': 'Credenciales inválidas.'}, status=status.HTTP_401_UNAUTHORIZED)
     if not user.activo:
         return Response({'detail': 'Usuario inactivo.'}, status=status.HTTP_403_FORBIDDEN)
+        
     token, _ = Token.objects.get_or_create(usuario=user)
-    return Response({'id': user.id, 'correo_electronico': user.correo_electronico, 'nombre_completo': user.nombre_completo, 'rol': user.rol, 'token': token.key})
+    
+    # 🎯 ESTRUCTURA HÍBRIDA: Satisface tanto la lectura por Body (plano y encapsulado) como por Headers
+    user_data = {
+        'id': user.id, 
+        'correo_electronico': user.correo_electronico, 
+        'nombre_completo': user.nombre_completo, 
+        'rol': user.rol, 
+        'token': token.key
+    }
+    
+    response = Response({
+        'id': user.id,
+        'correo_electronico': user.correo_electronico,
+        'nombre_completo': user.nombre_completo,
+        'rol': user.rol,
+        'token': token.key,
+        'data': user_data  # Por si el cliente de React busca dentro de response.data.data
+    })
+    
+    # 🛡️ Blindaje para el .split() del frontend: inyectamos el Header esperado
+    response['Authorization'] = f"Bearer {token.key}"
+    return response
 
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])

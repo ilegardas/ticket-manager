@@ -29,13 +29,19 @@ urlpatterns = [
     path('tickets<int:pk>', views.TicketViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})),
     path('tickets<int:pk>/', views.TicketViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})),
 
-    # 🔄 3. ENDPOINTS RPC REQUERIDOS POR EL CLIENTE DE REACT
+    # 🔄 3. ALIAS CRÍTICOS PARA LAS CONSULTAS DEL TICKET DETAIL (Resuelve el 404 de chatter y timelogs)
+    path('chatter', views.compat_chatter_list),
+    path('chatter/', views.compat_chatter_list),
+    path('timelogs', views.compat_timelogs_list),
+    path('timelogs/', views.compat_timelogs_list),
+
+    # 📥 4. ENDPOINTS RPC PARA ACCIONES (Crear comentarios / Editar ticket)
     path('addchatter', views.compat_add_chatter, name='compat_add_chatter'),
     path('addchatter/', views.compat_add_chatter, name='compat_add_chatter_cb'),
     path('updateticket', views.compat_update_ticket, name='compat_update_ticket'),
     path('updateticket/', views.compat_update_ticket, name='compat_update_ticket_cb'),
 
-    # 📊 4. ENDPOINTS DEL DASHBOARD / REPORTES CORE
+    # 📊 5. ENDPOINTS DEL DASHBOARD / REPORTES CORE
     path('reportes/resumen', views.reporte_resumen),
     path('reportes/por-sistema', views.reporte_por_sistema),
     path('reportes/por-estado', views.reporte_por_estado),
@@ -46,7 +52,7 @@ urlpatterns = [
     path('reportes/tickets', views.reporte_tickets),
     path('reportes/actividad-reciente', views.actividad_reciente),
 
-    # ⚠️ 5. RUTAS ESPEJO / LEGACY MATCHERS DEL DASHBOARD
+    # ⚠️ 6. RUTAS ESPEJO / LEGACY MATCHERS DEL DASHBOARD
     path('reporteresumen', views.reporte_resumen),
     path('reporteresumen/', views.reporte_resumen),
     path('reporteporsistema', views.reporte_por_sistema),
@@ -62,7 +68,7 @@ urlpatterns = [
     path('actividadreciente', views.actividad_reciente),
     path('actividadreciente/', views.actividad_reciente),
 
-    # 🛠️ 6. ACCIONES Y OPERACIONES AUXILIARES LEGACY
+    # 🛠️ 7. ACCIONES Y OPERACIONES AUXILIARES LEGACY
     path('createmodulo', views.compat_create_modulo),
     path('createmodulo/', views.compat_create_modulo),
     path('deletemodulo', views.compat_delete_modulo),
@@ -78,7 +84,7 @@ urlpatterns = [
     path('deleteusuario', views.compat_delete_usuario),
     path('deleteusuario/', views.compat_delete_usuario),
 
-    # 🔌 7. ENTRADA DE ROUTER BLINDADA (Acepta opcionalmente una barra diagonal final en cualquier recurso)
+    # 🔌 8. ENTRADA DE ROUTER BLINDADA
     re_path(r'^(?P<url>.*)/$', include(router.urls)),
     path('', include(router.urls)),
 ]

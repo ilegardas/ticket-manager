@@ -29,17 +29,23 @@ urlpatterns = [
     path('tickets<int:pk>', views.TicketViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})),
     path('tickets<int:pk>/', views.TicketViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})),
 
-    # 🔄 3. ALIAS CRÍTICOS PARA LAS CONSULTAS DEL TICKET DETAIL (Resuelve el 404 de chatter y timelogs)
+    # 🔄 3. ALIAS CRÍTICOS PARA LAS CONSULTAS DEL TICKET DETAIL (Evita h.map y objetos vacíos)
     path('chatter', views.compat_chatter_list),
     path('chatter/', views.compat_chatter_list),
     path('timelogs', views.compat_timelogs_list),
     path('timelogs/', views.compat_timelogs_list),
 
-    # 📥 4. ENDPOINTS RPC PARA ACCIONES (Crear comentarios / Editar ticket)
+    # 📥 4. ENDPOINTS RPC PARA ACCIONES (🛡️ Duplicados con y sin diagonal para frenar el RuntimeError de APPEND_SLASH)
     path('addchatter', views.compat_add_chatter, name='compat_add_chatter'),
     path('addchatter/', views.compat_add_chatter, name='compat_add_chatter_cb'),
     path('updateticket', views.compat_update_ticket, name='compat_update_ticket'),
     path('updateticket/', views.compat_update_ticket, name='compat_update_ticket_cb'),
+    
+    # Soporte para recordatorios y reaperturas si los tiene configurados en views
+    path('remindticket', views.compat_update_ticket), 
+    path('remindticket/', views.compat_update_ticket),
+    path('reopenticket', views.compat_update_ticket),
+    path('reopenticket/', views.compat_update_ticket),
 
     # 📊 5. ENDPOINTS DEL DASHBOARD / REPORTES CORE
     path('reportes/resumen', views.reporte_resumen),
@@ -84,7 +90,7 @@ urlpatterns = [
     path('deleteusuario', views.compat_delete_usuario),
     path('deleteusuario/', views.compat_delete_usuario),
 
-    # 🔌 8. ENTRADA DE ROUTER BLINDADA
+    # 🔌 8. ENTRADA DE ROUTER HÍBRIDA TOLERANTE A INTERFERENCIAS
     re_path(r'^(?P<url>.*)/$', include(router.urls)),
     path('', include(router.urls)),
 ]

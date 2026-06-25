@@ -2,17 +2,20 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
 
-# Inicializamos el router para los ViewSets estándar de la app
-router = DefaultRouter(trailing_slash=False)
-router.register(r'tickets', views.TicketViewSet, basename='ticket')
-router.register(r'sistemas', views.SistemaViewSet, basename='sistema')
-router.register(r'modulos', views.ModuloViewSet, basename='modulo')
-router.register(r'documentos', views.DocumentoViewSet, basename='documento')
-router.register(r'usuarios', views.UsuarioViewSet, basename='usuario')
-router.register(r'prioridades', views.PrioridadViewSet, basename='prioridad')
-router.register(r'estados', views.EstadoViewSet, basename='estado')
-router.register(r'categorias', views.CategoriaViewSet, basename='categoria')
-router.register(r'conocimiento', views.ConocimientoViewSet, basename='conocimiento')
+# 🛡️ DEFINICIÓN DUAL DEL ROUTER: Registramos ambos casos para que no falle ningún selector
+router_no_slash = DefaultRouter(trailing_slash=False)
+router_slash = DefaultRouter(trailing_slash=True)
+
+for r in [router_no_slash, router_slash]:
+    r.register(r'tickets', views.TicketViewSet, basename='ticket')
+    r.register(r'sistemas', views.SistemaViewSet, basename='sistema')
+    r.register(r'modulos', views.ModuloViewSet, basename='modulo')
+    r.register(r'documentos', views.DocumentoViewSet, basename='documento')
+    r.register(r'usuarios', views.UsuarioViewSet, basename='usuario')
+    r.register(r'prioridades', views.PrioridadViewSet, basename='prioridad')
+    r.register(r'estados', views.EstadoViewSet, basename='estado')
+    r.register(r'categorias', views.CategoriaViewSet, basename='categoria')
+    r.register(r'conocimiento', views.ConocimientoViewSet, basename='conocimiento')
 
 urlpatterns = [
     # 🔐 1. AUTENTICACIÓN
@@ -23,9 +26,11 @@ urlpatterns = [
     path('auth/me', views.me_view),
     path('auth/me/', views.me_view),
     
-    # 🛡️ 2. SOPORTE DE CONCATENACIÓN DIRECTA (Resuelve el bug de /api/tickets22)
+    # 🛡️ 2. SECCIÓN CRÍTICA: Captura explícita para detalle de ticket (con y sin diagonal intermedia)
     path('tickets<int:pk>', views.TicketViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})),
     path('tickets<int:pk>/', views.TicketViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})),
+    path('tickets/<int:pk>', views.TicketViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})),
+    path('tickets/<int:pk>/', views.TicketViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})),
 
     # 🔄 3. ENDPOINTS RPC REQUERIDOS POR TU CLIENTE DE REACT
     path('addchatter', views.compat_add_chatter, name='compat_add_chatter'),
@@ -74,6 +79,7 @@ urlpatterns = [
     path('createusuario', views.compat_create_usuario),
     path('createusuario/', views.compat_create_usuario),
 
-    # 🔌 7. RUTAS AUTOMÁTICAS DE LOS VIEWSETS (Al final)
-    path('', include(router.urls)),
+    # 🔌 7. ENTRADA HÍBRIDA DE LOS ROUTERS (Resuelve el 404 de estados, prioridades, etc.)
+    path('', include(router_no_slash.urls)),
+    path('', include(router_slash.urls)),
 ]

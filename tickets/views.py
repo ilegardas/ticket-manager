@@ -134,20 +134,21 @@ class TicketViewSet(viewsets.ModelViewSet):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
-    # 🛡️ RETRIEVE OPTIMIZADO PARA EVITAR EL 404 Y FORMATEAR FECHAS
+
+
+    # 🛡️ RETRIEVE ULTRA-BLINDADO: Entrega el ticket, el chatter y los logs en una sola consulta limpia
     def retrieve(self, request, pk=None, *args, **kwargs):
         try:
-            # Forzamos la búsqueda directa por PK usando el queryset optimizado con select_related
             instance = Ticket.objects.select_related(
                 'sistema', 'modulo', 'prioridad', 'estado', 'categoria', 'usuario_reporta', 'usuario_asignado'
             ).get(pk=pk)
         except Ticket.DoesNotExist:
-            return Response({'detail': f'Ticket con ID {pk} no encontrado en el sistema.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'detail': f'Ticket {pk} no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
         serializer = TicketSerializer(instance)
         data = serializer.data
 
-        # Limpieza estricta de fechas para que date-fns en React renderice el detalle de inmediato
+        # 1. 🛡️ Formateo e inmunidad absoluta de strings de fechas UTC 'Z'
         base_date = _clean_view_date_string(data.get('fecha_creacion'))
         data['fecha_creacion'] = _clean_view_date_string(data.get('fecha_creacion'))
         data['fecha_asignacion'] = _clean_view_date_string(data.get('fecha_asignacion')) if data.get('fecha_asignacion') else base_date
@@ -155,7 +156,17 @@ class TicketViewSet(viewsets.ModelViewSet):
         data['fecha_resolucion'] = _clean_view_date_string(data.get('fecha_resolucion')) if data.get('fecha_resolucion') else base_date
         data['fecha_cierre'] = _clean_view_date_string(data.get('fecha_cierre')) if data.get('fecha_cierre') else base_date
 
+        # 2. 🔌 INYECCIÓN DIRECTA DE SUB-RECURSOS: Rompe el bucle de carga infinita del frontend
+        # Traemos el chatter correspondiente a este ticket
+        chatter_qs = ChatterEntry.objects.filter(ticket=instance).order_by('fecha_creacion')
+        data['chatter'] = ChatterEntrySerializer(chatter_qs, many=True).data
+
+        # Traemos los logs de tiempo correspondientes a este ticket
+        logs_qs = TicketTimeLog.objects.filter(ticket=instance).order_by('fecha_inicio')
+        data['time_logs'] = TimeLogSerializer(logs_qs, many=True).data
+
         return Response(data)
+        
 
     def create(self, request, *args, **kwargs):
         data = request.data.get('data') if 'data' in request.data else request.data

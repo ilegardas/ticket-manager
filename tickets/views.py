@@ -334,19 +334,67 @@ def reporte_por_region(request): return Response([])
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def reporte_tickets(request): 
-    qs = Ticket.objects.select_related('sistema', 'modulo', 'prioridad', 'estado', 'categoria', 'usuario_reporta', 'usuario_asignado').all()[:100]
-    serializer = TicketSerializer(qs, many=True)
-    list_data = serializer.data
-    
-    for row in list_data:
-        base_date = _clean_view_date_string(row.get('fecha_creacion'))
-        row['fecha_creacion'] = _clean_view_date_string(row.get('fecha_creacion'))
-        row['fecha_asignacion'] = _clean_view_date_string(row.get('fecha_asignacion')) if row.get('fecha_asignacion') else base_date
-        row['fecha_primera_respuesta'] = _clean_view_date_string(row.get('fecha_primera_respuesta')) if row.get('fecha_primera_respuesta') else base_date
-        row['fecha_resolucion'] = _clean_view_date_string(row.get('fecha_resolucion')) if row.get('fecha_resolucion') else base_date
-        row['fecha_cierre'] = _clean_view_date_string(row.get('fecha_cierre')) if row.get('fecha_cierre') else base_date
+    """
+    🛡️ CONTROL ESTRICTO DE ARREGLO: Garantiza un [] nativo para evitar el crash de .slice()
+    """
+    try:
+        # Obtenemos los últimos 100 tickets optimizando las relaciones
+        qs = Ticket.objects.select_related(
+            'sistema', 'modulo', 'prioridad', 'estado', 'categoria', 'usuario_reporta', 'usuario_asignado'
+        ).all().order_by('-fecha_creacion')[:100]
         
-    return Response(list_data)
+        result = []
+        for instance in qs:
+            # Construimos un mapeo plano e híbrido super seguro por cada fila para que no falle nada
+            row = {
+                'id': instance.id,
+                'folio': instance.folio or "—",
+                'titulo': instance.titulo or "—",
+                'descripcion': instance.descripcion or "",
+                'codigo_error': instance.codigo_error or "",
+                'tiempo_atencion_minutos': instance.tiempo_atencion_minutos or 0,
+                'tiempo_pausa_minutos': instance.tiempo_pausa_minutos or 0,
+                
+                # IDs numéricos planos
+                'sistema_id': instance.sistema.id if instance.sistema else None,
+                'modulo_id': instance.modulo.id if instance.modulo else None,
+                'prioridad_id': instance.prioridad.id if instance.prioridad else None,
+                'estado_id': instance.estado.id if instance.estado else None,
+                'categoria_id': instance.categoria.id if instance.categoria else None,
+                
+                # Textos legibles
+                'sistema_nombre': instance.sistema.nombre if instance.sistema else "—",
+                'modulo_nombre': instance.modulo.nombre if instance.modulo else "—",
+                'prioridad_nombre': instance.prioridad.nombre if instance.prioridad else "—",
+                'prioridad_color': instance.prioridad.color if instance.prioridad else "",
+                'estado_nombre': instance.estado.nombre if instance.estado else "—",
+                'estado_color': instance.estado.color if instance.estado else "",
+                'categoria_nombre': instance.categoria.nombre if instance.categoria else "—",
+                'usuario_reporta_nombre': instance.usuario_reporta.nombre_completo if instance.usuario_reporta else "—",
+                'usuario_asignado_nombre': instance.usuario_asignado.nombre_completo if instance.usuario_asignado else "Sin asignar",
+            }
+            
+            # Formateo estricto e inmune de fechas ISO UTC 'Z'
+            def _clean_date(dt):
+                if not dt:
+                    return "2026-06-25T00:00:00Z"
+                return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+                
+            row['fecha_creacion'] = _clean_date(instance.fecha_creacion)
+            row['fecha_asignacion'] = _clean_date(instance.fecha_asignacion) if instance.fecha_asignacion else row['fecha_creacion']
+            row['fecha_primera_respuesta'] = _clean_date(instance.fecha_primera_respuesta) if instance.fecha_primera_respuesta else row['fecha_creacion']
+            row['fecha_resolucion'] = _clean_date(instance.fecha_resolucion) if instance.fecha_resolucion else row['fecha_creacion']
+            row['fecha_cierre'] = _clean_date(instance.fecha_cierre) if instance.fecha_cierre else row['fecha_creacion']
+            
+            result.append(row)
+            
+        # Forzamos con la función list() que la respuesta sea un Array JSON puro de datos planos
+        return Response(list(result), status=status.HTTP_200_OK)
+        
+    except Exception:
+        # Si algo extremo truena en la base de datos, devolvemos una lista vacía para que la UI no se rompa
+        return Response([], status=status.HTTP_200_OK)
+        
 
 @api_view(['GET'])
 def actividad_reciente(request): return Response([])

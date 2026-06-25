@@ -391,26 +391,39 @@ def compat_create_conocimiento(request):
 
 @api_view(['GET'])
 def compat_chatter_list(request):
-    tid = request.query_params.get('ticket') or request.query_params.get('ticket_id')
+    """
+    🛡️ CONTROL ABSOLUTO DE LISTA: Asegura una respuesta [] pura para React Query
+    """
+    # Buscamos el ID del ticket bajo cualquier parámetro que mande el cliente
+    tid = request.query_params.get('ticket') or request.query_params.get('ticket_id') or request.query_params.get('id')
     if not tid:
-        return Response([]) # 🛡️ Siempre retorna un arreglo limpio si no hay ID
-    
-    # Obtenemos los registros vinculados
-    queryset = ChatterEntry.objects.filter(ticket_id=tid).order_by('fecha_creacion')
-    serializer = ChatterEntrySerializer(queryset, many=True)
-    return Response(serializer.data) # DRF garantiza que serializer.data con many=True sea una lista []
+        return Response([], status=status.HTTP_200_OK)
+        
+    try:
+        queryset = ChatterEntry.objects.filter(ticket_id=int(tid)).order_by('fecha_creacion')
+        serializer = ChatterEntrySerializer(queryset, many=True)
+        # Forzamos que la respuesta sea una lista pura de Python nativo
+        return Response(list(serializer.data), status=status.HTTP_200_OK)
+    except Exception:
+        return Response([], status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])
 def compat_timelogs_list(request):
-    tid = request.query_params.get('ticket') or request.query_params.get('ticket_id')
+    """
+    🛡️ CONTROL ABSOLUTO DE LISTA: Asegura una respuesta [] pura para React Query
+    """
+    tid = request.query_params.get('ticket') or request.query_params.get('ticket_id') or request.query_params.get('id')
     if not tid:
-        return Response([]) # 🛡️ Siempre retorna un arreglo limpio si no hay ID
+        return Response([], status=status.HTTP_200_OK)
         
-    # Obtenemos los registros vinculados
-    queryset = TicketTimeLog.objects.filter(ticket_id=tid).order_by('fecha_inicio')
-    serializer = TimeLogSerializer(queryset, many=True)
-    return Response(serializer.data) # Garantiza una lista limpia [] para evitar el error de h.map
+    try:
+        queryset = TicketTimeLog.objects.filter(ticket_id=int(tid)).order_by('fecha_inicio')
+        serializer = TimeLogSerializer(queryset, many=True)
+        # Forzamos que la respuesta sea una lista pura de Python nativo
+        return Response(list(serializer.data), status=status.HTTP_200_OK)
+    except Exception:
+        return Response([], status=status.HTTP_200_OK)
 
 
 

@@ -134,10 +134,9 @@ class TicketViewSet(viewsets.ModelViewSet):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
-    # 🛡️ CORREGIDO: Aplica la limpieza exacta al retrieve del ViewSet que consulta useGetTicket
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
-        serializer = self.get_serializer(instance)
+        serializer = TicketSerializer(instance)
         data = serializer.data
 
         base_date = _clean_view_date_string(data.get('fecha_creacion'))
@@ -270,7 +269,6 @@ def reporte_tickets(request):
     serializer = TicketSerializer(qs, many=True)
     list_data = serializer.data
     
-    # 🛡️ CORREGIDO: Asegura formato limpio UTC también en el listado general
     for row in list_data:
         base_date = _clean_view_date_string(row.get('fecha_creacion'))
         row['fecha_creacion'] = _clean_view_date_string(row.get('fecha_creacion'))
@@ -377,6 +375,54 @@ def compat_chatter_list(request):
 def compat_timelogs_list(request):
     tid = request.query_params.get('ticket') or request.query_params.get('ticket_id')
     return Response(TimeLogSerializer(TicketTimeLog.objects.filter(ticket_id=tid).order_by('fecha_inicio'), many=True).data if tid else [])
+
+# 🛡️ ENDPOINT NUEVO: Resuelve el 404 al guardar notas en el Historial (Chatter)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@authentication_classes([TokenAuthentication])
+def compat_add_chatter(request):
+    payload = request.data.get('data', request.data)
+    ticket_id = payload.get('ticket_id') or payload.get('ticket')
+    contenido = payload.get('contenido')
+    
+    if not ticket_id or not contenido:
+        return Response({'detail': 'Faltan parámetros.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    try:
+        ticket = Ticket.objects.get(pk=ticket_id)
+    except Ticket.DoesNotExist:
+        return Response({'detail': 'Ticket no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+        
+    entry = ChatterEntry.objects.create(
+        ticket=ticket,
+        tipo='comentario',
+        autor=request.user,
+        contenido=contenido
+    )
+    return Response(ChatterEntrySerializer(entry).data, status=status.HTTP_201_CREATED)
+
+# 🛡️ ENDPOINT NUEVO: Resuelve el 404 al intentar Editar/Guardar cambios del Ticket
+@api_view(['POST', 'PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+@authentication_classes([TokenAuthentication])
+def compat_update_ticket(request):
+    payload = request.data.get('data', request.data)
+    ticket_id = payload.get('id') or request.query_params.get('id')
+    
+    try:
+        ticket = Ticket.objects.get(pk=ticket_id)
+    except Ticket.DoesNotExist:
+        return Response({'detail': 'Ticket no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+        
+    old_est = ticket.estado
+    serializer = TicketUpdateSerializer(ticket, data=payload, partial=True)
+    serializer.is_valid(raise_exception=True)
+    ticket_upd = serializer.save()
+    
+    if old_est != ticket_upd.estado:
+        _handle_state_change(ticket_upd, old_est, ticket_upd.estado, request.user)
+        
+    return Response(TicketSerializer(ticket_upd).data)
 
 
 @api_view(['GET', 'PUT', 'PATCH', 'DELETE'])

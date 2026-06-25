@@ -93,4 +93,8 @@ urlpatterns = [
     path('reportettickets/', views.reporte_tickets),
     path('reportetickets', views.reporte_tickets),
     path('reportetickets/', views.reporte_tickets),
+
+    path('api/addchatter', views.compat_add_chatter, name='compat_add_chatter'),
+    path('api/updateticket', views.compat_update_ticket, name='compat_update_ticket'),
+    
 ]

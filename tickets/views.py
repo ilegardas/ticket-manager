@@ -134,11 +134,20 @@ class TicketViewSet(viewsets.ModelViewSet):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
-    def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object()
+    # 🛡️ RETRIEVE OPTIMIZADO PARA EVITAR EL 404 Y FORMATEAR FECHAS
+    def retrieve(self, request, pk=None, *args, **kwargs):
+        try:
+            # Forzamos la búsqueda directa por PK usando el queryset optimizado con select_related
+            instance = Ticket.objects.select_related(
+                'sistema', 'modulo', 'prioridad', 'estado', 'categoria', 'usuario_reporta', 'usuario_asignado'
+            ).get(pk=pk)
+        except Ticket.DoesNotExist:
+            return Response({'detail': f'Ticket con ID {pk} no encontrado en el sistema.'}, status=status.HTTP_404_NOT_FOUND)
+
         serializer = TicketSerializer(instance)
         data = serializer.data
 
+        # Limpieza estricta de fechas para que date-fns en React renderice el detalle de inmediato
         base_date = _clean_view_date_string(data.get('fecha_creacion'))
         data['fecha_creacion'] = _clean_view_date_string(data.get('fecha_creacion'))
         data['fecha_asignacion'] = _clean_view_date_string(data.get('fecha_asignacion')) if data.get('fecha_asignacion') else base_date
@@ -172,6 +181,8 @@ class TicketViewSet(viewsets.ModelViewSet):
         if self.action == 'create': return TicketInputSerializer
         if self.action in ['partial_update', 'update']: return TicketUpdateSerializer
         return TicketSerializer
+
+
 
 class SistemaViewSet(viewsets.ModelViewSet):
     queryset = Sistema.objects.all()

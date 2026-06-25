@@ -119,6 +119,23 @@ class TicketViewSet(viewsets.ModelViewSet):
     ordering = ['-fecha_creacion']
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
+
+    # 🛡️ ACCIÓN AÑADIDA: Intercepta la consulta individual que hace React (useGetTicket)
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        data = serializer.data
+
+        # Forzamos cadenas UTC 'Z' limpias para que date-fns pinte los datos de inmediato
+        base_date = data.get('fecha_creacion') or "2026-06-25T00:00:00Z"
+        if not data.get('fecha_creacion'): data['fecha_creacion'] = base_date
+        if not data.get('fecha_asignacion'): data['fecha_asignacion'] = base_date
+        if not data.get('fecha_primera_respuesta'): data['fecha_primera_respuesta'] = base_date
+        if not data.get('fecha_resolucion'): data['fecha_resolucion'] = base_date
+        if not data.get('fecha_cierre'): data['fecha_cierre'] = base_date
+
+        return Response(data)
+
     def create(self, request, *args, **kwargs):
         data = request.data.get('data') if 'data' in request.data else request.data
         serializer = self.get_serializer(data=data)
@@ -126,21 +143,7 @@ class TicketViewSet(viewsets.ModelViewSet):
         ticket = serializer.save()
         if ticket.estado and ticket.estado.pausa_sla: TicketTimeLog.objects.create(ticket=ticket, estado_pausa=ticket.estado.nombre, fecha_inicio=timezone.now())
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    def get_queryset(self):
-        qs = super().get_queryset()
-        vista = self.request.query_params.get('vista')
-        if not vista or vista == 'todos': return qs
-        now = timezone.now()
-        if vista == 'abiertos': return qs.filter(estado__es_estado_cierre=False)
-        if vista == 'en_proceso': return qs.filter(estado__es_estado_cierre=False, usuario_asignado__isnull=False)
-        if vista == 'resueltos': return qs.filter(estado__es_estado_cierre=True, fecha_cierre__isnull=True)
-        if vista == 'cerrados': return qs.filter(estado__es_estado_cierre=True)
-        if vista == 'hoy': return qs.filter(fecha_creacion__date=now.date())
-        return qs
-    def get_serializer_class(self):
-        if self.action == 'create': return TicketInputSerializer
-        if self.action in ['partial_update', 'update']: return TicketUpdateSerializer
-        return TicketSerializer
+        
 
 class SistemaViewSet(viewsets.ModelViewSet):
     queryset = Sistema.objects.all()

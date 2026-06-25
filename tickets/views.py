@@ -388,15 +388,31 @@ def compat_create_conocimiento(request):
     serializer.save()
     return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+
 @api_view(['GET'])
 def compat_chatter_list(request):
     tid = request.query_params.get('ticket') or request.query_params.get('ticket_id')
-    return Response(ChatterEntrySerializer(ChatterEntry.objects.filter(ticket_id=tid).order_by('fecha_creacion'), many=True).data if tid else [])
+    if not tid:
+        return Response([]) # 🛡️ Siempre retorna un arreglo limpio si no hay ID
+    
+    # Obtenemos los registros vinculados
+    queryset = ChatterEntry.objects.filter(ticket_id=tid).order_by('fecha_creacion')
+    serializer = ChatterEntrySerializer(queryset, many=True)
+    return Response(serializer.data) # DRF garantiza que serializer.data con many=True sea una lista []
+
 
 @api_view(['GET'])
 def compat_timelogs_list(request):
     tid = request.query_params.get('ticket') or request.query_params.get('ticket_id')
-    return Response(TimeLogSerializer(TicketTimeLog.objects.filter(ticket_id=tid).order_by('fecha_inicio'), many=True).data if tid else [])
+    if not tid:
+        return Response([]) # 🛡️ Siempre retorna un arreglo limpio si no hay ID
+        
+    # Obtenemos los registros vinculados
+    queryset = TicketTimeLog.objects.filter(ticket_id=tid).order_by('fecha_inicio')
+    serializer = TimeLogSerializer(queryset, many=True)
+    return Response(serializer.data) # Garantiza una lista limpia [] para evitar el error de h.map
+
+
 
 # 🛡️ ENDPOINT NUEVO: Resuelve el 404 al guardar notas en el Historial (Chatter)
 @api_view(['POST'])

@@ -136,7 +136,7 @@ class TicketViewSet(viewsets.ModelViewSet):
 
 
 
-    # 🛡️ RETRIEVE QUIRÚRGICO: Devuelve los datos planos exactos que React mapea en el formulario
+    # 🛡️ RETRIEVE DEFINITIVO: Tolerante a relaciones nulas y blindado para React
     def retrieve(self, request, pk=None, *args, **kwargs):
         try:
             instance = Ticket.objects.select_related(
@@ -145,11 +145,10 @@ class TicketViewSet(viewsets.ModelViewSet):
         except Ticket.DoesNotExist:
             return Response({'detail': f'Ticket {pk} no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Generamos la serialización base limpia
         serializer = TicketSerializer(instance)
         data = serializer.data
 
-        # Inyectamos de forma explícita las propiedades de texto por si el serializador vino plano
+        # 🛡️ Validaciones seguras contra nulos: Si no tienen asignación, no truenan la pantalla
         data['sistema_nombre'] = instance.sistema.nombre if instance.sistema else "—"
         data['modulo_nombre'] = instance.modulo.nombre if instance.modulo else "—"
         data['prioridad_nombre'] = instance.prioridad.nombre if instance.prioridad else "—"

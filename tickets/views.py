@@ -310,7 +310,21 @@ def reporte_por_prioridad(request):
 
 
 @api_view(['GET'])
-def reporte_sla(request): return Response({'promedio_primera_respuesta_horas': 0, 'promedio_resolucion_horas': 0, 'cumplimiento_sla_porcentaje': 100, 'por_prioridad': []})
+def reporte_sla(request):
+    """
+    🛡️ CONTROL DE ESTRUCTURA SLA: Garantiza respuestas consistentes
+    """
+    try:
+        return Response({
+            'promedio_primera_respuesta_horas': 0.0,
+            'promedio_resolucion_horas': 0.0,
+            'cumplimiento_sla_porcentaje': 100.0,
+            'por_prioridad': []  # Lista vacía limpia para evitar fallos de mapeo en loops
+        }, status=status.HTTP_200_OK)
+    except Exception:
+        return Response({'por_prioridad': []}, status=status.HTTP_200_OK)
+
+
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -329,7 +343,19 @@ def reporte_tendencias(request):
         return Response([], status=status.HTTP_200_OK)
 
 @api_view(['GET'])
-def reporte_por_region(request): return Response([])
+def reporte_por_region(request):
+    """
+    🛡️ CONTROL ESTRICTO DE ARREGLO: Evita que el .slice() del gráfico tumba la pantalla de Reportes
+    """
+    try:
+        # Si no tienes regiones implementadas en tus modelos aún, 
+        # devolvemos una lista de simulación limpia y estructurada para que la gráfica pinte vacía pero segura
+        return Response([], status=status.HTTP_200_OK)
+    except Exception:
+        return Response([], status=status.HTTP_200_OK)
+
+
+
 
 @api_view(['GET'])
 @permission_classes([AllowAny])

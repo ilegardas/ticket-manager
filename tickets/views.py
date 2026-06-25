@@ -136,7 +136,7 @@ class TicketViewSet(viewsets.ModelViewSet):
 
 
 
-    # 🛡️ RETRIEVE HÍBRIDO DEFINITIVO: Satisface tanto campos planos (IDs) como strings relacionales
+    # 🛡️ RETRIEVE DEFINITIVO: Construye el diccionario exacto que React mapea en el formulario
     def retrieve(self, request, pk=None, *args, **kwargs):
         try:
             instance = Ticket.objects.select_related(
@@ -145,36 +145,55 @@ class TicketViewSet(viewsets.ModelViewSet):
         except Ticket.DoesNotExist:
             return Response({'detail': f'Ticket {pk} no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
-        serializer = TicketSerializer(instance)
-        data = serializer.data
+        # Forzamos mapear a mano la estructura exacta para que React lea los datos sí o sí
+        data = {
+            'id': instance.id,
+            'folio': instance.folio or "—",
+            'titulo': instance.titulo or "—",
+            'descripcion': instance.descripcion or "",
+            'impacto_proceso': instance.impacto_proceso or "",
+            'medio_ingreso': instance.medio_ingreso or "",
+            'codigo_error': instance.codigo_error or "",
+            'solucion_aplicada': instance.solucion_aplicada or "",
+            'causa_raiz': instance.causa_raiz or "",
+            'calificacion_estrellas': instance.calificacion_estrellas or 0,
+            'ticket_reabierto': instance.ticket_reabierto or False,
+            'veces_reabierto': instance.veces_reabierto or 0,
+            'tiempo_atencion_minutos': instance.tiempo_atencion_minutos or 0,
+            'tiempo_pausa_minutos': instance.tiempo_pausa_minutos or 0,
+            
+            # IDs numéricos para selectores en modo edición
+            'sistema_id': instance.sistema.id if instance.sistema else None,
+            'modulo_id': instance.modulo.id if instance.modulo else None,
+            'prioridad_id': instance.prioridad.id if instance.prioridad else None,
+            'estado_id': instance.estado.id if instance.estado else None,
+            'categoria_id': instance.categoria.id if instance.categoria else None,
+            'usuario_reporta_id': instance.usuario_reporta.id if instance.usuario_reporta else None,
+            'usuario_asignado_id': instance.usuario_asignado.id if instance.usuario_asignado else None,
 
-        # 1. 🛡️ Inyección de IDs directos para alimentar los selectores en modo edición (EditMode)
-        data['sistema_id'] = instance.sistema.id if instance.sistema else None
-        data['modulo_id'] = instance.modulo.id if instance.modulo else None
-        data['prioridad_id'] = instance.prioridad.id if instance.prioridad else None
-        data['estado_id'] = instance.estado.id if instance.estado else None
-        data['categoria_id'] = instance.categoria.id if instance.categoria else None
-        data['usuario_reporta_id'] = instance.usuario_reporta.id if instance.usuario_reporta else None
-        data['usuario_asignado_id'] = instance.usuario_asignado.id if instance.usuario_asignado else None
+            # Nombres en texto para etiquetas en modo lectura
+            'sistema_nombre': instance.sistema.nombre if instance.sistema else "—",
+            'modulo_nombre': instance.modulo.nombre if instance.modulo else "—",
+            'prioridad_nombre': instance.prioridad.nombre if instance.prioridad else "—",
+            'prioridad_color': instance.prioridad.color if instance.prioridad else "",
+            'estado_nombre': instance.estado.nombre if instance.estado else "—",
+            'estado_color': instance.estado.color if instance.estado else "",
+            'categoria_nombre': instance.categoria.nombre if instance.categoria else "—",
+            'usuario_reporta_nombre': instance.usuario_reporta.nombre_completo if instance.usuario_reporta else "—",
+            'usuario_asignado_nombre': instance.usuario_asignado.nombre_completo if instance.usuario_asignado else "Sin asignar",
+        }
 
-        # 2. 🛡️ Inyección de Nombres para el modo lectura (Evita guiones vacíos)
-        data['sistema_nombre'] = instance.sistema.nombre if instance.sistema else "—"
-        data['modulo_nombre'] = instance.modulo.nombre if instance.modulo else "—"
-        data['prioridad_nombre'] = instance.prioridad.nombre if instance.prioridad else "—"
-        data['prioridad_color'] = instance.prioridad.color if instance.prioridad else None
-        data['estado_nombre'] = instance.estado.nombre if instance.estado else "—"
-        data['estado_color'] = instance.estado.color if instance.estado else None
-        data['categoria_nombre'] = instance.categoria.nombre if instance.categoria else "—"
-        data['usuario_reporta_nombre'] = instance.usuario_reporta.nombre_completo if instance.usuario_reporta else "—"
-        data['usuario_asignado_nombre'] = instance.usuario_asignado.nombre_completo if instance.usuario_asignado else "Sin asignar"
+        # Inmunidad absoluta de strings de fechas UTC 'Z' para date-fns
+        def _clean_date(dt):
+            if not dt:
+                return "2026-06-25T00:00:00Z"
+            return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-        # 3. 🛡️ Inmunidad y limpieza estricta de strings de fechas UTC 'Z' para date-fns
-        base_date = _clean_view_date_string(data.get('fecha_creacion'))
-        data['fecha_creacion'] = _clean_view_date_string(data.get('fecha_creacion'))
-        data['fecha_asignacion'] = _clean_view_date_string(data.get('fecha_asignacion')) if data.get('fecha_asignacion') else base_date
-        data['fecha_primera_respuesta'] = _clean_view_date_string(data.get('fecha_primera_respuesta')) if data.get('fecha_primera_respuesta') else base_date
-        data['fecha_resolucion'] = _clean_view_date_string(data.get('fecha_resolucion')) if data.get('fecha_resolucion') else base_date
-        data['fecha_cierre'] = _clean_view_date_string(data.get('fecha_cierre')) if data.get('fecha_cierre') else base_date
+        data['fecha_creacion'] = _clean_date(instance.fecha_creacion)
+        data['fecha_asignacion'] = _clean_date(instance.fecha_asignacion) if instance.fecha_asignacion else data['fecha_creacion']
+        data['fecha_primera_respuesta'] = _clean_date(instance.fecha_primera_respuesta) if instance.fecha_primera_respuesta else data['fecha_creacion']
+        data['fecha_resolucion'] = _clean_date(instance.fecha_resolucion) if instance.fecha_resolucion else data['fecha_creacion']
+        data['fecha_cierre'] = _clean_date(instance.fecha_cierre) if instance.fecha_cierre else data['fecha_creacion']
 
         return Response(data)
         

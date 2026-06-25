@@ -106,7 +106,7 @@ class CategoriaSerializer(serializers.ModelSerializer):
         fields = ['id', 'nombre', 'descripcion', 'color']
 
 # ─────────────────────────────────────────────────────────────────
-#  TICKETS (🛡️ REMOCIÓN DE ZONA HORARIA LOCAL EN FECHAS)
+#  TICKETS (🛡️ SERIALIZADOR ÚNICO CORREGIDO)
 # ─────────────────────────────────────────────────────────────────
 
 class TicketSerializer(serializers.ModelSerializer):
@@ -155,7 +155,6 @@ class TicketSerializer(serializers.ModelSerializer):
     def _format_clean_iso(self, dt_value):
         if not dt_value:
             return "2026-06-24T00:00:00Z"
-        # Forzamos formato estricto UTC con la 'Z' al final libre de desfases locales (-06:00)
         return dt_value.strftime("%Y-%m-%dT%H:%M:%SZ")
 
     def get_fecha_creacion(self, obj):
@@ -174,51 +173,6 @@ class TicketSerializer(serializers.ModelSerializer):
         return self._format_clean_iso(obj.fecha_cierre) if obj.fecha_cierre else self.get_fecha_creacion(obj)
 
 
-# ─────────────────────────────────────────────────────────────────
-#  TICKETS (RESTAURACIÓN AL FORMATO NATIVO DE DJANGO)
-# ─────────────────────────────────────────────────────────────────
-
-class TicketSerializer(serializers.ModelSerializer):
-    sistema_nombre = serializers.CharField(source='sistema.nombre', read_only=True, default="")
-    modulo_nombre = serializers.CharField(source='modulo.nombre', read_only=True, default="")
-    prioridad_nombre = serializers.CharField(source='prioridad.nombre', read_only=True, default="")
-    prioridad_color = serializers.CharField(source='prioridad.color', read_only=True, default="")
-    estado_nombre = serializers.CharField(source='estado.nombre', read_only=True, default="")
-    estado_color = serializers.CharField(source='estado.color', read_only=True, default="")
-    categoria_nombre = serializers.CharField(source='categoria.nombre', read_only=True, default="")
-    usuario_reporta_nombre = serializers.CharField(source='usuario_reporta.nombre_completo', read_only=True, default="")
-    usuario_asignado_nombre = serializers.CharField(source='usuario_asignado.nombre_completo', read_only=True, default="")
-    tiempo_efectivo_minutos = serializers.ReadOnlyField()
-
-    sistema_id = serializers.PrimaryKeyRelatedField(source='sistema', queryset=Sistema.objects.all(), allow_null=True, required=False)
-    modulo_id = serializers.PrimaryKeyRelatedField(source='modulo', queryset=Modulo.objects.all(), allow_null=True, required=False)
-    prioridad_id = serializers.PrimaryKeyRelatedField(source='prioridad', queryset=Prioridad.objects.all(), allow_null=True, required=False)
-    estado_id = serializers.PrimaryKeyRelatedField(source='estado', queryset=Estado.objects.all(), allow_null=True, required=False)
-    categoria_id = serializers.PrimaryKeyRelatedField(source='categoria', queryset=Categoria.objects.all(), allow_null=True, required=False)
-    usuario_reporta_id = serializers.PrimaryKeyRelatedField(source='usuario_reporta', queryset=Usuario.objects.all(), allow_null=True, required=False)
-    usuario_asignado_id = serializers.PrimaryKeyRelatedField(source='usuario_asignado', queryset=Usuario.objects.all(), allow_null=True, required=False)
-
-    # 🔴 Al quitar 'serializers.SerializerMethodField()' y dejarlos mapear directo al modelo,
-    # Django REST Framework vuelve a usar su serialización nativa de fechas, solucionando el split.
-    class Meta:
-        model = Ticket
-        fields = [
-            'id', 'folio', 'titulo', 'descripcion', 'impacto_proceso', 'medio_ingreso',
-            'sistema_id', 'sistema_nombre', 'modulo_id', 'modulo_nombre',
-            'prioridad_id', 'prioridad_nombre', 'prioridad_color',
-            'estado_id', 'estado_nombre', 'estado_color',
-            'categoria_id', 'categoria_nombre',
-            'usuario_reporta_id', 'usuario_reporta_nombre',
-            'usuario_asignado_id', 'usuario_asignado_nombre',
-            'fecha_creacion', 'fecha_asignacion', 'fecha_primera_respuesta',
-            'fecha_resolucion', 'fecha_cierre',
-            'tiempo_atencion_minutos', 'tiempo_efectivo_minutos', 'tiempo_pausa_minutos',
-            'codigo_error', 'solucion_aplicada', 'causa_raiz',
-            'calificacion_estrellas', 'ticket_reabierto', 'veces_reabierto',
-        ]
-
-
-
 class TicketInputSerializer(serializers.ModelSerializer):
     sistema_id = serializers.PrimaryKeyRelatedField(source='sistema', queryset=Sistema.objects.all(), allow_null=True, required=False)
     modulo_id = serializers.PrimaryKeyRelatedField(source='modulo', queryset=Modulo.objects.all(), allow_null=True, required=False)
@@ -235,7 +189,6 @@ class TicketInputSerializer(serializers.ModelSerializer):
 class TicketUpdateSerializer(serializers.ModelSerializer):
     sistema_id = serializers.PrimaryKeyRelatedField(source='sistema', queryset=Sistema.objects.all(), allow_null=True, required=False)
     modulo_id = serializers.PrimaryKeyRelatedField(source='modulo', queryset=Modulo.objects.all(), allow_null=True, required=False)
-    # ✅ CORREGIDO: Se removió la referencia rota a Independent.objects y se asignó Estado de forma limpia
     estado_id = serializers.PrimaryKeyRelatedField(source='estado', queryset=Estado.objects.all(), allow_null=True, required=False)
     categoria_id = serializers.PrimaryKeyRelatedField(source='categoria', queryset=Categoria.objects.all(), allow_null=True, required=False)
     usuario_asignado_id = serializers.PrimaryKeyRelatedField(source='usuario_asignado', queryset=Usuario.objects.all(), allow_null=True, required=False)

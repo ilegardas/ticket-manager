@@ -107,6 +107,21 @@ def _handle_state_change(ticket, old_estado, new_estado, user):
     ChatterEntry.objects.create(ticket=ticket, tipo='cambio_estado', autor=user, estado_anterior=old_estado.nombre if old_estado else None, estado_nuevo=new_estado.nombre if new_estado else None, contenido=f"Estado cambiado a '{new_estado.nombre if new_estado else '—'}'")
 
 # ─────────────────────────────────────────────
+#  HELPER INTERNO PARA FECHAS UTC LIMPIAS (Z)
+# ─────────────────────────────────────────────
+def _force_clean_utc_date(date_str):
+    if not date_str:
+        return "2026-06-25T00:00:00Z"
+    clean_str = str(date_str)
+    if '-' in clean_str and clean_str.count('-') == 3:
+        clean_str = clean_str.rsplit('-', 1)[0]
+    elif '+' in clean_str:
+        clean_str = clean_str.split('+')[0]
+    if clean_str.endswith('Z'):
+        clean_str = clean_str[:-1]
+    return clean_str + "Z"
+
+# ─────────────────────────────────────────────
 #  VIEWSETS
 # ─────────────────────────────────────────────
 
@@ -120,19 +135,18 @@ class TicketViewSet(viewsets.ModelViewSet):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
-    # 🛡️ ACCIÓN AÑADIDA: Intercepta la consulta individual que hace React (useGetTicket)
+    # 🛡️ ACCIÓN RE-ESTRUCTURADA: Limpia las strings de fecha para que useGetTicket no falle en React
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
         data = serializer.data
 
-        # Forzamos cadenas UTC 'Z' limpias para que date-fns pinte los datos de inmediato
-        base_date = data.get('fecha_creacion') or "2026-06-25T00:00:00Z"
-        if not data.get('fecha_creacion'): data['fecha_creacion'] = base_date
-        if not data.get('fecha_asignacion'): data['fecha_asignacion'] = base_date
-        if not data.get('fecha_primera_respuesta'): data['fecha_primera_respuesta'] = base_date
-        if not data.get('fecha_resolucion'): data['fecha_resolucion'] = base_date
-        if not data.get('fecha_cierre'): data['fecha_cierre'] = base_date
+        base_date = _force_clean_utc_date(data.get('fecha_creacion'))
+        data['fecha_creacion'] = _force_clean_utc_date(data.get('fecha_creacion'))
+        data['fecha_asignacion'] = _force_clean_utc_date(data.get('fecha_asignacion')) if data.get('fecha_asignacion') else base_date
+        data['fecha_primera_respuesta'] = _force_clean_utc_date(data.get('fecha_primera_respuesta')) if data.get('fecha_primera_respuesta') else base_date
+        data['fecha_resolucion'] = _force_clean_utc_date(data.get('fecha_resolucion')) if data.get('fecha_resolucion') else base_date
+        data['fecha_cierre'] = _force_clean_utc_date(data.get('fecha_cierre')) if data.get('fecha_cierre') else base_date
 
         return Response(data)
 
@@ -144,6 +158,22 @@ class TicketViewSet(viewsets.ModelViewSet):
         if ticket.estado and ticket.estado.pausa_sla: TicketTimeLog.objects.create(ticket=ticket, estado_pausa=ticket.estado.nombre, fecha_inicio=timezone.now())
         return Response(serializer.data, status=status.HTTP_201_CREATED)
         
+    def get_queryset(self):
+        qs = super().get_queryset()
+        vista = self.request.query_params.get('vista')
+        if not vista or vista == 'todos': return qs
+        now = timezone.now()
+        if vista == 'abiertos': return qs.filter(estado__es_estado_cierre=False)
+        if vista == 'en_proceso': return qs.filter(estado__es_estado_cierre=False, usuario_asignado__isnull=False)
+        if vista == 'resueltos': return qs.filter(estado__es_estado_cierre=True, fecha_cierre__isnull=True)
+        if vista == 'cerrados': return qs.filter(estado__es_estado_cierre=True)
+        if vista == 'hoy': return qs.filter(fecha_creacion__date=now.date())
+        return qs
+        
+    def get_serializer_class(self):
+        if self.action == 'create': return TicketInputSerializer
+        if self.action in ['partial_update', 'update']: return TicketUpdateSerializer
+        return TicketSerializer
 
 class SistemaViewSet(viewsets.ModelViewSet):
     queryset = Sistema.objects.all()
@@ -237,10 +267,20 @@ def reporte_por_region(request): return Response([])
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def reporte_tickets(request): 
-    # 🔴 RESTABLECIMIENTO CRÍTICO: Serializa el QuerySet completo de tickets con el formato adecuado
+    # 🛡️ BLINDAJE EXTRA PARA LA TABLA GENERAL: Asegura el formato string plano UTC 'Z' en todo el listado
     qs = Ticket.objects.select_related('sistema', 'modulo', 'prioridad', 'estado', 'categoria', 'usuario_reporta', 'usuario_asignado').all()[:100]
     serializer = TicketSerializer(qs, many=True)
-    return Response(serializer.data)
+    list_data = serializer.data
+    
+    for row in list_data:
+        base_date = _force_clean_utc_date(row.get('fecha_creacion'))
+        row['fecha_creacion'] = _force_clean_utc_date(row.get('fecha_creacion'))
+        row['fecha_asignacion'] = _force_clean_utc_date(row.get('fecha_asignacion')) if row.get('fecha_asignacion') else base_date
+        row['fecha_primera_respuesta'] = _force_clean_utc_date(row.get('fecha_primera_respuesta')) if row.get('fecha_primera_respuesta') else base_date
+        row['fecha_resolucion'] = _force_clean_utc_date(row.get('fecha_resolucion')) if row.get('fecha_resolucion') else base_date
+        row['fecha_cierre'] = _force_clean_utc_date(row.get('fecha_cierre')) if row.get('fecha_cierre') else base_date
+        
+    return Response(list_data)
 
 @api_view(['GET'])
 def actividad_reciente(request): return Response([])
@@ -312,99 +352,3 @@ def compat_delete_conocimiento(request, pk=None):
 def compat_create_ticket(request):
     serializer = TicketInputSerializer(data=request.data.get('data', request.data))
     serializer.is_valid(raise_exception=True)
-    serializer.save()
-    return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-@api_view(['POST', 'GET'])
-def compat_create_modulo(request):
-    serializer = ModuloSerializer(data=request.data.get('data', request.data))
-    serializer.is_valid(raise_exception=True)
-    serializer.save()
-    return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-@api_view(['POST', 'GET'])
-def compat_create_conocimiento(request):
-    serializer = ConocimientoSerializer(data=request.data.get('data', request.data))
-    serializer.is_valid(raise_exception=True)
-    serializer.save()
-    return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-@api_view(['GET'])
-def compat_chatter_list(request):
-    tid = request.query_params.get('ticket') or request.query_params.get('ticket_id')
-    return Response(ChatterEntrySerializer(ChatterEntry.objects.filter(ticket_id=tid).order_by('fecha_creacion'), many=True).data if tid else [])
-
-@api_view(['GET'])
-def compat_timelogs_list(request):
-    tid = request.query_params.get('ticket') or request.query_params.get('ticket_id')
-    return Response(TimeLogSerializer(TicketTimeLog.objects.filter(ticket_id=tid).order_by('fecha_inicio'), many=True).data if tid else [])
-
-
-
-@api_view(['GET', 'PUT', 'PATCH', 'DELETE'])
-@permission_classes([IsAuthenticated])
-@authentication_classes([TokenAuthentication])
-def compat_ticket_detail(request, pk):
-    """
-    🎯 ENDPOINT DE DETALLE INDIVIDUAL BLINDADO CONTRA FORMATOS DE FECHA CON DESFASE (-06:00)
-    """
-    try:
-        ticket = Ticket.objects.select_related(
-            'sistema', 'modulo', 'prioridad', 'estado', 'categoria', 
-            'usuario_reporta', 'usuario_asignado'
-        ).get(pk=pk)
-    except Ticket.DoesNotExist:
-        return Response({'detail': 'No encontrado.'}, status=status.HTTP_404_NOT_FOUND)
-
-    # Función interna quirúrgica para limpiar cualquier string de fecha al formato estricto UTC (Z)
-    def clean_date_string(date_str):
-        if not date_str:
-            return "2026-06-25T00:00:00Z"
-        # Si trae un desfase (como -06:00 o +00:00), lo cortamos en el caracter '+' o '-'
-        if '-' in date_str and date_str.count('-') == 3:  # Evita cortar los guiones del año YYYY-MM-DD
-            date_str = date_str.rsplit('-', 1)[0]
-        elif '+' in date_str:
-            date_str = date_str.rsplit('+', 1)[0]
-        # Nos aseguramos de quitar la Z si ya la trae para no duplicarla
-        if date_str.endswith('Z'):
-            date_str = date_str[:-1]
-        return date_str + "Z"
-
-    if request.method == 'GET':
-        serializer = TicketSerializer(ticket)
-        data = serializer.data
-
-        # 🛡️ Aplicamos la limpieza estricta de strings sobre las fechas para el parseISO de React
-        base_date = clean_date_string(data.get('fecha_creacion'))
-        
-        data['fecha_creacion'] = clean_date_string(data.get('fecha_creacion'))
-        data['fecha_asignacion'] = clean_date_string(data.get('fecha_asignacion')) if data.get('fecha_asignacion') else base_date
-        data['fecha_primera_respuesta'] = clean_date_string(data.get('fecha_primera_respuesta')) if data.get('fecha_primera_respuesta') else base_date
-        data['fecha_resolucion'] = clean_date_string(data.get('fecha_resolucion')) if data.get('fecha_resolucion') else base_date
-        data['fecha_cierre'] = clean_date_string(data.get('fecha_cierre')) if data.get('fecha_cierre') else base_date
-
-        return Response(data)
-
-    elif request.method in ['PUT', 'PATCH']:
-        payload = request.data.get('data', request.data)
-        old_est = ticket.estado
-        serializer = TicketUpdateSerializer(ticket, data=payload, partial=True)
-        serializer.is_valid(raise_exception=True)
-        ticket_upd = serializer.save()
-        
-        if old_est != ticket_upd.estado: 
-            _handle_state_change(ticket_upd, old_est, ticket_upd.estado, request.user)
-            
-        return_serializer = TicketSerializer(ticket_upd)
-        return_data = return_serializer.data
-        base_date = clean_date_string(return_data.get('fecha_creacion'))
-        
-        return_data['fecha_creacion'] = clean_date_string(return_data.get('fecha_creacion'))
-        return_data['fecha_asignacion'] = clean_date_string(return_data.get('fecha_asignacion')) if return_data.get('fecha_asignacion') else base_date
-        return_data['fecha_cierre'] = clean_date_string(return_data.get('fecha_cierre')) if return_data.get('fecha_cierre') else base_date
-        
-        return Response(return_data)
-
-    elif request.method == 'DELETE':
-        ticket.delete()
-        return Response({'detail': 'Eliminado.'}, status=status.HTTP_200_OK)

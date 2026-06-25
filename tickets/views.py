@@ -136,7 +136,7 @@ class TicketViewSet(viewsets.ModelViewSet):
 
 
 
-    # 🛡️ RETRIEVE ULTRA-BLINDADO: Entrega el ticket, el chatter y los logs en una sola consulta limpia
+    # 🛡️ RETRIEVE QUIRÚRGICO: Devuelve los datos planos exactos que React mapea en el formulario
     def retrieve(self, request, pk=None, *args, **kwargs):
         try:
             instance = Ticket.objects.select_related(
@@ -145,25 +145,28 @@ class TicketViewSet(viewsets.ModelViewSet):
         except Ticket.DoesNotExist:
             return Response({'detail': f'Ticket {pk} no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
+        # Generamos la serialización base limpia
         serializer = TicketSerializer(instance)
         data = serializer.data
 
-        # 1. 🛡️ Formateo e inmunidad absoluta de strings de fechas UTC 'Z'
+        # Inyectamos de forma explícita las propiedades de texto por si el serializador vino plano
+        data['sistema_nombre'] = instance.sistema.nombre if instance.sistema else "—"
+        data['modulo_nombre'] = instance.modulo.nombre if instance.modulo else "—"
+        data['prioridad_nombre'] = instance.prioridad.nombre if instance.prioridad else "—"
+        data['prioridad_color'] = instance.prioridad.color if instance.prioridad else None
+        data['estado_nombre'] = instance.estado.nombre if instance.estado else "—"
+        data['estado_color'] = instance.estado.color if instance.estado else None
+        data['categoria_nombre'] = instance.categoria.nombre if instance.categoria else "—"
+        data['usuario_reporta_nombre'] = instance.usuario_reporta.nombre_completo if instance.usuario_reporta else "—"
+        data['usuario_asignado_nombre'] = instance.usuario_asignado.nombre_completo if instance.usuario_asignado else "Sin asignar"
+
+        # Aplicamos la limpieza de fechas UTC string para date-fns
         base_date = _clean_view_date_string(data.get('fecha_creacion'))
         data['fecha_creacion'] = _clean_view_date_string(data.get('fecha_creacion'))
         data['fecha_asignacion'] = _clean_view_date_string(data.get('fecha_asignacion')) if data.get('fecha_asignacion') else base_date
         data['fecha_primera_respuesta'] = _clean_view_date_string(data.get('fecha_primera_respuesta')) if data.get('fecha_primera_respuesta') else base_date
         data['fecha_resolucion'] = _clean_view_date_string(data.get('fecha_resolucion')) if data.get('fecha_resolucion') else base_date
         data['fecha_cierre'] = _clean_view_date_string(data.get('fecha_cierre')) if data.get('fecha_cierre') else base_date
-
-        # 2. 🔌 INYECCIÓN DIRECTA DE SUB-RECURSOS: Rompe el bucle de carga infinita del frontend
-        # Traemos el chatter correspondiente a este ticket
-        chatter_qs = ChatterEntry.objects.filter(ticket=instance).order_by('fecha_creacion')
-        data['chatter'] = ChatterEntrySerializer(chatter_qs, many=True).data
-
-        # Traemos los logs de tiempo correspondientes a este ticket
-        logs_qs = TicketTimeLog.objects.filter(ticket=instance).order_by('fecha_inicio')
-        data['time_logs'] = TimeLogSerializer(logs_qs, many=True).data
 
         return Response(data)
         

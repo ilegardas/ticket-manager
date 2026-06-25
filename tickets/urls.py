@@ -1,21 +1,18 @@
-from django.urls import path, include
+from django.urls import path, include, re_path
 from rest_framework.routers import DefaultRouter
 from . import views
 
-# Inicializamos los routers duales estándar
-router_no_slash = DefaultRouter(trailing_slash=False)
-router_slash = DefaultRouter(trailing_slash=True)
-
-for r in [router_no_slash, router_slash]:
-    r.register(r'tickets', views.TicketViewSet, basename='ticket')
-    r.register(r'sistemas', views.SistemaViewSet, basename='sistema')
-    r.register(r'modulos', views.ModuloViewSet, basename='modulo')
-    r.register(r'documentos', views.DocumentoViewSet, basename='documento')
-    r.register(r'usuarios', views.UsuarioViewSet, basename='usuario')
-    r.register(r'prioridades', views.PrioridadViewSet, basename='prioridad')
-    r.register(r'estados', views.EstadoViewSet, basename='estado')
-    r.register(r'categorias', views.CategoriaViewSet, basename='categoria')
-    r.register(r'conocimiento', views.ConocimientoViewSet, basename='conocimiento')
+# Inicializamos el router base estándar
+router = DefaultRouter(trailing_slash=False)
+router.register(r'tickets', views.TicketViewSet, basename='ticket')
+router.register(r'sistemas', views.SistemaViewSet, basename='sistema')
+router.register(r'modulos', views.ModuloViewSet, basename='modulo')
+router.register(r'documentos', views.DocumentoViewSet, basename='documento')
+router.register(r'usuarios', views.UsuarioViewSet, basename='usuario')
+router.register(r'prioridades', views.PrioridadViewSet, basename='prioridad')
+router.register(r'estados', views.EstadoViewSet, basename='estado')
+router.register(r'categorias', views.CategoriaViewSet, basename='categoria')
+router.register(r'conocimiento', views.ConocimientoViewSet, basename='conocimiento')
 
 urlpatterns = [
     # 🔐 1. AUTENTICACIÓN
@@ -26,7 +23,7 @@ urlpatterns = [
     path('auth/me', views.me_view),
     path('auth/me/', views.me_view),
     
-    # 🛡️ 2. MATCHERS DETERMINISTAS PARA EL TICKET INDIVIDUAL (Garantiza romper el 404 de /api/tickets/22)
+    # 🛡️ 2. MATCHERS DETERMINISTAS PARA EL TICKET INDIVIDUAL
     path('tickets/<int:pk>', views.TicketViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})),
     path('tickets/<int:pk>/', views.TicketViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})),
     path('tickets<int:pk>', views.TicketViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})),
@@ -59,13 +56,13 @@ urlpatterns = [
     path('reporteporprioridad', views.reporte_por_prioridad),
     path('reporteporprioridad/', views.reporte_por_prioridad),
     path('reportetendencias', views.reporte_tendencias),
-    path('reportettendencias/', views.reporte_tendencias),
+    path('reportetendencias/', views.reporte_tendencias),
     path('reportetickets', views.reporte_tickets),
     path('reportetickets/', views.reporte_tickets),
     path('actividadreciente', views.actividad_reciente),
     path('actividadreciente/', views.actividad_reciente),
 
-    # 🛠️ 6. ACCIONES Y OPERACIONES AUXILIARES LEGACY (Resuelve deletemodulo)
+    # 🛠️ 6. ACCIONES Y OPERACIONES AUXILIARES LEGACY
     path('createmodulo', views.compat_create_modulo),
     path('createmodulo/', views.compat_create_modulo),
     path('deletemodulo', views.compat_delete_modulo),
@@ -81,7 +78,7 @@ urlpatterns = [
     path('deleteusuario', views.compat_delete_usuario),
     path('deleteusuario/', views.compat_delete_usuario),
 
-    # 🔌 7. ENTRADA HÍBRIDA DE LOS ROUTERS PARA COLECCIONES (Estados, Prioridades, etc.)
-    path('', include(router_no_slash.urls)),
-    path('', include(router_slash.urls)),
+    # 🔌 7. ENTRADA DE ROUTER BLINDADA (Acepta opcionalmente una barra diagonal final en cualquier recurso)
+    re_path(r'^(?P<url>.*)/$', include(router.urls)),
+    path('', include(router.urls)),
 ]

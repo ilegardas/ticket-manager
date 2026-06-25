@@ -2,6 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
 
+# Inicializamos el router para los ViewSets estándar
 router = DefaultRouter(trailing_slash=False)
 router.register(r'tickets', views.TicketViewSet, basename='ticket')
 router.register(r'sistemas', views.SistemaViewSet, basename='sistema')
@@ -14,12 +15,23 @@ router.register(r'categorias', views.CategoriaViewSet, basename='categoria')
 router.register(r'conocimiento', views.ConocimientoViewSet, basename='conocimiento')
 
 urlpatterns = [
-    path('', include(router.urls)),
+    # 🔐 1. RUTAS DE AUTENTICACIÓN (Con y sin barra para blindar al frontend)
     path('auth/login', views.login_view),
+    path('auth/login/', views.login_view),
     path('auth/logout', views.logout_view),
+    path('auth/logout/', views.logout_view),
     path('auth/me', views.me_view),
+    path('auth/me/', views.me_view),
     
-    # Endpoints Dashboard
+    # 🔄 2. ENDPOINTS RPC REQUERIDOS POR EL CLIENTE DE REACT
+    path('addchatter', views.compat_add_chatter, name='compat_add_chatter'),
+    path('addchatter/', views.compat_add_chatter, name='compat_add_chatter_cb'),
+    path('updateticket', views.compat_update_ticket, name='compat_update_ticket'),
+    path('updateticket/', views.compat_update_ticket, name='compat_update_ticket_cb'),
+    path('reportetickets', views.reporte_tickets, name='reporte_tickets_legacy'),
+    path('reportetickets/', views.reporte_tickets, name='reporte_tickets_legacy_cb'),
+
+    # 📊 3. ENDPOINTS DEL DASHBOARD / REPORTES CORE
     path('reportes/resumen', views.reporte_resumen),
     path('reportes/por-sistema', views.reporte_por_sistema),
     path('reportes/por-estado', views.reporte_por_estado),
@@ -30,71 +42,6 @@ urlpatterns = [
     path('reportes/tickets', views.reporte_tickets),
     path('reportes/actividad-reciente', views.actividad_reciente),
 
-    # Alias de Compatibilidad
-    path('ticket', views.TicketViewSet.as_view({'get': 'list', 'post': 'create'})),
-    path('ticket/', views.TicketViewSet.as_view({'get': 'list', 'post': 'create'})),
-    path('ticket/<int:pk>', views.compat_ticket_detail),
-    path('ticket/<int:pk>/', views.compat_ticket_detail),
-    
-    path('chatter', views.compat_chatter_list), 
-    path('chatter/', views.compat_chatter_list),
-    path('timelogs', views.compat_timelogs_list),
-    path('timelogs/', views.compat_timelogs_list),
-    
-    path('sistema', views.SistemaViewSet.as_view({'get': 'list', 'post': 'create'})),
-    path('sistema/', views.SistemaViewSet.as_view({'get': 'list', 'post': 'create'})),
-    
-    # CRUD Usuarios
-    path('createusuario', views.compat_create_usuario),
-    path('createusuario/', views.compat_create_usuario),
-    path('updateusuario', views.compat_update_usuario),
-    path('updateusuario/', views.compat_update_usuario),
-    path('updateusuario/<int:pk>', views.compat_update_usuario),
-    path('updateusuario/<int:pk>/', views.compat_update_usuario),
-    path('deleteusuario', views.compat_delete_usuario),
-    path('deleteusuario/', views.compat_delete_usuario),
-    path('deleteusuario/<int:pk>', views.compat_delete_usuario),
-    path('deleteusuario/<int:pk>/', views.compat_delete_usuario),
-
-    # Solución de Rutas Espejo 404
-    path('deletemodulo', views.compat_delete_modulo),
-    path('deletemodulo/', views.compat_delete_modulo),
-    path('deletemodulo/<int:pk>', views.compat_delete_modulo),
-    path('deleteconocimiento', views.compat_delete_conocimiento),
-    path('deleteconocimiento/', views.compat_delete_conocimiento),
-    path('deleteconocimiento/<int:pk>', views.compat_delete_conocimiento),
-    
-    # Formulario Auxiliares
-    path('createticket', views.compat_create_ticket),
-    path('createticket/', views.compat_create_ticket),
-    path('createmodulo', views.compat_create_modulo),
-    path('createmodulo/', views.compat_create_modulo),
-    path('createconocimiento', views.compat_create_conocimiento),
-    path('createconocimiento/', views.compat_create_conocimiento),
-
-    # Widgets Históricos
-    path('reporteresumen', views.reporte_resumen),
-    path('reporteresumen/', views.reporte_resumen),
-    path('reporteporsistema', views.reporte_por_sistema),
-    path('reporteporsistema/', views.reporte_por_sistema),
-    path('reporteporestado', views.reporte_por_estado),
-    path('reporteporestado/', views.reporte_por_estado),
-    path('reporteporprioridad', views.reporte_por_prioridad),
-    path('reporteporprioridad/', views.reporte_por_prioridad),
-    path('reportetendencias', views.reporte_tendencias),
-    path('reportetendencias/', views.reporte_tendencias),
-    path('actividadreciente', views.actividad_reciente),
-    path('actividadreciente/', views.actividad_reciente),
-    path('reporteporregion', views.reporte_por_region),
-    path('reporteporregion/', views.reporte_por_region),
-    path('reportesla', views.reporte_sla),
-    path('reportesla/', views.reporte_sla),
-    path('reportettickets', views.reporte_tickets),
-    path('reportettickets/', views.reporte_tickets),
-    path('reportetickets', views.reporte_tickets),
-    path('reportetickets/', views.reporte_tickets),
-
-    path('api/addchatter', views.compat_add_chatter, name='compat_add_chatter'),
-    path('api/updateticket', views.compat_update_ticket, name='compat_update_ticket'),
-    
+    # 🔌 4. RUTAS AUTOMÁTICAS DE LOS VIEWSETS (Siempre al final)
+    path('', include(router.urls)),
 ]

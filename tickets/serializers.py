@@ -106,19 +106,19 @@ class CategoriaSerializer(serializers.ModelSerializer):
         fields = ['id', 'nombre', 'descripcion', 'color']
 
 # ─────────────────────────────────────────────────────────────────
-#  TICKETS (🛡️ SERIALIZADOR ÚNICO CORREGIDO)
+#  TICKETS (🛡️ SERIALIZADOR ÚNICO UNIFICADO SIN DUPLICADOS)
 # ─────────────────────────────────────────────────────────────────
 
 class TicketSerializer(serializers.ModelSerializer):
-    sistema_nombre = serializers.CharField(source='sistema.nombre', read_only=True, default="")
-    modulo_nombre = serializers.CharField(source='modulo.nombre', read_only=True, default="")
-    prioridad_nombre = serializers.CharField(source='prioridad.nombre', read_only=True, default="")
+    sistema_nombre = serializers.CharField(source='sistema.nombre', read_only=True, default="—")
+    modulo_nombre = serializers.CharField(source='modulo.nombre', read_only=True, default="—")
+    prioridad_nombre = serializers.CharField(source='prioridad.nombre', read_only=True, default="—")
     prioridad_color = serializers.CharField(source='prioridad.color', read_only=True, default="")
-    estado_nombre = serializers.CharField(source='estado.nombre', read_only=True, default="")
+    estado_nombre = serializers.CharField(source='estado.nombre', read_only=True, default="—")
     estado_color = serializers.CharField(source='estado.color', read_only=True, default="")
-    categoria_nombre = serializers.CharField(source='categoria.nombre', read_only=True, default="")
-    usuario_reporta_nombre = serializers.CharField(source='usuario_reporta.nombre_completo', read_only=True, default="")
-    usuario_asignado_nombre = serializers.CharField(source='usuario_asignado.nombre_completo', read_only=True, default="")
+    categoria_nombre = serializers.CharField(source='categoria.nombre', read_only=True, default="—")
+    usuario_reporta_nombre = serializers.CharField(source='usuario_reporta.nombre_completo', read_only=True, default="—")
+    usuario_asignado_nombre = serializers.CharField(source='usuario_asignado.nombre_completo', read_only=True, default="Sin asignar")
     tiempo_efectivo_minutos = serializers.ReadOnlyField()
 
     sistema_id = serializers.PrimaryKeyRelatedField(source='sistema', queryset=Sistema.objects.all(), allow_null=True, required=False)

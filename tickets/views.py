@@ -260,15 +260,54 @@ def reporte_resumen(request):
 
 @api_view(['GET'])
 def reporte_por_sistema(request):
-    return Response([{'id': r['sistema__id'], 'nombre': r['sistema__nombre'] or 'Sin sistema', 'total': r['total']} for r in Ticket.objects.values('sistema__id', 'sistema__nombre').annotate(total=Count('id'))])
+    try:
+        data = Ticket.objects.values('sistema__id', 'sistema__nombre').annotate(total=Count('id'))
+        result = []
+        for r in data:
+            result.append({
+                'id': r['sistema__id'] or 0,
+                'nombre': r['sistema__nombre'] or 'Sin sistema',
+                'total': r['total'] or 0
+            })
+        return Response(list(result), status=status.HTTP_200_OK)
+    except Exception:
+        return Response([], status=status.HTTP_200_OK)
+        
 
 @api_view(['GET'])
 def reporte_por_estado(request):
-    return Response([{'id': r['estado__id'], 'nombre': r['estado__nombre'] or 'Sin estado', 'total': r['total'], 'color': r['estado__color']} for r in Ticket.objects.values('estado__id', 'estado__nombre', 'estado__color').annotate(total=Count('id'))])
+    try:
+        data = Ticket.objects.values('estado__id', 'estado__nombre', 'estado__color').annotate(total=Count('id'))
+        result = []
+        for r in data:
+            result.append({
+                'id': r['estado__id'] or 0,
+                'nombre': r['estado__nombre'] or 'Sin estado',
+                'total': r['total'] or 0,
+                'color': r['estado__color'] or '#gray'
+            })
+        return Response(list(result), status=status.HTTP_200_OK)
+    except Exception:
+        return Response([], status=status.HTTP_200_OK)
+
 
 @api_view(['GET'])
 def reporte_por_prioridad(request):
-    return Response([{'id': r['prioridad__id'], 'nombre': r['prioridad__nombre'] or 'Sin prioridad', 'total': r['total'], 'color': r['prioridad__color']} for r in Ticket.objects.values('prioridad__id', 'prioridad__nombre', 'prioridad__color').annotate(total=Count('id'))])
+    try:
+        data = Ticket.objects.values('prioridad__id', 'prioridad__nombre', 'prioridad__color').annotate(total=Count('id'))
+        result = []
+        for r in data:
+            result.append({
+                'id': r['prioridad__id'] or 0,
+                'nombre': r['prioridad__nombre'] or 'Sin prioridad',
+                'total': r['total'] or 0,
+                'color': r['prioridad__color'] or '#gray'
+            })
+        return Response(list(result), status=status.HTTP_200_OK)
+    except Exception:
+        return Response([], status=status.HTTP_200_OK)
+        
+
 
 @api_view(['GET'])
 def reporte_sla(request): return Response({'promedio_primera_respuesta_horas': 0, 'promedio_resolucion_horas': 0, 'cumplimiento_sla_porcentaje': 100, 'por_prioridad': []})
@@ -276,11 +315,18 @@ def reporte_sla(request): return Response({'promedio_primera_respuesta_horas': 0
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def reporte_tendencias(request):
-    result = []
-    for i in range(29, -1, -1):
-        day = (timezone.now() - timedelta(days=i)).date()
-        result.append({'fecha': str(day), 'total': Ticket.objects.filter(fecha_creacion__date=day).count(), 'resueltos': 0})
-    return Response(result)
+    try:
+        result = []
+        for i in range(29, -1, -1):
+            day = (timezone.now() - timedelta(days=i)).date()
+            result.append({
+                'fecha': str(day), 
+                'total': Ticket.objects.filter(fecha_creacion__date=day).count(), 
+                'resueltos': Ticket.objects.filter(fecha_cierre__date=day).count()
+            })
+        return Response(list(result), status=status.HTTP_200_OK)
+    except Exception:
+        return Response([], status=status.HTTP_200_OK)
 
 @api_view(['GET'])
 def reporte_por_region(request): return Response([])

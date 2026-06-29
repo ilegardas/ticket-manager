@@ -1,0 +1,105 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Ticket #{{ ticket.folio }} - Detalle{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div>
+        <a href="{% url 'panel_tickets_list' %}" class="inline-flex items-center text-xs font-semibold text-slate-500 hover:text-slate-900 transition">
+            ← Volver al listado
+        </a>
+    </div>
+
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-5 gap-4">
+        <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-blue-600">{{ ticket.sistema.nombre|default:"Sin Sistema" }}</span>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900">#{{ ticket.folio }} · {{ ticket.titulo }}</h1>
+            <p class="text-xs text-slate-400 mt-1">Creado el {{ ticket.fecha_creacion|date:"d/m/Y H:i" }} por {{ ticket.usuario_reporta.nombre_completo|default:ticket.usuario_reporta.username }}</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold border shadow-sm" 
+                  style="background-color: {{ ticket.estado.color }}10; color: {{ ticket.estado.color }}; border-color: {{ ticket.estado.color }}30">
+                {{ ticket.estado.nombre }}
+            </span>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <div class="lg:col-span-2 space-y-6">
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
+                <div>
+                    <h3 class="text-sm font-semibold text-slate-800">Descripción del Problema</h3>
+                    <p class="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed mt-2 bg-slate-50/50 p-4 rounded-lg border border-slate-100">{{ ticket.descripcion }}</p>
+                </div>
+
+                {% if ticket.codigo_error %}
+                <div class="p-3 bg-red-50 border border-red-100 rounded-lg">
+                    <span class="text-xs font-bold text-red-800 uppercase tracking-wide">Código de Error Detectado:</span>
+                    <code class="block text-xs text-red-600 font-mono mt-1 font-bold">{{ ticket.codigo_error }}</code>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                <h3 class="text-sm font-semibold text-slate-800 mb-3">Diagnóstico y Cierre</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <span class="text-xs font-medium text-slate-400 block">Causa Raíz:</span>
+                        <p class="text-slate-700 font-medium mt-0.5">{{ ticket.causa_raiz|default:"—" }}</p>
+                    </div>
+                    <div>
+                        <span class="text-xs font-medium text-slate-400 block">Solución Aplicada:</span>
+                        <p class="text-slate-700 font-medium mt-0.5">{{ ticket.solucion_aplicada|default:"—" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="space-y-6">
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
+                <h3 class="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-2">Información de Control</h3>
+                <div class="space-y-3 text-xs">
+                    <div>
+                        <span class="text-slate-400 font-semibold block mb-0.5">Especialista Asignado:</span>
+                        <span class="text-slate-800 font-bold text-sm">{{ ticket.usuario_asignado.nombre_completo|default:"Sin asignar" }}</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 font-semibold block mb-0.5">Prioridad de Atención:</span>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold" style="background-color: {{ ticket.prioridad.color }}10; color: {{ ticket.prioridad.color }}">
+                            <span class="h-1.5 w-1.5 rounded-full mr-1.5" style="background-color: {{ ticket.prioridad.color }}"></span>
+                            {{ ticket.prioridad.nombre }}
+                        </span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 font-semibold block mb-0.5">Categoría:</span>
+                        <span class="text-slate-700 font-medium">{{ ticket.categoria.nombre|default:"—" }}</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 font-semibold block mb-0.5">Módulo Afectado:</span>
+                        <span class="text-slate-700 font-medium">{{ ticket.modulo.nombre|default:"—" }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
+                <h3 class="text-sm font-semibold text-slate-800">Historial y Notas</h3>
+                
+                <form hx-post="{% url 'panel_ticket_chatter' ticket.id %}" hx-target="#chatter-box" hx-swap="innerHTML" class="space-y-2" onhtmx:after-request="this.reset()">
+                    {% csrf_token %}
+                    <textarea name="contenido" rows="2" required placeholder="Escribe un comentario interno..." 
+                              class="w-full text-xs p-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50/50 resize-none"></textarea>
+                    <button type="submit" class="w-full bg-slate-950 hover:bg-slate-800 text-white font-semibold py-2 px-3 rounded-lg text-xs transition shadow-sm">
+                        Agregar Comentario
+                    </button>
+                </form>
+
+                <div id="chatter-box" hx-get="{% url 'panel_ticket_chatter' ticket.id %}" hx-trigger="load" class="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                    <p class="text-xs text-slate-400 text-center py-4">Cargando notas...</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

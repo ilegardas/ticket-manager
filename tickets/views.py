@@ -1122,3 +1122,16 @@ def panel_config_categoria_eliminar(request, pk):
     categoria.delete()
     categorias = Categoria.objects.all().order_by('nombre')
     return render(request, 'configuracion/partials/categorias.html', {'categorias': categorias})
+
+
+@login_required
+def ajax_cargar_modulos(request):
+    """🔍 Retorna las opciones <option> de módulos del sistema seleccionado """
+    sistema_id = request.GET.get('sistema')
+    modulos = Modulo.objects.filter(sistema_id=sistema_id).order_by('nombre')
+    
+    options = '<option value="">— Selecciona Módulo —</option>'
+    for mod in modulos:
+        options += f'<option value="{mod.id}">{mod.nombre}</option>'
+        
+    return HttpResponse(options)

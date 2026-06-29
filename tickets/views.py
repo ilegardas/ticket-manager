@@ -723,6 +723,9 @@ def panel_ticket_detail(request, pk):
     """
     🖥️ VISTA INTERNA: Muestra, edita y procesa las actualizaciones dinámicas con HTMX
     """
+    # 🎯 Definimos User de forma segura al inicio de la función
+    User = get_user_model()
+    
     ticket = get_object_or_404(
         Ticket.objects.select_related('sistema', 'modulo', 'prioridad', 'estado', 'categoria', 'usuario_reporta', 'usuario_asignado'),
         pk=pk
@@ -732,19 +735,16 @@ def panel_ticket_detail(request, pk):
     # 1. 🎛️ MANEJO DE PETICIONES GET (Intercambios dinámicos de HTMX)
     if request.method == "GET":
         if action == "edit_info":
-            # Retorna solo el fragmento del formulario de edición principal
             return render(request, 'tickets/partials/edit_form.html', {
                 'ticket': ticket,
                 'sistemas': Sistema.objects.filter(activo=True)
             })
         elif action == "view_info":
-            # Cancela y regresa al bloque de lectura normal
             return render(request, 'tickets/detail.html', {'ticket': ticket})
 
     # 2. 💾 MANEJO DE PETICIONES POST (Guardado de Datos)
     if request.method == "POST":
         if action == "update_info":
-            # Formulario de edición principal (Título, descripción, sistema)
             ticket.titulo = request.POST.get("titulo")
             ticket.descripcion = request.POST.get("descripcion")
             sistema_id = request.POST.get("sistema")
@@ -752,7 +752,6 @@ def panel_ticket_detail(request, pk):
             ticket.save()
             return render(request, 'tickets/detail.html', {'ticket': ticket})
 
-        # Selectores automáticos de la barra lateral o campos de diagnóstico
         estado_id = request.POST.get("estado")
         usuario_asignado_id = request.POST.get("usuario_asignado")
         prioridad_id = request.POST.get("prioridad")
@@ -768,7 +767,6 @@ def panel_ticket_detail(request, pk):
         
         ticket.save()
 
-        # Si el cambio vino de los selectores, refrescamos el chatter con la nueva nota del sistema
         if "estado" in request.POST or "usuario_asignado" in request.POST or "prioridad" in request.POST:
             notas = ChatterEntry.objects.filter(ticket=ticket).order_by('-fecha_creacion')
             return render(request, 'tickets/partials/chatter.html', {'notas': notas})
@@ -780,8 +778,8 @@ def panel_ticket_detail(request, pk):
         'ticket': ticket,
         'estados': Estado.objects.all().order_by('orden'),
         'prioridades': Prioridad.objects.all(),
-        # 🎯 Cambiamos la referencia de User por get_user_model()
-        'tecnicos': get_user_model().objects.filter(rol='tecnico') or get_user_model().objects.filter(is_staff=True) or get_user_model().objects.all(),
+        # 🎯 Aquí ya usamos la variable User local que definimos arriba
+        'tecnicos': User.objects.filter(rol='tecnico') or User.objects.filter(is_staff=True) or User.objects.all(),
     }
     return render(request, 'tickets/detail.html', context)
 

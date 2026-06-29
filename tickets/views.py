@@ -691,13 +691,31 @@ def compat_ticket_detail(request, pk):
 @login_required
 def panel_tickets_list(request):
     """
-    🖥️ VISTA INTERNA: Renderiza el listado global de tickets optimizando las consultas SQL
+    🖥️ VISTA INTERNA: Muestra el listado permitiendo filtrar por clic desde el Dashboard
     """
-    tickets = Ticket.objects.select_related(
-        'sistema', 'modulo', 'prioridad', 'estado', 'usuario_asignado'
-    ).all().order_by('-fecha_creacion')[:100]
+    filtrar = request.GET.get('filtrar', '')
     
-    return render(request, 'tickets/list.html', {'tickets': tickets})
+    # Base del QuerySet optimizado
+    qs = Ticket.objects.select_related(
+        'sistema', 'modulo', 'prioridad', 'estado', 'usuario_asignado'
+    ).all()
+
+    # Aplicamos filtros dinámicos según la tarjeta clickeada
+    titulo_panel = "Panel Global de Tickets"
+    if filtrar == 'pendientes':
+        qs = qs.exclude(estado__nombre__icontains='cerrado').exclude(estado__nombre__icontains='resuelto')
+        titulo_panel = "Tickets Pendientes (Abiertos)"
+    elif filtrar == 'resueltos':
+        from django.db.models import Q
+        qs = qs.filter(Q(estado__nombre__icontains='cerrado') | Q(estado__nombre__icontains='resuelto'))
+        titulo_panel = "Tickets Resueltos / Cerrados"
+
+    tickets = qs.order_by('-fecha_creacion')[:100]
+    
+    return render(request, 'tickets/list.html', {
+        'tickets': tickets,
+        'titulo_panel': titulo_panel
+    })
 
 
 @login_required

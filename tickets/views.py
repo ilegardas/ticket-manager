@@ -1018,3 +1018,55 @@ def panel_conocimiento_crear_desde_ticket(request, ticket_id):
     response = HttpResponse(status=200)
     response['HX-Redirect'] = '/api/panel/conocimiento/'
     return response
+
+
+@login_required
+def panel_config_sistemas(request):
+    """
+    🖥️ CATÁLOGO DE SISTEMAS: Lista y crea de forma asíncrona
+    """
+    if request.method == "POST":
+        nombre = request.POST.get("nombre")
+        activo = True if request.POST.get("activo") else False
+        if nombre:
+            Sistema.objects.create(nombre=nombre, activo=activo)
+            
+    sistemas = Sistema.objects.all().order_by('nombre')
+    
+    if request.headers.get('HX-Request') or request.method == "POST":
+        return render(request, 'configuracion/partials/sistemas.html', {'sistemas': sistemas})
+    return render(request, 'configuracion/panel.html')
+
+
+@login_required
+def panel_config_modulos(request):
+    """
+    🧩 CATÁLOGO DE MÓDULOS: Maneja listado y asignaciones de sistemas padres
+    """
+    if request.method == "POST":
+        nombre = request.POST.get("nombre")
+        sistema_id = request.POST.get("sistema")
+        if nombre and sistema_id:
+            Modulo.objects.create(nombre=nombre, sistema_id=sistema_id)
+
+    modulos = Modulo.objects.select_related('sistema').all().order_by('sistema__nombre', 'nombre')
+    sistemas_list = Sistema.objects.filter(activo=True)
+    
+    return render(request, 'configuracion/partials/modulos.html', {
+        'modulos': modulos,
+        'sistemas_list': sistemas_list
+    })
+
+
+@login_required
+def panel_config_categorias(request):
+    """
+    🗂️ CATÁLOGO DE CATEGORÍAS: Altas e historial
+    """
+    if request.method == "POST":
+        nombre = request.POST.get("nombre")
+        if nombre:
+            Categoria.objects.create(nombre=nombre)
+
+    categorias = Categoria.objects.all().order_by('nombre')
+    return render(request, 'configuracion/partials/categorias.html', {'categorias': categorias})

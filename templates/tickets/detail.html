@@ -3,13 +3,19 @@
 {% block title %}Ticket #{{ ticket.folio }} - Detalle{% endblock %}
 
 {% block content %}
+<style>
+    .htmx-request#save-indicator, .htmx-request #save-indicator {
+        opacity: 1 !important;
+    }
+</style>
+
 <div class="space-y-6">
     <div class="flex items-center justify-between">
         <a href="{% url 'panel_tickets_list' %}" class="inline-flex items-center text-xs font-semibold text-slate-500 hover:text-slate-900 transition">
             ← Volver al listado
         </a>
-        <span id="save-indicator" class="text-xs text-emerald-600 font-semibold htmx-indicator bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100 animate-pulse">
-            ✓ Guardando cambios...
+        <span id="save-indicator" class="text-xs text-emerald-600 font-semibold opacity-0 htmx-indicator bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100 transition-opacity duration-200">
+            ✓ Cambios guardados de forma automática
         </span>
     </div>
 

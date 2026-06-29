@@ -81,36 +81,45 @@
                 {% csrf_token %}
                 <h3 class="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-2">Información de Control</h3>
                 
-                <div class="space-y-4 text-xs">
-                    <div>
-                        <label class="text-slate-400 font-semibold block mb-1">Especialista Asignado:</label>
-                        <select name="usuario_asignado" class="w-full text-xs p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-bold text-slate-800 bg-white">
-                            <option value="">Sin Asignar</option>
-                            {% for tec in tecnicos %}
-                            <option value="{{ tec.id }}" {% if ticket.usuario_asignado.id == tec.id %}selected{% endif %}>{{ tec.nombre_completo }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="text-slate-400 font-semibold block mb-1">Estado / Etapa:</label>
-                        <select name="estado" class="w-full text-xs p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-semibold bg-white"
-                                style="color: {{ ticket.estado.color }};">
-                            {% for est in estados %}
-                            <option value="{{ est.id }}" {% if ticket.estado.id == est.id %}selected{% endif %}>{{ est.nombre }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="text-slate-400 font-semibold block mb-1">Prioridad de Atención:</label>
-                        <select name="prioridad" class="w-full text-xs p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-bold bg-white"
-                                style="color: {{ ticket.prioridad.color }};">
-                            {% for prio in prioridades %}
-                            <option value="{{ prio.id }}" {% if ticket.prioridad.id == prio.id %}selected{% endif %}>{{ prio.nombre }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Especialista Asignado:</label>
+                    <select name="usuario_asignado" 
+                            hx-post="{% url 'panel_ticket_detail' ticket.id %}" 
+                            hx-target="#chatter-container" 
+                            hx-indicator="#save-indicator"
+                            class="w-full text-sm p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="">Sin Asignar</option>
+                        {% for tec in tecnicos %}
+                        <option value="{{ tec.id }}" {% if ticket.usuario_asignado.id == tec.id %}selected{% endif %}>{{ tec.get_full_name|default:tec.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="mt-3">
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Estado / Etapa:</label>
+                    <select name="estado" 
+                            hx-post="{% url 'panel_ticket_detail' ticket.id %}" 
+                            hx-target="#chatter-container" 
+                            hx-indicator="#save-indicator"
+                            class="w-full text-sm p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                        {% for est in estados %}
+                        <option value="{{ est.id }}" {% if ticket.estado.id == est.id %}selected{% endif %}>{{ est.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="mt-3">
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Prioridad de Atención:</label>
+                    <select name="prioridad" 
+                            hx-post="{% url 'panel_ticket_detail' ticket.id %}" 
+                            hx-target="#chatter-container" 
+                            hx-indicator="#save-indicator"
+                            class="w-full text-sm p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                        {% for pri in prioridades %}
+                        <option value="{{ pri.id }}" {% if ticket.prioridad.id == pri.id %}selected{% endif %}>{{ pri.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
 
                     <div>
                         <span class="text-slate-400 font-semibold block mb-0.5">Categoría:</span>

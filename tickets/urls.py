@@ -14,6 +14,7 @@ router.register(r'estados', views.EstadoViewSet, basename='estado')
 router.register(r'categorias', views.CategoriaViewSet, basename='categoria')
 router.register(r'conocimiento', views.ConocimientoViewSet, basename='conocimiento')
 
+
 urlpatterns = [
     # 🔐 1. AUTENTICACIÓN
     path('auth/login', views.login_view),
@@ -90,6 +91,10 @@ urlpatterns = [
     path('deleteusuario', views.compat_delete_usuario),
     path('deleteusuario/', views.compat_delete_usuario),
 
+    # 🖥️ CONTROL DE PANELES INTERNOS (MIGRACIÓN HYBRIDA)
+    path('panel/tickets/', views.panel_tickets_list, name='panel_tickets_list'),
+
+    
     # 🔌 8. ENTRADA DE ROUTER HÍBRIDA TOLERANTE A INTERFERENCIAS
     re_path(r'^(?P<url>.*)/$', include(router.urls)),
     path('', include(router.urls)),

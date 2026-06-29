@@ -904,29 +904,27 @@ def panel_ticket_detail(request, pk):
     ticket = get_object_or_404(Ticket, pk=pk)
     action = request.GET.get('action', '')
 
-    # 1. 🎛️ MANEJO DE PETICIONES GET (HTMX Intercambios Dinámicos)
+    # 1. 🎛️ MANEJO DE PETICIONES GET
     if request.method == "GET":
         if action == "edit_info":
-            # Retorna solo el fragmento del formulario con los sistemas activos
             return render(request, 'tickets/partials/edit_form.html', {
                 'ticket': ticket,
                 'sistemas': Sistema.objects.filter(activo=True)
             })
         elif action == "view_info":
-            # Cancela y regresa al bloque de lectura normal (simulamos el div del detalle)
-            return render(request, 'tickets/detail.html', {'ticket': ticket})
+            # 🎯 Cambiado: Retorna solo el fragmento de lectura
+            return render(request, 'tickets/partials/view_info.html', {'ticket': ticket})
 
-    # 2. 💾 MANEJO DE PETICIONES POST (Guardado de Datos)
+    # 2. 💾 MANEJO DE PETICIONES POST
     if request.method == "POST":
         if action == "update_info":
-            # Procesamos el formulario de edición principal
             ticket.titulo = request.POST.get("titulo")
             ticket.descripcion = request.POST.get("descripcion")
             sistema_id = request.POST.get("sistema")
             ticket.sistema_id = sistema_id if sistema_id else None
             ticket.save()
-            # Devolvemos la vista normal para actualizar el bloque automáticamente en la pantalla
-            return render(request, 'tickets/detail.html', {'ticket': ticket})
+            # 🎯 Cambiado: Al guardar, regresa al modo lectura parcial de inmediato
+            return render(request, 'tickets/partials/view_info.html', {'ticket': ticket})
 
         # Si no trae action, procesamos los selectores automáticos de la barra lateral
         estado_id = request.POST.get("estado")

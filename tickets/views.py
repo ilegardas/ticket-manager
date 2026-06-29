@@ -780,6 +780,7 @@ def panel_ticket_detail(request, pk):
         'ticket': ticket,
         'estados': Estado.objects.all().order_by('orden'),
         'prioridades': Prioridad.objects.all(),
+        # 🎯 Cambiamos la referencia de User por get_user_model()
         'tecnicos': get_user_model().objects.filter(rol='tecnico') or get_user_model().objects.filter(is_staff=True) or get_user_model().objects.all(),
     }
     return render(request, 'tickets/detail.html', context)

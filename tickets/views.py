@@ -733,3 +733,54 @@ def panel_ticket_chatter(request, pk):
     # Obtenemos las notas actualizadas para devolver el fragmento HTML
     notas = ChatterEntry.objects.filter(ticket=ticket).order_by('-fecha_creacion')
     return render(request, 'tickets/partials/chatter.html', {'notas': notas})
+
+
+@login_required
+def panel_dashboard(request):
+    """
+    🖥️ VISTA INTERNA: Procesa contadores y series de datos agrupadas para renderizar gráficos
+    """
+    # 1. KPIs Generales
+    total_tickets = Ticket.objects.count()
+    pendientes = Ticket.objects.exclude(estado__nombre__icontains='cerrado').exclude(estado__nombre__icontains='resuelto').count()
+    resueltos = total_tickets - pendientes
+
+    # 2. Agrupación por Estado
+    estados_qs = Ticket.objects.values('estado__nombre').annotate(total=Count('id')).order_by('-total')
+    estados_labels = [item['estado__nombre'] or 'Sin Estado' for item in estados_qs]
+    estados_valores = [item['total'] for item in estados_qs]
+
+    # 3. Agrupación por Sistema
+    sistemas_qs = Ticket.objects.values('sistema__nombre').annotate(total=Count('id')).order_by('-total')[:10]
+    sistemas_labels = [item['sistema__nombre'] or 'Sin Sistema' for item in sistemas_qs]
+    sistemas_valores = [item['total'] for item in sistemas_qs]
+
+    # 4. Agrupación por Prioridad
+    prioridades_qs = Ticket.objects.values('prioridad__nombre').annotate(total=Count('id')).order_by('-total')
+    prioridades_labels = [item['prioridad__nombre'] or 'Sin Prioridad' for item in prioridades_qs]
+    prioridades_valores = [item['total'] for item in prioridades_qs]
+
+    # 5. Tendencia de los últimos 7 días
+    tendencias_labels = []
+    tendencias_valores = []
+    hoy = timezone.now().date()
+    for i in range(6, -1, -1):
+        dia = hoy - timedelta(days=i)
+        cant = Ticket.objects.filter(fecha_creacion__date=dia).count()
+        tendencias_labels.append(dia.strftime('%d/%m'))
+        tendencias_valores.append(cant)
+
+    context = {
+        'total_tickets': total_tickets,
+        'pendientes': pendientes,
+        'resueltos': resueltos,
+        'estados_labels': estados_labels,
+        'estados_valores': estados_valores,
+        'sistemas_labels': sistemas_labels,
+        'sistemas_valores': sistemas_valores,
+        'prioridades_labels': prioridades_labels,
+        'prioridades_valores': prioridades_valores,
+        'tendencias_labels': tendencias_labels,
+        'tendencias_valores': tendencias_valores,
+    }
+    return render(request, 'tickets/dashboard.html', context)

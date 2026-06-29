@@ -99,6 +99,9 @@ urlpatterns = [
     path('panel/tickets/nuevo/', views.panel_ticket_create, name='panel_ticket_create'),
     path('panel/conocimiento/', views.panel_conocimiento_lista, name='panel_conocimiento_lista'),
     path('panel/tickets/<int:ticket_id>/convertir/', views.panel_conocimiento_crear_desde_ticket, name='panel_conocimiento_crear_desde_ticket'),
+    path('panel/configuracion/sistemas/', views.panel_config_sistemas, name='panel_config_sistemas'),
+    path('panel/configuracion/modulos/', views.panel_config_modulos, name='panel_config_modulos'),
+    path('panel/configuracion/categorias/', views.panel_config_categorias, name='panel_config_categorias'),
 
     
     # 🔌 8. ENTRADA DE ROUTER HÍBRIDA TOLERANTE A INTERFERENCIAS

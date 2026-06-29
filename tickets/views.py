@@ -963,3 +963,58 @@ def panel_ticket_detail(request, pk):
         'tecnicos': User.objects.filter(rol='tecnico') or User.objects.filter(is_staff=True) or User.objects.all(),
     }
     return render(request, 'tickets/detail.html', context)
+
+
+@login_required
+def panel_conocimiento_lista(request):
+    """
+    🖥️ VISTA INTERNA: Listado y buscador en tiempo real de soluciones documentadas
+    """
+    query = request.GET.get('q', '').strip()
+    soluciones = ConocimientoEntry.objects.select_related('sistema', 'ticket_origen').all()
+
+    if query:
+        soluciones = soluciones.filter(
+            Q(titulo__icontains=query) |
+            Q(descripcion_problema__icontains=query) |
+            Q(codigo_error__icontains=query) |
+            Q(solucion_aplicada__icontains=query)
+        )
+
+    # Si la petición es disparada por HTMX (escribiendo en el input), regresamos solo el partial loop
+    if request.headers.get('HX-Request'):
+        return render(request, 'conocimiento/partials/soluciones_loop.html', {'soluciones': soluciones})
+
+    return render(request, 'conocimiento/lista.html', {'soluciones': soluciones})
+
+
+@login_required
+@require_http_methods(["POST"])
+def panel_conocimiento_crear_desde_ticket(request, ticket_id):
+    """
+    ⚡ ACCIÓN HTMX: Convierte el diagnóstico de un ticket cerrado en una solución frecuente
+    """
+    ticket = get_object_or_404(Ticket, pk=ticket_id)
+    
+    # Validamos que al menos exista una solución cargada antes de duplicar
+    if not ticket.solucion_aplicada:
+        return HttpResponse("El ticket debe poseer una solución explicada para guardarse.", status=400)
+
+    # Evitar duplicaciones del mismo ticket de origen
+    existe = ConocimientoEntry.objects.filter(ticket_origen=ticket).exists()
+    if not existe:
+        ConocimientoEntry.objects.create(
+            titulo=f"Solución a: {ticket.titulo}",
+            descripcion_problema=ticket.descripcion,
+            codigo_error=ticket.codigo_error,
+            solucion_aplicada=ticket.solucion_aplicada,
+            causa_raiz=ticket.causa_raiz,
+            sistema=ticket.sistema,
+            modulo=ticket.modulo,
+            ticket_origen=ticket
+        )
+    
+    # Retornamos una redirección HTTP del lado del cliente para HTMX
+    response = HttpResponse(status=200)
+    response['HX-Redirect'] = '/api/panel/conocimiento/'
+    return response

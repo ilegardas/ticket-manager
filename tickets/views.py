@@ -744,36 +744,42 @@ def panel_ticket_detail(request, pk):
         elif action == "view_info":
             return render(request, 'tickets/detail.html', {'ticket': ticket})
 
-    # 2. 💾 MANEJO DE PETICIONES POST (Guardado de Datos)
+   # 2. 💾 MANEJO DE PETICIONES POST (Guardado de Datos)
     if request.method == "POST":
+        # Si viene del formulario de la izquierda (Título, Descripción, Sistema)
         if action == "update_info":
             ticket.titulo = request.POST.get("titulo")
             ticket.descripcion = request.POST.get("descripcion")
             sistema_id = request.POST.get("sistema")
             ticket.sistema_id = sistema_id if sistema_id else None
             ticket.save()
-            return render(request, 'tickets/detail.html', {'ticket': ticket})
+            return render(request, 'tickets/partials/view_info.html', {'ticket': ticket})
 
+        # Si viene del formulario de Diagnóstico y Cierre
+        if action == "update_diagnostico":
+            causa_raiz = request.POST.get("causa_raiz")
+            solucion_aplicada = request.POST.get("solucion_aplicada")
+            if causa_raiz is not None: ticket.causa_raiz = causa_raiz
+            if solucion_aplicada is not None: ticket.solucion_aplicada = solucion_aplicada
+            ticket.save()
+            return HttpResponse(status=204)
+
+        # Si viene de los selectores automáticos de la derecha (Especialista, Estado, Prioridad)
         estado_id = request.POST.get("estado")
         usuario_asignado_id = request.POST.get("usuario_asignado")
         prioridad_id = request.POST.get("prioridad")
-        causa_raiz = request.POST.get("causa_raiz")
-        solucion_aplicada = request.POST.get("solucion_aplicada")
 
+        # Guardar solo si el parámetro viene en el POST
         if estado_id: ticket.estado_id = estado_id
         if prioridad_id: ticket.prioridad_id = prioridad_id
-        ticket.usuario_asignado_id = usuario_asignado_id if usuario_asignado_id else None
-        
-        if causa_raiz is not None: ticket.causa_raiz = causa_raiz
-        if solucion_aplicada is not None: ticket.solucion_aplicada = solucion_aplicada
+        if usuario_asignado_id is not None:
+            ticket.usuario_asignado_id = usuario_asignado_id if usuario_asignado_id else None
         
         ticket.save()
 
-        if "estado" in request.POST or "usuario_asignado" in request.POST or "prioridad" in request.POST:
-            notas = ChatterEntry.objects.filter(ticket=ticket).order_by('-fecha_creacion')
-            return render(request, 'tickets/partials/chatter.html', {'notas': notas})
-            
-        return HttpResponse(status=204)
+        # Generar entrada automática en el historial si es necesario, o simplemente refrescar el chatter
+        notas = ChatterEntry.objects.filter(ticket=ticket).order_by('-fecha_creacion')
+        return render(request, 'tickets/partials/chatter.html', {'notas': notas, 'ticket': ticket})
 
     # 3. 📄 RENDERIZADO INICIAL (Primera carga completa de la página)
     context = {

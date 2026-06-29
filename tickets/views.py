@@ -721,13 +721,69 @@ def panel_tickets_list(request):
 @login_required
 def panel_ticket_detail(request, pk):
     """
-    🖥️ VISTA INTERNA: Muestra el detalle completo de un ticket individual
+    🖥️ VISTA INTERNA: Muestra, edita y procesa las actualizaciones dinámicas con HTMX
     """
     ticket = get_object_or_404(
         Ticket.objects.select_related('sistema', 'modulo', 'prioridad', 'estado', 'categoria', 'usuario_reporta', 'usuario_asignado'),
         pk=pk
     )
-    return render(request, 'tickets/detail.html', {'ticket': ticket})
+    action = request.GET.get('action', '')
+
+    # 1. 🎛️ MANEJO DE PETICIONES GET (Intercambios dinámicos de HTMX)
+    if request.method == "GET":
+        if action == "edit_info":
+            # Retorna solo el fragmento del formulario de edición principal
+            return render(request, 'tickets/partials/edit_form.html', {
+                'ticket': ticket,
+                'sistemas': Sistema.objects.filter(activo=True)
+            })
+        elif action == "view_info":
+            # Cancela y regresa al bloque de lectura normal
+            return render(request, 'tickets/detail.html', {'ticket': ticket})
+
+    # 2. 💾 MANEJO DE PETICIONES POST (Guardado de Datos)
+    if request.method == "POST":
+        if action == "update_info":
+            # Formulario de edición principal (Título, descripción, sistema)
+            ticket.titulo = request.POST.get("titulo")
+            ticket.descripcion = request.POST.get("descripcion")
+            sistema_id = request.POST.get("sistema")
+            ticket.sistema_id = sistema_id if sistema_id else None
+            ticket.save()
+            return render(request, 'tickets/detail.html', {'ticket': ticket})
+
+        # Selectores automáticos de la barra lateral o campos de diagnóstico
+        estado_id = request.POST.get("estado")
+        usuario_asignado_id = request.POST.get("usuario_asignado")
+        prioridad_id = request.POST.get("prioridad")
+        causa_raiz = request.POST.get("causa_raiz")
+        solucion_aplicada = request.POST.get("solucion_aplicada")
+
+        if estado_id: ticket.estado_id = estado_id
+        if prioridad_id: ticket.prioridad_id = prioridad_id
+        ticket.usuario_asignado_id = usuario_asignado_id if usuario_asignado_id else None
+        
+        if causa_raiz is not None: ticket.causa_raiz = causa_raiz
+        if solucion_aplicada is not None: ticket.solucion_aplicada = solucion_aplicada
+        
+        ticket.save()
+
+        # Si el cambio vino de los selectores, refrescamos el chatter con la nueva nota del sistema
+        if "estado" in request.POST or "usuario_asignado" in request.POST or "prioridad" in request.POST:
+            notas = ChatterEntry.objects.filter(ticket=ticket).order_by('-fecha_creacion')
+            return render(request, 'tickets/partials/chatter.html', {'notas': notas})
+            
+        return HttpResponse(status=204)
+
+    # 3. 📄 RENDERIZADO INICIAL (Primera carga completa de la página)
+    context = {
+        'ticket': ticket,
+        'estados': Estado.objects.all().order_by('orden'),
+        'prioridades': Prioridad.objects.all(),
+        'tecnicos': get_user_model().objects.filter(rol='tecnico') or get_user_model().objects.filter(is_staff=True) or get_user_model().objects.all(),
+    }
+    return render(request, 'tickets/detail.html', context)
+
 
 @login_required
 @require_http_methods(["GET", "POST"])
@@ -737,7 +793,6 @@ def panel_ticket_chatter(request, pk):
     """
     ticket = get_object_or_404(Ticket, pk=pk)
     
-    # Si la petición es POST, guardamos el comentario enviado por HTMX
     if request.method == "POST":
         contenido = request.POST.get("contenido", "").strip()
         if contenido:
@@ -748,7 +803,6 @@ def panel_ticket_chatter(request, pk):
                 contenido=contenido
             )
             
-    # Obtenemos las notas actualizadas para devolver el fragmento HTML
     notas = ChatterEntry.objects.filter(ticket=ticket).order_by('-fecha_creacion')
     return render(request, 'tickets/partials/chatter.html', {'notas': notas})
 

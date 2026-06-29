@@ -151,7 +151,9 @@
                         <span class="text-slate-700 font-medium text-xs">{{ ticket.modulo.nombre|default:"—" }}</span>
                     </div>
                 </div>
-            </div> <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
+            </div>
+
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
                 <h3 class="text-sm font-semibold text-slate-800">Historial y Notas</h3>
                 
                 <form hx-post="{% url 'panel_ticket_chatter' ticket.id %}" hx-target="#chatter-box" hx-swap="innerHTML" class="space-y-2" onhtmx:after-request="this.reset()">
@@ -166,7 +168,9 @@
                 <div id="chatter-box" hx-get="{% url 'panel_ticket_chatter' ticket.id %}" hx-trigger="load" class="space-y-3 max-h-[300px] overflow-y-auto pr-1">
                     <p class="text-xs text-slate-400 text-center py-4">Cargando notas...</p>
                 </div>
-            </div> </div> </div> </div> <script>
+            </div>
+
+        </div> </div> </div> <script>
     // Sincronizar dinámicamente el badge del encabezado al cambiar el estado
     document.body.addEventListener('htmx:afterOnLoad', function(evt) {
         if (evt.detail.xhr.status === 200 && evt.detail.requestConfig.parameters['estado']) {

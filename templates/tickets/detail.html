@@ -4,20 +4,23 @@
 
 {% block content %}
 <div class="space-y-6">
-    <div>
+    <div class="flex items-center justify-between">
         <a href="{% url 'panel_tickets_list' %}" class="inline-flex items-center text-xs font-semibold text-slate-500 hover:text-slate-900 transition">
             ← Volver al listado
         </a>
+        <span id="save-indicator" class="text-xs text-emerald-600 font-semibold htmx-indicator bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100 animate-pulse">
+            ✓ Guardando cambios...
+        </span>
     </div>
 
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-5 gap-4">
         <div>
             <span class="text-xs font-bold uppercase tracking-wider text-blue-600">{{ ticket.sistema.nombre|default:"Sin Sistema" }}</span>
             <h1 class="text-2xl font-bold tracking-tight text-slate-900">#{{ ticket.folio }} · {{ ticket.titulo }}</h1>
-            <p class="text-xs text-slate-400 mt-1">Creado el {{ ticket.fecha_creacion|date:"d/m/Y H:i" }} por {{ ticket.usuario_reporta }}</p>
+            <p class="text-xs text-slate-400 mt-1">Creado el {{ ticket.fecha_creacion|date:"d/m/Y H:i" }} por {{ ticket.usuario_reporta.nombre_completo|default:ticket.usuario_reporta.correo_electronico }}</p>
         </div>
         <div class="flex items-center gap-2">
-            <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold border shadow-sm" 
+            <span id="header-estado-badge" class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold border shadow-sm" 
                   style="background-color: {{ ticket.estado.color }}10; color: {{ ticket.estado.color }}; border-color: {{ ticket.estado.color }}30">
                 {{ ticket.estado.nombre }}
             </span>
@@ -27,12 +30,16 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         <div class="lg:col-span-2 space-y-6">
-            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
-                <div>
+            
+            <div id="main-content-block" class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
+                <div class="flex items-center justify-between">
                     <h3 class="text-sm font-semibold text-slate-800">Descripción del Problema</h3>
-                    <p class="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed mt-2 bg-slate-50/50 p-4 rounded-lg border border-slate-100">{{ ticket.descripcion }}</p>
+                    <button hx-get="{% url 'panel_ticket_detail' ticket.id %}?action=edit_info" hx-target="#main-content-block" hx-swap="outerHTML" class="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline">
+                        Editar Información
+                    </button>
                 </div>
-
+                <p class="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed bg-slate-50/50 p-4 rounded-lg border border-slate-100">{{ ticket.descripcion }}</p>
+                
                 {% if ticket.codigo_error %}
                 <div class="p-3 bg-red-50 border border-red-100 rounded-lg">
                     <span class="text-xs font-bold text-red-800 uppercase tracking-wide">Código de Error Detectado:</span>
@@ -41,65 +48,70 @@
                 {% endif %}
             </div>
 
-            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                <h3 class="text-sm font-semibold text-slate-800 mb-3">Diagnóstico y Cierre</h3>
+            <form hx-post="{% url 'panel_ticket_detail' ticket.id %}?action=update_diagnostico" hx-trigger="change delay:500ms" hx-indicator="#save-indicator" class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
+                {% csrf_token %}
+                <h3 class="text-sm font-semibold text-slate-800">Diagnóstico y Cierre</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div>
-                        <span class="text-xs font-medium text-slate-400 block">Causa Raíz:</span>
-                        <p class="text-slate-700 font-medium mt-0.5">{{ ticket.causa_raiz|default:"—" }}</p>
+                        <label class="text-xs font-semibold text-slate-400 block mb-1">Causa Raíz:</label>
+                        <select name="causa_raiz" class="w-full text-xs p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white outline-none font-medium">
+                            <option value="">— Selecciona Causa —</option>
+                            {% for code, label in ticket.CAUSA_RAIZ_CHOICES %}
+                            <option value="{{ code }}" {% if ticket.causa_raiz == code %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                     <div>
-                        <span class="text-xs font-medium text-slate-400 block">Solución Aplicada:</span>
-                        <p class="text-slate-700 font-medium mt-0.5">{{ ticket.solucion_aplicada|default:"—" }}</p>
+                        <label class="text-xs font-semibold text-slate-400 block mb-1">Solución Aplicada:</label>
+                        <textarea name="solucion_aplicada" rows="3" placeholder="Describe los pasos técnicos aplicados..." class="w-full text-xs p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white outline-none resize-none font-medium">{{ ticket.solucion_aplicada|default:'' }}</textarea>
                     </div>
                 </div>
-            </div>
+            </form>
         </div>
 
         <div class="space-y-6">
-            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
+            
+            <form hx-post="{% url 'panel_ticket_detail' ticket.id %}" hx-trigger="change" hx-indicator="#save-indicator" hx-target="#chatter-box" hx-swap="innerHTML" class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
+                {% csrf_token %}
                 <h3 class="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-2">Información de Control</h3>
-                <div class="space-y-3 text-xs">
+                
+                <div class="space-y-4 text-xs">
                     <div>
-                        <span class="text-slate-400 font-semibold block mb-0.5">Especialista Asignado:</span>
-                        <span class="text-slate-800 font-bold text-sm">{{ ticket.usuario_asignado.nombre_completo|default:"Sin asignar" }}</span>
+                        <label class="text-slate-400 font-semibold block mb-1">Especialista Asignado:</label>
+                        <select name="usuario_asignado" class="w-full text-xs p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-bold text-slate-800 bg-white">
+                            <option value="">Sin Asignar</option>
+                            {% for tec in tecnicos %}
+                            <option value="{{ tec.id }}" {% if ticket.usuario_asignado.id == tec.id %}selected{% endif %}>{{ tec.nombre_completo }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
+
                     <div>
-                        <span class="text-slate-400 font-semibold block mb-0.5">Prioridad de Atención:</span>
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold" style="background-color: {{ ticket.prioridad.color }}10; color: {{ ticket.prioridad.color }}">
-                            <span class="h-1.5 w-1.5 rounded-full mr-1.5" style="background-color: {{ ticket.prioridad.color }}"></span>
-                            {{ ticket.prioridad.nombre }}
-                        </span>
+                        <label class="text-slate-400 font-semibold block mb-1">Estado / Etapa:</label>
+                        <select name="estado" class="w-full text-xs p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-semibold bg-white"
+                                style="color: {{ ticket.estado.color }};">
+                            {% for est in estados %}
+                            <option value="{{ est.id }}" {% if ticket.estado.id == est.id %}selected{% endif %}>{{ est.nombre }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
+
+                    <div>
+                        <label class="text-slate-400 font-semibold block mb-1">Prioridad de Atención:</label>
+                        <select name="prioridad" class="w-full text-xs p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-bold bg-white"
+                                style="color: {{ ticket.prioridad.color }};">
+                            {% for prio in prioridades %}
+                            <option value="{{ prio.id }}" {% if ticket.prioridad.id == prio.id %}selected{% endif %}>{{ prio.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
                     <div>
                         <span class="text-slate-400 font-semibold block mb-0.5">Categoría:</span>
-                        <span class="text-slate-700 font-medium">{{ ticket.categoria.nombre|default:"—" }}</span>
+                        <span class="text-slate-700 font-medium text-xs">{{ ticket.categoria.nombre|default:"—" }}</span>
                     </div>
+
                     <div>
                         <span class="text-slate-400 font-semibold block mb-0.5">Módulo Afectado:</span>
-                        <span class="text-slate-700 font-medium">{{ ticket.modulo.nombre|default:"—" }}</span>
+                        <span class="text-slate-700 font-medium text-xs">{{ ticket.modulo.nombre|default:"—" }}</span>
                     </div>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
-                <h3 class="text-sm font-semibold text-slate-800">Historial y Notas</h3>
-                
-                <form hx-post="{% url 'panel_ticket_chatter' ticket.id %}" hx-target="#chatter-box" hx-swap="innerHTML" class="space-y-2" onhtmx:after-request="this.reset()">
-                    {% csrf_token %}
-                    <textarea name="contenido" rows="2" required placeholder="Escribe un comentario interno..." 
-                              class="w-full text-xs p-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50/50 resize-none"></textarea>
-                    <button type="submit" class="w-full bg-slate-950 hover:bg-slate-800 text-white font-semibold py-2 px-3 rounded-lg text-xs transition shadow-sm">
-                        Agregar Comentario
-                    </button>
-                </form>
-
-                <div id="chatter-box" hx-get="{% url 'panel_ticket_chatter' ticket.id %}" hx-trigger="load" class="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-                    <p class="text-xs text-slate-400 text-center py-4">Cargando notas...</p>
-                </div>
-            </div>
-        </div>
-
-    </div>
-</div>
-{% endblock %}

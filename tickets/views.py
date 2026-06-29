@@ -840,3 +840,68 @@ def panel_ticket_create(request):
         'prioridades': Prioridad.objects.all(),
     }
     return render(request, 'tickets/create.html', context)
+
+
+
+@login_required
+def panel_ticket_detail(request, pk):
+    """
+    🖥️ VISTA INTERNA: Muestra, edita y procesa las actualizaciones dinámicas con HTMX
+    """
+    ticket = get_object_or_404(Ticket, pk=pk)
+    action = request.GET.get('action', '')
+
+    # 1. 🎛️ MANEJO DE PETICIONES GET (HTMX Intercambios Dinámicos)
+    if request.method == "GET":
+        if action == "edit_info":
+            # Retorna solo el fragmento del formulario con los sistemas activos
+            return render(request, 'tickets/partials/edit_form.html', {
+                'ticket': ticket,
+                'sistemas': Sistema.objects.filter(activo=True)
+            })
+        elif action == "view_info":
+            # Cancela y regresa al bloque de lectura normal (simulamos el div del detalle)
+            return render(request, 'tickets/detail.html', {'ticket': ticket})
+
+    # 2. 💾 MANEJO DE PETICIONES POST (Guardado de Datos)
+    if request.method == "POST":
+        if action == "update_info":
+            # Procesamos el formulario de edición principal
+            ticket.titulo = request.POST.get("titulo")
+            ticket.descripcion = request.POST.get("descripcion")
+            sistema_id = request.POST.get("sistema")
+            ticket.sistema_id = sistema_id if sistema_id else None
+            ticket.save()
+            # Devolvemos la vista normal para actualizar el bloque automáticamente en la pantalla
+            return render(request, 'tickets/detail.html', {'ticket': ticket})
+
+        # Si no trae action, procesamos los selectores automáticos de la barra lateral
+        estado_id = request.POST.get("estado")
+        usuario_asignado_id = request.POST.get("usuario_asignado")
+        prioridad_id = request.POST.get("prioridad")
+        causa_raiz = request.POST.get("causa_raiz")
+        solucion_aplicada = request.POST.get("solucion_aplicada")
+
+        if estado_id: ticket.estado_id = estado_id
+        if prioridad_id: ticket.prioridad_id = prioridad_id
+        ticket.usuario_asignado_id = usuario_asignado_id if usuario_asignado_id else None
+        if causa_raiz is not None: ticket.causa_raiz = causa_raiz
+        if solucion_aplicada is not None: ticket.solucion_aplicada = solucion_aplicada
+        
+        ticket.save()
+
+        # Si el POST vino de los selectores, refrescamos las notas del chatter de sistema
+        if "estado" in request.POST or "usuario_asignado" in request.POST or "prioridad" in request.POST:
+            notas = ChatterEntry.objects.filter(ticket=ticket).order_by('-fecha_creacion')
+            return render(request, 'tickets/partials/chatter.html', {'notas': notas})
+            
+        return HttpResponse(status=204)
+
+    # 3. RENDERIZADO INICIAL COMPLETO (Primera carga de la página)
+    context = {
+        'ticket': ticket,
+        'estados': Estado.objects.all().order_by('orden'),
+        'prioridades': Prioridad.objects.all(),
+        'tecnicos': User.objects.filter(rol='tecnico') or User.objects.filter(is_staff=True) or User.objects.all(),
+    }
+    return render(request, 'tickets/detail.html', context)

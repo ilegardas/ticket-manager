@@ -1,0 +1,33 @@
+<form hx-post="{% url 'panel_ticket_detail' ticket.id %}?action=update_info" hx-target="#main-content-block" hx-swap="outerHTML" class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
+    {% csrf_token %}
+    <h3 class="text-sm font-semibold text-slate-800">Modificar Datos del Ticket</h3>
+    
+    <div>
+        <label class="block text-xs font-semibold text-slate-400 mb-1">Título del Incidente</label>
+        <input type="text" name="titulo" value="{{ ticket.titulo }}" required class="w-full text-sm p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+    </div>
+
+    <div>
+        <label class="block text-xs font-semibold text-slate-400 mb-1">Descripción Detallada</label>
+        <textarea name="descripcion" rows="4" required class="w-full text-sm p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none">{{ ticket.descripcion }}</textarea>
+    </div>
+
+    <div>
+        <label class="block text-xs font-semibold text-slate-400 mb-1">Sistema Afectado</label>
+        <select name="sistema" class="w-full text-sm p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+            <option value="">Selecciona un sistema</option>
+            {% for sis in sistemas %}
+            <option value="{{ sis.id }}" {% if ticket.sistema.id == sis.id %}selected{% endif %}>{{ sis.nombre }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="flex items-center justify-end space-x-2 pt-2">
+        <button type="button" hx-get="{% url 'panel_ticket_detail' ticket.id %}?action=view_info" hx-target="this.closest('form')" hx-swap="outerHTML" class="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 rounded-lg transition">
+            Cancelar
+        </button>
+        <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs px-4 py-1.5 rounded-lg shadow-sm transition">
+            Guardar Cambios
+        </button>
+    </div>
+</form>

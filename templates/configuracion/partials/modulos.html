@@ -30,6 +30,7 @@
                     <th class="py-3 px-4">ID</th>
                     <th class="py-3 px-4">Módulo</th>
                     <th class="py-3 px-4">Sistema</th>
+                    <th class="py-3 px-4 text-right">Acciones</th> </tr>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 text-xs text-slate-600">
@@ -38,6 +39,16 @@
                     <td class="py-3 px-4 font-mono font-bold text-slate-400">#{{ mod.id }}</td>
                     <td class="py-3 px-4 font-semibold text-slate-800">{{ mod.nombre }}</td>
                     <td class="py-3 px-4 text-blue-600 font-medium bg-blue-50/20">{{ mod.sistema.nombre }}</td>
+                    
+                    <td class="py-3 px-4 text-right"> <button hx-post="{% url 'panel_config_modulo_eliminar' mod.id %}"
+                                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                                hx-target="#tab-content"
+                                hx-confirm="¿Estás seguro de que deseas eliminar este módulo?"
+                                class="text-red-500 hover:text-red-700 font-semibold p-1 hover:underline text-[11px]">
+                            🗑️ Eliminar
+                        </button>
+                    </td>
+                    
                 </tr>
                 {% empty %}
                 <tr>

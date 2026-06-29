@@ -682,3 +682,16 @@ def compat_ticket_detail(request, pk):
     elif request.method == 'DELETE':
         ticket.delete()
         return Response({'detail': 'Eliminado.'}, status=status.HTTP_200_OK)
+
+#Inicia ruteo a vistas dentro de django 
+
+@login_required
+def panel_tickets_list(request):
+    """
+    🖥️ VISTA INTERNA: Renderiza el listado global de tickets optimizando las consultas SQL
+    """
+    tickets = Ticket.objects.select_related(
+        'sistema', 'modulo', 'prioridad', 'estado', 'usuario_asignado'
+    ).all().order_by('-fecha_creacion')[:100]
+    
+    return render(request, 'tickets/list.html', {'tickets': tickets})

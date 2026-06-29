@@ -102,4 +102,68 @@
                                 hx-post="{% url 'panel_ticket_detail' ticket.id %}" 
                                 hx-target="#chatter-box" 
                                 hx-swap="innerHTML"
-                                hx-
+                                hx-indicator="#save-indicator"
+                                class="w-full text-sm p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                            {% for est in estados %}
+                            <option value="{{ est.id }}" {% if ticket.estado.id == est.id %}selected{% endif %}>{{ est.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-slate-400 font-semibold mb-1">Prioridad de Atención:</label>
+                        <select name="prioridad" 
+                                hx-post="{% url 'panel_ticket_detail' ticket.id %}" 
+                                hx-target="#chatter-box" 
+                                hx-swap="innerHTML"
+                                hx-indicator="#save-indicator"
+                                class="w-full text-sm p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                            {% for pri in prioridades %}
+                            <option value="{{ pri.id }}" {% if ticket.prioridad.id == pri.id %}selected{% endif %}>{{ pri.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="pt-2 border-t border-slate-50">
+                        <span class="text-slate-400 font-semibold block mb-0.5">Categoría:</span>
+                        <span class="text-slate-700 font-medium text-xs">{{ ticket.categoria.nombre|default:"—" }}</span>
+                    </div>
+
+                    <div>
+                        <span class="text-slate-400 font-semibold block mb-0.5">Módulo Afectado:</span>
+                        <span class="text-slate-700 font-medium text-xs">{{ ticket.modulo.nombre|default:"—" }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
+                <h3 class="text-sm font-semibold text-slate-800">Historial y Notas</h3>
+                
+                <form hx-post="{% url 'panel_ticket_chatter' ticket.id %}" hx-target="#chatter-box" hx-swap="innerHTML" class="space-y-2" onhtmx:after-request="this.reset()">
+                    {% csrf_token %}
+                    <textarea name="contenido" rows="2" required placeholder="Escribe un comentario interno..." 
+                              class="w-full text-xs p-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50/50 resize-none"></textarea>
+                    <button type="submit" class="w-full bg-slate-950 hover:bg-slate-800 text-white font-semibold py-2 px-3 rounded-lg text-xs transition shadow-sm">
+                        Agregar Comentario
+                    </button>
+                </form>
+
+                <div id="chatter-box" hx-get="{% url 'panel_ticket_chatter' ticket.id %}" hx-trigger="load" class="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                    <p class="text-xs text-slate-400 text-center py-4">Cargando notas...</p>
+                </div>
+            </div>
+
+        </div> </div> </div> <script>
+    // Sincronizar dinámicamente el badge del encabezado al cambiar el estado
+    document.body.addEventListener('htmx:afterOnLoad', function(evt) {
+        if (evt.detail.xhr.status === 200 && evt.detail.requestConfig.parameters['estado']) {
+            const selectEstado = document.querySelector('select[name="estado"]');
+            const selectedText = selectEstado.options[selectEstado.selectedIndex].text;
+            const headerBadge = document.getElementById('header-estado-badge');
+            if (headerBadge) {
+                headerBadge.innerText = selectedText;
+            }
+        }
+    });
+</script>
+{% endblock %}

@@ -240,11 +240,52 @@ class Ticket(models.Model):
         return f"{self.folio} - {self.titulo}"
 
     def save(self, *args, **kwargs):
+        # 1. 🎫 Autogeneración del Folio Secuencial por Año
         if not self.folio:
             year = timezone.now().year
             count = Ticket.objects.filter(fecha_creacion__year=year).count() + 1
             self.folio = f"TIC-{year}-{count:04d}"
+
+        # 🕵️ 2. Automatización del Chatter (Detección de Cambios)
+        cambios = []
+        if self.pk:
+            # Recuperamos el registro tal como está en la Base de Datos antes del cambio
+            old = Ticket.objects.get(pk=self.pk)
+            
+            # Monitorear Cambio de Estado / Etapa
+            if old.estado != self.estado:
+                v = old.estado.nombre if old.estado else "Ninguno"
+                n = self.estado.nombre if self.estado else "Ninguno"
+                cambios.append(f"🤖 Sistema: El estado cambió de '{v}' a '{n}'.")
+                
+            # Monitorear Cambio de Técnico Asignado
+            if old.usuario_asignado != self.usuario_asignado:
+                v = old.usuario_asignado.nombre_completo if old.usuario_asignado else "Sin asignar"
+                n = self.usuario_asignado.nombre_completo if self.usuario_asignado else "Sin asignar"
+                cambios.append(f"🤖 Sistema: Especialista actualizado. Asignado a: '{n}'.")
+                
+            # Monitorear Cambio de Prioridad
+            if old.prioridad != self.prioridad:
+                v = old.prioridad.nombre if old.prioridad else "Ninguna"
+                n = self.prioridad.nombre if self.prioridad else "Ninguna"
+                cambios.append(f"🤖 Sistema: Prioridad ajustada de '{v}' a '{n}'.")
+        else:
+            # Si es la primerísima creación del Ticket
+            cambios.append("🤖 Sistema: Ticket creado e ingresado exitosamente al panel de control.")
+
+        # 3. Guardamos el Ticket de manera nativa en la Base de Datos
         super().save(*args, **kwargs)
+
+        # 4. Inyectamos las entradas al Chatter recopiladas (Evitamos imports circulares usando lazy import)
+        if cambios:
+            from .models import ChatterEntry
+            for mensaje in cambios:
+                ChatterEntry.objects.create(
+                    ticket=self,
+                    tipo='sistema',
+                    contenido=mensaje,
+                    autor=None
+                )
 
     @property
     def tiempo_efectivo_minutos(self):

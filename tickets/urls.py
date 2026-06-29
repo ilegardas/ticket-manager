@@ -93,6 +93,8 @@ urlpatterns = [
 
     # 🖥️ CONTROL DE PANELES INTERNOS (MIGRACIÓN HYBRIDA)
     path('panel/tickets/', views.panel_tickets_list, name='panel_tickets_list'),
+    path('panel/tickets/<int:pk>/', views.panel_ticket_detail, name='panel_ticket_detail'),
+    path('panel/tickets/<int:pk>/chatter/', views.panel_ticket_chatter, name='panel_ticket_chatter'),
 
     
     # 🔌 8. ENTRADA DE ROUTER HÍBRIDA TOLERANTE A INTERFERENCIAS

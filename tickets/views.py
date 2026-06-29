@@ -1135,3 +1135,26 @@ def ajax_cargar_modulos(request):
         options += f'<option value="{mod.id}">{mod.nombre}</option>'
         
     return HttpResponse(options)
+
+
+@login_required
+@require_http_methods(["POST"])
+def panel_ticket_add_comentario(request, ticket_id):
+    """
+    ⚡ ACCIÓN HTMX: Inserta un nuevo comentario en el chatter en tiempo real
+    """
+    ticket = get_object_or_404(Ticket, pk=ticket_id)
+    contenido = request.POST.get("contenido", "").strip()
+    
+    if contenido:
+        # Reemplaza 'NotaChatter' por el nombre exacto de tu modelo de bitácora/comentarios
+        nueva_nota = NotaChatter.objects.create(
+            ticket=ticket,
+            usuario=request.user,
+            contenido=contenido
+        )
+        
+        # Le regresamos a HTMX únicamente la nueva nota usando el mismo partial loop
+        return render(request, 'tickets/partials/chatter_loop.html', {'notas': [nueva_nota]})
+        
+    return HttpResponse(status=400)

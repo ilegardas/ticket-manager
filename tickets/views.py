@@ -718,14 +718,14 @@ def panel_tickets_list(request):
     })
 
 
+# 🎯 Declaración explícita global para este bloque de vistas
+User = get_user_model()
+
 @login_required
 def panel_ticket_detail(request, pk):
     """
     🖥️ VISTA INTERNA: Muestra, edita y procesa las actualizaciones dinámicas con HTMX
     """
-    # 🎯 Definimos User de forma segura al inicio de la función
-    User = get_user_model()
-    
     ticket = get_object_or_404(
         Ticket.objects.select_related('sistema', 'modulo', 'prioridad', 'estado', 'categoria', 'usuario_reporta', 'usuario_asignado'),
         pk=pk
@@ -778,7 +778,6 @@ def panel_ticket_detail(request, pk):
         'ticket': ticket,
         'estados': Estado.objects.all().order_by('orden'),
         'prioridades': Prioridad.objects.all(),
-        # 🎯 Aquí ya usamos la variable User local que definimos arriba
         'tecnicos': User.objects.filter(rol='tecnico') or User.objects.filter(is_staff=True) or User.objects.all(),
     }
     return render(request, 'tickets/detail.html', context)

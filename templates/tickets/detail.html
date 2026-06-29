@@ -121,4 +121,7 @@
                         <span class="text-slate-400 font-semibold block mb-0.5">Módulo Afectado:</span>
                         <span class="text-slate-700 font-medium text-xs">{{ ticket.modulo.nombre|default:"—" }}</span>
                     </div>
+                    <div id="chatter-container" class="mt-6">
+                        {% include 'tickets/partials/chatter.html' %}
+                    </div>
 {% endblock %}

@@ -872,6 +872,8 @@ def panel_ticket_create(request):
         titulo = request.POST.get("titulo")
         descripcion = request.POST.get("descripcion")
         sistema_id = request.POST.get("sistema")
+        modulo_id = request.POST.get("modulo")       # 🎯 Captura el módulo del formulario
+        categoria_id = request.POST.get("categoria") # 🎯 Captura la categoría del formulario
         prioridad_id = request.POST.get("prioridad")
         codigo_error = request.POST.get("codigo_error")
         medio_ingreso = request.POST.get("medio_ingreso", "portal")
@@ -884,6 +886,8 @@ def panel_ticket_create(request):
             titulo=titulo,
             descripcion=descripcion,
             sistema_id=sistema_id if sistema_id else None,
+            modulo_id=modulo_id if modulo_id else None,          # 🎯 Almacena el módulo
+            categoria_id=categoria_id if categoria_id else None,  # 🎯 Almacena la categoría
             prioridad_id=prioridad_id if prioridad_id else None,
             estado=primer_estado,
             codigo_error=codigo_error,
@@ -897,6 +901,7 @@ def panel_ticket_create(request):
     # GET: Cargar datos para llenar los Selectores
     context = {
         'sistemas': Sistema.objects.filter(activo=True),
+        'categorias': Categoria.objects.all().order_by('nombre'), # 🎯 Envía el catálogo al HTML
         'prioridades': Prioridad.objects.all(),
     }
     return render(request, 'tickets/create.html', context)

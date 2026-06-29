@@ -102,6 +102,9 @@ urlpatterns = [
     path('panel/configuracion/sistemas/', views.panel_config_sistemas, name='panel_config_sistemas'),
     path('panel/configuracion/modulos/', views.panel_config_modulos, name='panel_config_modulos'),
     path('panel/configuracion/categorias/', views.panel_config_categorias, name='panel_config_categorias'),
+    path('panel/configuracion/sistemas/<int:pk>/eliminar/', views.panel_config_sistema_eliminar, name='panel_config_sistema_eliminar'),
+    path('panel/configuracion/modulos/<int:pk>/eliminar/', views.panel_config_modulo_eliminar, name='panel_config_modulo_eliminar'),
+    path('panel/configuracion/categorias/<int:pk>/eliminar/', views.panel_config_categoria_eliminar, name='panel_config_categoria_eliminar'),
 
     
     # 🔌 8. ENTRADA DE ROUTER HÍBRIDA TOLERANTE A INTERFERENCIAS

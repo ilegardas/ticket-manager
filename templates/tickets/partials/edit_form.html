@@ -1,4 +1,4 @@
-<form hx-post="{% url 'panel_ticket_detail' ticket.id %}?action=update_info" hx-target="#main-content-block" hx-swap="outerHTML" class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
+<form id="main-content-block" hx-post="{% url 'panel_ticket_detail' ticket.id %}?action=update_info" hx-target="#main-content-block" hx-swap="outerHTML" class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
     {% csrf_token %}
     <h3 class="text-sm font-semibold text-slate-800">Modificar Datos del Ticket</h3>
     
@@ -23,7 +23,7 @@
     </div>
 
     <div class="flex items-center justify-end space-x-2 pt-2">
-        <button type="button" hx-get="{% url 'panel_ticket_detail' ticket.id %}?action=view_info" hx-target="this.closest('form')" hx-swap="outerHTML" class="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 rounded-lg transition">
+        <button type="button" hx-get="{% url 'panel_ticket_detail' ticket.id %}?action=view_info" hx-target="#main-content-block" hx-swap="outerHTML" class="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 rounded-lg transition">
             Cancelar
         </button>
         <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs px-4 py-1.5 rounded-lg shadow-sm transition">

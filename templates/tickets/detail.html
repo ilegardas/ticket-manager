@@ -56,8 +56,22 @@
 
             <form hx-post="{% url 'panel_ticket_detail' ticket.id %}?action=update_diagnostico" hx-trigger="change delay:500ms" hx-indicator="#save-indicator" class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
                 {% csrf_token %}
-                <h3 class="text-sm font-semibold text-slate-800">Diagnóstico y Cierre</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                
+                <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <h3 class="text-sm font-semibold text-slate-800">Diagnóstico y Cierre</h3>
+                    
+                    {% if ticket.solucion_aplicada %}
+                    <button type="button"
+                            hx-post="{% url 'panel_conocimiento_crear_desde_ticket' ticket.id %}"
+                            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                            hx-confirm="¿Deseas exportar el diagnóstico de este ticket a la Base de Conocimiento?"
+                            class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition">
+                        💡 Publicar como Solución
+                    </button>
+                    {% endif %}
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm pt-2">
                     <div>
                         <label class="text-xs font-semibold text-slate-400 block mb-1">Causa Raíz:</label>
                         <select name="causa_raiz" class="w-full text-xs p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white outline-none font-medium">

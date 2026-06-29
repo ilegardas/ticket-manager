@@ -106,6 +106,7 @@ urlpatterns = [
     path('panel/configuracion/modulos/<int:pk>/eliminar/', views.panel_config_modulo_eliminar, name='panel_config_modulo_eliminar'),
     path('panel/configuracion/categorias/<int:pk>/eliminar/', views.panel_config_categoria_eliminar, name='panel_config_categoria_eliminar'),
     path('ajax/cargar-modulos/', views.ajax_cargar_modulos, name='ajax_cargar_modulos'),
+    path('panel/tickets/<int:ticket_id>/comentario/', views.panel_ticket_add_comentario, name='panel_ticket_add_comentario'),
 
     
     # 🔌 8. ENTRADA DE ROUTER HÍBRIDA TOLERANTE A INTERFERENCIAS

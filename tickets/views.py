@@ -1070,3 +1070,50 @@ def panel_config_categorias(request):
 
     categorias = Categoria.objects.all().order_by('nombre')
     return render(request, 'configuracion/partials/categorias.html', {'categorias': categorias})
+
+
+
+
+@login_required
+@require_http_methods(["POST"])
+def panel_config_sistema_eliminar(request, pk):
+    """🗑️ Acción HTMX: Elimina un sistema si no tiene tickets vinculados"""
+    sistema = get_object_or_404(Sistema, pk=pk)
+    
+    # Validación estricta: verificar si está en uso
+    if Ticket.objects.filter(sistema=sistema).exists() or Modulo.objects.filter(sistema=sistema).exists():
+        response = HttpResponse('<script>alert("❌ No se puede eliminar: Este sistema tiene módulos o tickets vinculados.");</script>', status=200)
+        return response
+
+    sistema.delete()
+    sistemas = Sistema.objects.all().order_by('nombre')
+    return render(request, 'configuracion/partials/sistemas.html', {'sistemas': sistemas})
+
+
+@login_required
+@require_http_methods(["POST"])
+def panel_config_modulo_eliminar(request, pk):
+    """🗑️ Acción HTMX: Elimina un módulo si ningún ticket lo está usando"""
+    modulo = get_object_or_404(Modulo, pk=pk)
+    
+    if Ticket.objects.filter(modulo=modulo).exists():
+        return HttpResponse('<script>alert("❌ No se puede eliminar: Hay tickets que dependen de este módulo.");</script>', status=200)
+
+    modulo.delete()
+    modulos = Modulo.objects.select_related('sistema').all().order_by('sistema__nombre', 'nombre')
+    sistemas_list = Sistema.objects.filter(activo=True)
+    return render(request, 'configuracion/partials/modulos.html', {'modulos': modulos, 'sistemas_list': sistemas_list})
+
+
+@login_required
+@require_http_methods(["POST"])
+def panel_config_categoria_eliminar(request, pk):
+    """🗑️ Acción HTMX: Elimina una categoría si está libre de uso"""
+    categoria = get_object_or_404(Categoria, pk=pk)
+    
+    if Ticket.objects.filter(categoria=categoria).exists():
+        return HttpResponse('<script>alert("❌ No se puede eliminar: Esta categoría tiene tickets activos vinculados.");</script>', status=200)
+
+    categoria.delete()
+    categorias = Categoria.objects.all().order_by('nombre')
+    return render(request, 'configuracion/partials/categorias.html', {'categorias': categorias})

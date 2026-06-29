@@ -1,0 +1,38 @@
+{% for entry in soluciones %}
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 hover:border-slate-300 transition space-y-4">
+    <div class="flex items-start justify-between gap-4">
+        <div>
+            <span class="text-[10px] font-extrabold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+                {{ entry.sistema.nombre|default:"Sistema General" }}
+            </span>
+            <h3 class="text-base font-bold text-slate-900 mt-1">{{ entry.titulo }}</h3>
+            <p class="text-xs text-slate-400 mt-0.5">Consultado {{ entry.veces_consultado }} veces · Registrado el {{ entry.fecha_creacion|date:"d/m/Y" }}</p>
+        </div>
+        {% if entry.codigo_error %}
+        <span class="text-xs font-mono font-bold text-red-600 bg-red-50 border border-red-100 px-2 py-1 rounded">
+            {{ entry.codigo_error }}
+        </span>
+        {% endif %}
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs border-t border-slate-100 pt-3">
+        <div>
+            <span class="text-slate-400 font-semibold block uppercase tracking-wider">Problema Reportado</span>
+            <p class="text-slate-600 mt-1 whitespace-pre-wrap leading-relaxed">{{ entry.descripcion_problema }}</p>
+        </div>
+        <div class="bg-slate-50/50 p-3 rounded-lg border border-slate-100">
+            <span class="text-emerald-700 font-bold block uppercase tracking-wider">✔️ Solución Aplicada</span>
+            <p class="text-slate-700 mt-1 whitespace-pre-wrap leading-relaxed">{{ entry.solucion_aplicada }}</p>
+            {% if entry.ticket_origen %}
+            <a href="{% url 'panel_ticket_detail' entry.ticket_origen.id %}" class="inline-block text-[11px] font-semibold text-blue-600 hover:underline mt-2">
+                📂 Ver Ticket Origen #{{ entry.ticket_origen.folio }}
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% empty %}
+<div class="bg-white border border-slate-200 rounded-xl p-8 text-center text-slate-400 text-sm">
+    🚫 No se encontraron soluciones registradas o que coincidan con la búsqueda.
+</div>
+{% endfor %}

@@ -697,3 +697,38 @@ def panel_tickets_list(request):
     ).all().order_by('-fecha_creacion')[:100]
     
     return render(request, 'tickets/list.html', {'tickets': tickets})
+
+
+@login_required
+def panel_ticket_detail(request, pk):
+    """
+    🖥️ VISTA INTERNA: Muestra el detalle completo de un ticket individual
+    """
+    ticket = get_object_or_404(
+        Ticket.objects.select_related('sistema', 'modulo', 'prioridad', 'estado', 'categoria', 'usuario_reporta', 'usuario_asignado'),
+        pk=pk
+    )
+    return render(request, 'tickets/detail.html', {'ticket': ticket})
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def panel_ticket_chatter(request, pk):
+    """
+    💬 COMPONENTE HTMX: Lista y agrega comentarios de forma asíncrona al chatter
+    """
+    ticket = get_object_or_404(Ticket, pk=pk)
+    
+    # Si la petición es POST, guardamos el comentario enviado por HTMX
+    if request.method == "POST":
+        contenido = request.POST.get("contenido", "").strip()
+        if contenido:
+            ChatterEntry.objects.create(
+                ticket=ticket,
+                tipo="comentario",
+                autor=request.user,
+                contenido=contenido
+            )
+            
+    # Obtenemos las notas actualizadas para devolver el fragmento HTML
+    notas = ChatterEntry.objects.filter(ticket=ticket).order_by('-fecha_creacion')
+    return render(request, 'tickets/partials/chatter.html', {'notas': notas})

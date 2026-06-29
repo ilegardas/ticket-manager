@@ -15,25 +15,31 @@
         <p class="text-sm text-slate-500">Registra un nuevo incidente en la mesa de ayuda.</p>
     </div>
 
-    <form method="POST" class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-6">
+    <form method="POST" action="." class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-6">
         {% csrf_token %}
 
+        <!-- Título -->
         <div>
             <label class="block text-sm font-semibold text-slate-700 mb-1">Título del Incidente *</label>
             <input type="text" name="titulo" required placeholder="Ej. Error de conexión en módulo de nómina al timbrar" 
                    class="w-full text-sm p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
         </div>
 
+        <!-- Descripción -->
         <div>
             <label class="block text-sm font-semibold text-slate-700 mb-1">Descripción Detallada *</label>
             <textarea name="descripcion" rows="4" required placeholder="Describe paso a paso la falla o requerimiento presentado por el usuario..." 
                       class="w-full text-sm p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none"></textarea>
         </div>
 
+        <!-- GRID 1: Sistema (con gatillo HTMX) y Módulo (Dinámico) -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-1">Sistema Afectado</label>
-                <select name="sistema" class="w-full text-sm p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Sistema Afectado *</label>
+                <select name="sistema" required
+                        hx-get="{% url 'ajax_cargar_modulos' %}" 
+                        hx-target="#id_modulo"
+                        class="w-full text-sm p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
                     <option value="">Selecciona un sistema</option>
                     {% for sis in sistemas %}
                     <option value="{{ sis.id }}">{{ sis.nombre }}</option>
@@ -41,8 +47,29 @@
                 </select>
             </div>
             <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Módulo Afectado *</label>
+                <select name="modulo" id="id_modulo" required
+                        class="w-full text-sm p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                    <option value="">— Selecciona primero un sistema —</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- GRID 2: Categoría y Prioridad Inicial -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Categoría del Problema *</label>
+                <select name="categoria" required
+                        class="w-full text-sm p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                    <option value="">Selecciona una categoría</option>
+                    {% for cat in categorias %}
+                    <option value="{{ cat.id }}">{{ cat.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
                 <label class="block text-sm font-semibold text-slate-700 mb-1">Prioridad Inicial</label>
-                <select name="prioridad" class="w-full text-sm p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                <select name="prioridad" class="w-full text-sm p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
                     {% for prio in prioridades %}
                     <option value="{{ prio.id }}" {% if prio.orden == 0 %}selected{% endif %}>{{ prio.nombre }}</option>
                     {% endfor %}
@@ -50,6 +77,7 @@
             </div>
         </div>
 
+        <!-- GRID 3: Código de Error y Medio de Ingreso -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
                 <label class="block text-sm font-semibold text-slate-700 mb-1">Código de Error (Opcional)</label>
@@ -58,7 +86,7 @@
             </div>
             <div>
                 <label class="block text-sm font-semibold text-slate-700 mb-1">Medio de Ingreso</label>
-                <select name="medio_ingreso" class="w-full text-sm p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                <select name="medio_ingreso" class="w-full text-sm p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
                     <option value="portal" selected>Portal Web</option>
                     <option value="correo">Correo</option>
                     <option value="telefono">Teléfono</option>
@@ -67,6 +95,7 @@
             </div>
         </div>
 
+        <!-- Botones de Acción -->
         <div class="flex items-center justify-end space-x-3 border-t border-slate-100 pt-4">
             <a href="{% url 'panel_tickets_list' %}" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 rounded-lg transition">
                 Cancelar

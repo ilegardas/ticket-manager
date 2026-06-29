@@ -1,0 +1,16 @@
+<div id="main-content-block" class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
+    <div class="flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-slate-800">Descripción del Problema</h3>
+        <button hx-get="{% url 'panel_ticket_detail' ticket.id %}?action=edit_info" hx-target="#main-content-block" hx-swap="outerHTML" class="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline">
+            Editar Información
+        </button>
+    </div>
+    <p class="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed bg-slate-50/50 p-4 rounded-lg border border-slate-100">{{ ticket.descripcion }}</p>
+    
+    {% if ticket.codigo_error %}
+    <div class="p-3 bg-red-50 border border-red-100 rounded-lg">
+        <span class="text-xs font-bold text-red-800 uppercase tracking-wide">Código de Error Detectado:</span>
+        <code class="block text-xs text-red-600 font-mono mt-1 font-bold">{{ ticket.codigo_error }}</code>
+    </div>
+    {% endif %}
+</div>

@@ -802,3 +802,41 @@ def panel_dashboard(request):
         'tendencias_valores': tendencias_valores,
     }
     return render(request, 'tickets/dashboard.html', context)
+
+@login_required
+def panel_ticket_create(request):
+    """
+    🖥️ VISTA INTERNA: Renderiza y procesa el alta de un nuevo ticket en el sistema
+    """
+    if request.method == "POST":
+        titulo = request.POST.get("titulo")
+        descripcion = request.POST.get("descripcion")
+        sistema_id = request.POST.get("sistema")
+        prioridad_id = request.POST.get("prioridad")
+        codigo_error = request.POST.get("codigo_error")
+        medio_ingreso = request.POST.get("medio_ingreso", "portal")
+
+        # Buscamos o asignamos el primer estado por defecto (Ej. Abierto / Nuevo)
+        primer_estado = Estado.objects.order_by('orden').first()
+
+        # Construimos el Ticket mapeando el usuario autenticado automáticamente
+        nuevo_ticket = Ticket.objects.create(
+            titulo=titulo,
+            descripcion=descripcion,
+            sistema_id=sistema_id if sistema_id else None,
+            prioridad_id=prioridad_id if prioridad_id else None,
+            estado=primer_estado,
+            codigo_error=codigo_error,
+            medio_ingreso=medio_ingreso,
+            usuario_reporta=request.user
+        )
+        
+        # Redirigimos directo a su detalle recién creado
+        return redirect('panel_ticket_detail', pk=nuevo_ticket.id)
+
+    # GET: Cargar datos para llenar los Selectores
+    context = {
+        'sistemas': Sistema.objects.filter(activo=True),
+        'prioridades': Prioridad.objects.all(),
+    }
+    return render(request, 'tickets/create.html', context)

@@ -1422,3 +1422,39 @@ def panel_reportes_avanzados(request):
     return render(request, 'configuracion/reportes.html', context)
 
 
+@login_required
+def exportar_reporte_csv(request):
+    """
+    📥 EXPORTADOR: Genera y descarga un archivo CSV/Excel con los filtros actuales de la pantalla
+    """
+    # Replicamos los mismos filtros del request de arriba
+    qs = Ticket.objects.select_related('sistema', 'modulo', 'estado', 'usuario_reporta').all()
+    
+    if request.GET.get('sistema'):
+        qs = qs.filter(sistema_id=request.GET.get('sistema'))
+    if request.GET.get('estado'):
+        qs = qs.filter(estado_id=request.GET.get('estado'))
+    if request.GET.get('fecha_inicio'):
+        qs = qs.filter(fecha_creacion__date__gte=request.GET.get('fecha_inicio'))
+
+    # Creamos la respuesta HTTP configurando el MIME Type de Excel
+    response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
+    response['Content-Disposition'] = f'attachment; filename="Reporte_Tickets_{timezone.now().strftime("%Y%m%d")}.csv"'
+
+    writer = csv.writer(response, delimiter=',')
+    # Encabezados
+    writer.writerow(['Folio', 'Título', 'Sistema', 'Estado', 'Reporta', 'Fecha Creación', 'Impacto'])
+    
+    for tk in qs:
+        writer.writerow([
+            tk.folio, 
+            tk.titulo, 
+            tk.sistema.nombre if tk.sistema else '—', 
+            tk.estado.nombre if tk.estado else '—', 
+            tk.usuario_reporta.nombre_completo if tk.usuario_reporta else '—', 
+            tk.fecha_creacion.strftime('%d/%m/%Y'),
+            tk.get_impacto_proceso_display() if tk.impacto_proceso else '—'
+        ])
+        
+    return response
+

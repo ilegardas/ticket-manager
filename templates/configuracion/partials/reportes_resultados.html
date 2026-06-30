@@ -1,0 +1,74 @@
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="bg-white dark:bg-darkPanel p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <h3 class="text-xs font-bold uppercase text-slate-400 dark:text-darkTextSub mb-3">Volumen por Sistema</h3>
+        <div class="relative h-48 w-full"><canvas id="repSistemas"></canvas></div>
+    </div>
+    <div class="bg-white dark:bg-darkPanel p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <h3 class="text-xs font-bold uppercase text-slate-400 dark:text-darkTextSub mb-3">Distribución por Estado</h3>
+        <div class="relative h-48 w-full"><canvas id="repEstados"></canvas></div>
+    </div>
+</div>
+
+<div class="bg-white dark:bg-darkPanel border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
+    <div class="p-4 bg-slate-50/50 dark:bg-darkBg/30 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+        <span class="text-xs font-bold text-slate-700 dark:text-white">Muestreo del Reporte (Top 200 filas coincidentes)</span>
+        <span class="bg-blue-100 dark:bg-darkBg text-blue-800 dark:text-amber-400 font-mono text-[11px] px-2.5 py-0.5 rounded-full font-bold">Total: {{ total_filtrado }} registros</span>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-xs">
+            <thead>
+                <tr class="bg-slate-50/50 dark:bg-darkBg/10 border-b border-slate-200 dark:border-slate-800 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+                    <th class="py-3 px-4">Folio</th>
+                    <th class="py-3 px-4">Incidencia</th>
+                    <th class="py-3 px-4">Sistema</th>
+                    <th class="py-3 px-4">Estado</th>
+                    <th class="py-3 px-4">Fecha</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-slate-600 dark:text-slate-300">
+                {% for tk in tickets %}
+                <tr class="hover:bg-slate-50/50 dark:hover:bg-darkBg/20 transition">
+                    <td class="py-3 px-4 font-mono font-bold text-blue-600 dark:text-darkTextSub">{{ tk.folio }}</td>
+                    <td class="py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">{{ tk.titulo }}</td>
+                    <td class="py-3 px-4 font-medium">{{ tk.sistema.nombre|default:"—" }}</td>
+                    <td class="py-3 px-4">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold border" style="background-color: {{ tk.estado.color }}15; color: {{ tk.estado.color }}; border-color: {{ tk.estado.color }}30">
+                            {{ tk.estado.nombre }}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 text-slate-400 dark:text-slate-500 font-mono">{{ tk.fecha_creacion|date:"d/m/Y" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-center py-8 text-slate-400 italic">Ningún registro coincide con los filtros aplicados.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    if (window.Chart) {
+        const isDarkTheme = document.documentElement.classList.contains('dark');
+        const txtColor = isDarkTheme ? '#94a3b8' : '#64748b';
+        
+        // 📈 Gráfica de Sistemas
+        new Chart(document.getElementById('repSistemas').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: {% if systems_labels %}{{ sistemas_labels|safe }}{% else %}{{ sistemas_labels|safe }}{% endif %},
+                datasets: [{ data: {{ sistemas_valores|safe }}, backgroundColor: isDarkTheme ? '#f97316' : '#3b82f6', borderRadius: 4 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: txtColor } }, y: { ticks: { color: txtColor } } } }
+        });
+
+        // 📈 Gráfica de Estados
+        new Chart(document.getElementById('repEstados').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: {{ estados_labels|safe }},
+                datasets: [{ data: {{ estados_valores|safe }}, backgroundColor: ['#3B82F6', '#F59E0B', '#10B981', '#EF4444', '#6B7280'] }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: txtColor } } } }
+        });
+    }
+</script>

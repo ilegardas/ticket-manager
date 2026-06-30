@@ -1539,3 +1539,77 @@ def panel_conocimiento_eliminar(request, pk):
     return redirect('panel_conocimiento_lista') # Redirige al listado limpio
 
 
+
+@login_required
+def panel_conocimiento_crear(request):
+    """
+    💡 VISTA / MODAL HTMX: Renderiza el formulario de alta manual o procesa la inserción
+    """
+    if request.method == "POST":
+        titulo = request.POST.get("titulo")
+        descripcion = request.POST.get("descripcion_problema")
+        solucion_txt = request.POST.get("solucion_aplicada")
+        causa = request.POST.get("causa_raiz")
+        codigo = request.POST.get("codigo_error")
+        sistema_id = request.POST.get("sistema")
+        
+        if titulo and descripcion and solucion_txt:
+            ConocimientoEntry.objects.create(
+                titulo=titulo,
+                descripcion_problema=descripcion,
+                solucion_aplicada=solucion_txt,
+                causa_raiz=causa,
+                codigo_error=codigo,
+                sistema_id=sistema_id if sistema_id else None
+            )
+        
+        # Al guardar con éxito, HTMX refresca el listado completo redirigiendo o recargando
+        return HttpResponse('<script>window.location.reload();</script>')
+
+    # GET: Retornamos el fragmento HTML del formulario técnico
+    context = {
+        'sistemas': Sistema.objects.filter(activo=True)
+    }
+    return render(request, 'conocimiento/partials/modal_crear.html', context)
+
+
+@login_required
+def panel_conocimiento_importar_csv(request):
+    """
+    📥 ACCIÓN / MODAL HTMX: Procesa de forma masiva la inserción de soluciones vía CSV
+    """
+    if request.method == "POST":
+        csv_file = request.FILES.get('file')
+        if not csv_file or not csv_file.name.endswith('.csv'):
+            return HttpResponse("Formato inválido. Sube un archivo .csv", status=400)
+
+        try:
+            data_set = csv_file.read().decode('UTF-8')
+            io_string = io.StringIO(data_set)
+            next(io_string) # Brincamos la cabecera del CSV
+
+            for row in csv.reader(io_string, delimiter=','):
+                if len(row) < 3:
+                    continue
+                
+                titulo_csv = row[0].strip()
+                desc_csv = row[1].strip()
+                sol_csv = row[2].strip()
+                codigo_csv = row[3].strip() if len(row) > 3 else None
+                causa_csv = row[4].strip() if len(row) > 4 else None
+
+                if titulo_csv and desc_csv and sol_csv:
+                    ConocimientoEntry.objects.create(
+                        titulo=titulo_csv,
+                        descripcion_problema=desc_csv,
+                        solucion_aplicada=sol_csv,
+                        codigo_error=codigo_csv,
+                        causa_raiz=causa_csv
+                    )
+            
+            return HttpResponse('<script>window.location.reload();</script>')
+        except Exception as e:
+            return HttpResponse(f"Error procesando el archivo: {str(e)}", status=500)
+
+    # GET: Devuelve el modal de arrastre de archivo
+    return render(request, 'conocimiento/partials/modal_csv.html')

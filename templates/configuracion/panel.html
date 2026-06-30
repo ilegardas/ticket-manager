@@ -4,45 +4,57 @@
 
 {% block content %}
 <div class="space-y-6">
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-4 gap-4">
-         <h1 class="text-2xl font-bold tracking-tight text-slate-900">Configuración del Sistema</h1>
-        <p class="text-sm text-slate-500">Administración rápida de catálogos secundarios, parámetros de flujos y módulos afectables.</p>
+    <div class="border-b border-slate-200 dark:border-slate-800 pb-4">
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-amber-400">Configuración del Sistema</h1>
+        <p class="text-sm text-slate-500 dark:text-slate-300">Administración rápida de catálogos secundarios, parámetros de flujos y módulos afectables.</p>
     </div>
 
-    <div class="border-b border-slate-200">
+    <div class="border-b border-slate-200 dark:border-slate-800">
         <nav class="flex space-x-6" aria-label="Tabs">
             <button hx-get="{% url 'panel_config_sistemas' %}" hx-target="#tab-content" hx-indicator="#loading-tab"
-                    class="tab-btn border-blue-500 text-blue-600 border-b-2 py-4 px-1 text-sm font-semibold transition" onclick="switchTab(this)">
+                    class="tab-btn border-blue-500 text-blue-600 dark:border-amber-400 dark:text-amber-400 border-b-2 py-4 px-1 text-sm font-semibold transition" onclick="switchTab(this)">
                 🖥️ Sistemas
             </button>
             <button hx-get="{% url 'panel_config_modulos' %}" hx-target="#tab-content" hx-indicator="#loading-tab"
-                    class="tab-btn border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 border-b-2 py-4 px-1 text-sm font-medium transition" onclick="switchTab(this)">
+                    class="tab-btn border-transparent text-slate-500 hover:text-slate-700 dark:text-darkTextSub/80 dark:hover:text-darkTextSub hover:border-slate-300 dark:hover:border-slate-700 border-b-2 py-4 px-1 text-sm font-medium transition" onclick="switchTab(this)">
                 🧩 Módulos
             </button>
             <button hx-get="{% url 'panel_config_categorias' %}" hx-target="#tab-content" hx-indicator="#loading-tab"
-                    class="tab-btn border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 border-b-2 py-4 px-1 text-sm font-medium transition" onclick="switchTab(this)">
+                    class="tab-btn border-transparent text-slate-500 hover:text-slate-700 dark:text-darkTextSub/80 dark:hover:text-darkTextSub hover:border-slate-300 dark:hover:border-slate-700 border-b-2 py-4 px-1 text-sm font-medium transition" onclick="switchTab(this)">
                 🗂️ Categorías
             </button>
         </nav>
     </div>
 
-    <div id="loading-tab" class="htmx-indicator text-center py-4 text-xs text-slate-400 font-medium">
+    <div id="loading-tab" class="htmx-indicator text-center py-4 text-xs text-slate-400 dark:text-darkTextSub font-medium animate-pulse">
         ⚡ Cargando catálogo...
     </div>
 
     <div id="tab-content" hx-get="{% url 'panel_config_sistemas' %}" hx-trigger="load">
-        <p class="text-xs text-slate-400 text-center py-6">Iniciando catálogo...</p>
+        <p class="text-xs text-slate-400 dark:text-darkTextSub/60 text-center py-6">Iniciando catálogo...</p>
     </div>
 </div>
 
 <script>
     function switchTab(element) {
+        const isDark = document.documentElement.classList.contains('dark');
+        
         document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.classList.remove('border-blue-500', 'text-blue-600', 'font-semibold');
-            btn.classList.add('border-transparent', 'text-slate-500', 'font-medium');
+            // Limpieza general de clases activas (Tanto Claro como Oscuro)
+            btn.classList.remove('border-blue-500', 'text-blue-600', 'dark:border-amber-400', 'dark:text-amber-400', 'font-semibold');
+            
+            // Asignación de clases inactivas por defecto
+            btn.classList.add('border-transparent', 'text-slate-500', 'dark:text-darkTextSub/80', 'font-medium');
         });
-        element.classList.remove('border-transparent', 'text-slate-500', 'font-medium');
-        element.classList.add('border-blue-500', 'text-blue-600', 'font-semibold');
+        
+        // Activación del botón seleccionado
+        element.classList.remove('border-transparent', 'text-slate-500', 'dark:text-darkTextSub/80', 'font-medium');
+        
+        if (isDark) {
+            element.classList.add('dark:border-amber-400', 'dark:text-amber-400', 'font-semibold');
+        } else {
+            element.classList.add('border-blue-500', 'text-blue-600', 'font-semibold');
+        }
     }
 </script>
 {% endblock %}

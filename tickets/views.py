@@ -794,11 +794,10 @@ def panel_ticket_detail(request, pk):
 @login_required
 def panel_ticket_chatter(request, pk):
     """
-    ⚡ ENDPOINT HTMX: Carga y procesa las entradas del Chatter usando 'pk'
+    ⚡ ENDPOINT HTMX: Procesa y renderiza las notas del Chatter en HTML Puro
     """
     ticket = get_object_or_404(Ticket, pk=pk)
 
-    # 1. Si es una inserción de comentario manual por formulario
     if request.method == "POST":
         contenido = request.POST.get("contenido", "").strip()
         if contenido:
@@ -806,13 +805,35 @@ def panel_ticket_chatter(request, pk):
                 ticket=ticket,
                 tipo='comentario',
                 contenido=contenido,
-                autor=request.user # Mapeo correcto de tu modelo
+                autor=request.user
             )
 
-    # 2. Recuperamos el historial completo ordenado del más nuevo al más viejo
+    # Obtenemos las notas
     notas = ticket.chatter.all().order_by('-fecha_creacion')
     
-    return render(request, 'tickets/partials/chatter_loop.html', {'notas': notas})
+    # Construimos la respuesta en HTML puro para inyectar directo a #chatter-box
+    html_output = ""
+    for nota in notas:
+        is_sistema = (nota.tipo == 'sistema')
+        bg_class = "bg-slate-50/60 dark:bg-[#13161c]/40 border-slate-100 dark:border-slate-800 text-slate-500 dark:text-orange-500 font-medium" if is_sistema else "bg-white dark:bg-[#252a34] border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200"
+        autor_name = "🤖 Sistema" if is_sistema else (nota.autor.nombre_completo if nota.autor else "Usuario")
+        fecha = nota.fecha_creacion.strftime("%d/%m/%Y %H:%M")
+        
+        html_output += f"""
+        <div class="p-3 rounded-lg border text-xs transition duration-150 {bg_class}">
+            <div class="flex items-center justify-between font-semibold mb-1 text-[11px]">
+                <span>{autor_name}</span>
+                <span class="text-slate-400 dark:text-slate-500 font-mono text-[10px]">{fecha}</span>
+            </div>
+            <p class="whitespace-pre-wrap leading-relaxed pl-0.5">{nota.contenido}</p>
+        </div>
+        """
+        
+    if not html_output:
+        html_output = '<div class="text-center py-4 text-xs text-slate-400 dark:text-orange-500/60 italic">No hay notas registradas todavía.</div>'
+        
+    return HttpResponse(html_output)
+    
 
 
 

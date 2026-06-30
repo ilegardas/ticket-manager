@@ -54,67 +54,9 @@
     </div>
 </div>
 
-<script>
-    (function() {
-        if (!window.Chart) return;
-
-        const isDarkTheme = document.documentElement.classList.contains('dark');
-        const txtColor = isDarkTheme ? '#94a3b8' : '#64748b';
-        const gridColor = isDarkTheme ? '#2d323f' : '#f1f5f9';
-
-        // 🛡️ Limpieza total de instancias previas en el DOM para permitir refrescos HTMX limpios
-        const oldBar = Chart.getChart("repSistemas");
-        if (oldBar) oldBar.destroy();
-        const oldPie = Chart.getChart("repEstados");
-        if (oldPie) oldPie.destroy();
-
-        // 📈 1. Inicialización de Gráfica de Barras (Sistemas)
-        const ctxBar = document.getElementById('repSistemas').getContext('2d');
-        new Chart(ctxBar, {
-            type: 'bar',
-            data: {
-                labels: {% if sistemas_labels %}{{ sistemas_labels|safe }}{% else %}[]{% endif %},
-                datasets: [{
-                    label: 'Tickets',
-                    data: {% if sistemas_valores %}{{ sistemas_valores|safe }}{% else %}[]{% endif %},
-                    backgroundColor: isDarkTheme ? '#cc5de8' : '#3b82f6', // Color morado analítico en oscuro
-                    borderRadius: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { grid: { display: false }, ticks: { color: txtColor, font: { family: 'Inter', size: 10 } } },
-                    y: { grid: { color: gridColor }, ticks: { color: txtColor, font: { family: 'Inter', size: 10 }, beginAtZero: true } }
-                }
-            }
-        });
-
-        // 📈 2. Inicialización de Gráfica de Dona (Estados)
-        const ctxPie = document.getElementById('repEstados').getContext('2d');
-        new Chart(ctxPie, {
-            type: 'doughnut',
-            data: {
-                labels: {% if estados_labels %}{{ estados_labels|safe }}{% else %}[]{% endif %},
-                datasets: [{
-                    data: {% if estados_valores %}{{ estados_valores|safe }}{% else %}[]{% endif %},
-                    backgroundColor: ['#3B82F6', '#F59E0B', '#10B981', '#EF4444', '#6B7280'],
-                    borderColor: isDarkTheme ? '#1e232d' : '#ffffff',
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'right',
-                        labels: { color: txtColor, font: { family: 'Inter', size: 11 } }
-                    }
-                }
-            }
-        });
-    })();
-</script>
+<div id="data-bridge" class="hidden"
+     data-sistemas-labels='{{ sistemas_labels|safe }}'
+     data-sistemas-valores='{{ sistemas_valores|safe }}'
+     data-estados-labels='{{ estados_labels|safe }}'
+     data-estados-valores='{{ estados_valores|safe }}'>
+</div>

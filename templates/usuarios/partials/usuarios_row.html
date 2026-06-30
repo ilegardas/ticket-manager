@@ -1,5 +1,5 @@
 {% for usr in usuarios %}
-<tr class="hover:bg-slate-50/50 transition">
+<tr id="user-row-{{ usr.id }}" class="hover:bg-slate-50/50 transition">
     <td class="py-3 px-4">
         <div class="font-bold text-slate-900 text-sm">{{ usr.nombre_completo }}</div>
         <div class="text-slate-400 font-mono text-[11px] mt-0.5">{{ usr.correo_electronico }}</div>
@@ -53,11 +53,20 @@
         </button>
         {% endif %}
     </td>
+
+    <td class="py-3 px-4 text-center">
+        <button hx-get="{% url 'panel_usuario_editar' usr.id %}"
+                hx-target="#modal-container"
+                hx-swap="innerHTML"
+                class="text-blue-600 hover:text-blue-800 font-bold transition">
+            ✏️ Editar
+        </button>
+    </td>
 </tr>
 {% empty %}
 <tr>
-    <td colspan="5" class="text-center py-8 text-slate-400">
-        🚫 No se encontraron usuarios registrados o que coincidan con los criterios de búsqueda.
+    <td colspan="6" class="text-center py-8 text-slate-400">
+        🚫 No se encontraron usuarios registrados.
     </td>
 </tr>
 {% endfor %}

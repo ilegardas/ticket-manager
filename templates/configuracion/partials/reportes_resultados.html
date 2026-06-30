@@ -60,3 +60,91 @@
      data-estados-labels='{{ estados_labels|safe }}'
      data-estados-valores='{{ estados_valores|safe }}'>
 </div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // Variables globales para controlar las instancias de las gráficas
+    let chartSistemasInstancia = null;
+    let chartEstadosInstancia = null;
+
+    function renderizarGraficasReporte() {
+        const bridge = document.getElementById('data-bridge');
+        if (!bridge) return;
+
+        // Extraer los datos actualizados desde el contenedor de paso
+        const sistemasLabels = JSON.parse(bridge.getAttribute('data-sistemas-labels') || '[]');
+        const sistemasValores = JSON.parse(bridge.getAttribute('data-sistemas-valores') || '[]');
+        const estadosLabels = JSON.parse(bridge.getAttribute('data-estados-labels') || '[]');
+        const estadosValores = JSON.parse(bridge.getAttribute('data-estados-valores') || '[]');
+
+        const isDarkTheme = document.documentElement.classList.contains('dark');
+        const txtColor = isDarkTheme ? '#94a3b8' : '#64748b';
+        const gridColor = isDarkTheme ? '#2d323f' : '#f1f5f9';
+
+        // 🛡️ Destruir instancias viejas si existen para evitar basura en memoria
+        if (chartSistemasInstancia) chartSistemasInstancia.destroy();
+        if (chartEstadosInstancia) chartEstadosInstancia.destroy();
+
+        // 📊 1. Gráfica de Barras (Sistemas)
+        const ctxBar = document.getElementById('repSistemas');
+        if (ctxBar) {
+            chartSistemasInstancia = new Chart(ctxBar.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: sistemasLabels,
+                    datasets: [{
+                        label: 'Tickets',
+                        data: sistemasValores,
+                        backgroundColor: isDarkTheme ? '#cc5de8' : '#3b82f6', // Color morado analítico en oscuro
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: txtColor } },
+                        y: { grid: { color: gridColor }, ticks: { color: txtColor, beginAtZero: true } }
+                    }
+                }
+            });
+        }
+
+        // 📊 2. Gráfica de Dona (Estados)
+        const ctxPie = document.getElementById('repEstados');
+        if (ctxPie) {
+            chartEstadosInstancia = new Chart(ctxPie.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: estadosLabels,
+                    datasets: [{
+                        data: estadosValores,
+                        backgroundColor: ['#3B82F6', '#F59E0B', '#10B981', '#EF4444', '#6B7280'],
+                        borderColor: isDarkTheme ? '#1e232d' : '#ffffff',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { color: txtColor } }
+                    }
+                }
+            });
+        }
+    }
+
+    // 🚀 Inicialización en la primera carga del módulo
+    document.addEventListener('DOMContentLoaded', renderizarGraficasReporte);
+
+    // 🔄 RE-RENDERIZADO AUTOMÁTICO: Escucha cuando HTMX refresca el contenedor
+    document.body.addEventListener('htmx:afterSwap', function(evt) {
+        if (evt.detail.target.id === "reportes-dinamicos") {
+            renderizarGraficasReporte();
+        }
+    });
+</script>

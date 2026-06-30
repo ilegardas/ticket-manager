@@ -15,6 +15,10 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from datetime import timedelta, datetime
 
+import csv
+import io
+import json
+
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 
@@ -32,6 +36,7 @@ from .serializers import (
     TimeLogSerializer, ConocimientoSerializer,
 )
 from . import resend_email
+
 
 # ─────────────────────────────────────────────────────────────────
 #  AUTENTICACIÓN HÍBRIDA ROBUSTA (TOKEN / BEARER)

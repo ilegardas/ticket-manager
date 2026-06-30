@@ -792,26 +792,28 @@ def panel_ticket_detail(request, pk):
 
 
 @login_required
-@require_http_methods(["GET", "POST"])
-def panel_ticket_chatter(request, pk):
+def panel_ticket_chatter(request, ticket_id):
     """
-    💬 COMPONENTE HTMX: Lista y agrega comentarios de forma asíncrona al chatter
+    ⚡ ENDPOINT HTMX: Carga y procesa las entradas del Chatter (Comentarios y Sistema)
     """
-    ticket = get_object_or_404(Ticket, pk=pk)
-    
+    ticket = get_object_or_404(Ticket, pk=ticket_id)
+
+    # 1. Si es una inserción de comentario manual
     if request.method == "POST":
         contenido = request.POST.get("contenido", "").strip()
         if contenido:
             ChatterEntry.objects.create(
                 ticket=ticket,
-                tipo="comentario",
-                autor=request.user,
-                contenido=contenido
+                tipo='comentario',
+                contenido=contenido,
+                autor=request.user # 🎯 Usamos 'autor' como mapea tu models.py
             )
-            
-    notas = ChatterEntry.objects.filter(ticket=ticket).order_by('-fecha_creacion')
-    return render(request, 'tickets/partials/chatter.html', {'notas': notas})
 
+    # 2. Para ambos casos (GET de carga inicial o POST), devolvemos el historial actualizado
+    # Traemos todo el chatter de este ticket ordenado cronológicamente
+    notas = ticket.chatter.all().order_by('-fecha_creacion')
+    
+    return render(request, 'tickets/partials/chatter_loop.html', {'notas': window_notas_o_como_gustes, 'notas': notas})
 
 @login_required
 def panel_dashboard(request):

@@ -1,0 +1,63 @@
+{% for usr in usuarios %}
+<tr class="hover:bg-slate-50/50 transition">
+    <td class="py-3 px-4">
+        <div class="font-bold text-slate-900 text-sm">{{ usr.nombre_completo }}</div>
+        <div class="text-slate-400 font-mono text-[11px] mt-0.5">{{ usr.correo_electronico }}</div>
+        {% if usr.numero_empleado %}
+        <span class="inline-block bg-slate-100 text-slate-600 text-[10px] font-semibold px-1.5 py-0.5 rounded mt-1">
+            Emp: {{ usr.numero_empleado }}
+        </span>
+        {% endif %}
+    </td>
+
+    <td class="py-3 px-4 space-y-1">
+        <div class="font-medium text-slate-700">{{ usr.puesto_cargo|default:"—" }}</div>
+        <div class="text-slate-400 text-[11px]">
+            {{ usr.nivel_educativo|default:"" }} {% if usr.region_zona %}· ZN: {{ usr.region_zona }}{% endif %}
+        </div>
+    </td>
+
+    <td class="py-3 px-4 font-mono font-bold text-slate-500">
+        {{ usr.cct|default:"—" }}
+    </td>
+
+    <td class="py-3 px-4 text-center">
+        {% if usr == request.user %}
+        <span class="inline-block bg-slate-100 text-slate-700 font-bold px-3 py-1 rounded-lg uppercase text-[10px]">
+            🛠️ {{ usr.get_rol_display }} (Tú)
+        </span>
+        {% else %}
+        <select name="rol" 
+                hx-post="{% url 'panel_usuario_cambiar_rol' usr.id %}"
+                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                hx-swap="none"
+                class="text-xs font-semibold p-1.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-slate-700">
+            <option value="usuario" {% if usr.rol == 'usuario' %}selected{% endif %}>Usuario Final</option>
+            <option value="tecnico" {% if usr.rol == 'tecnico' %}selected{% endif %}>⚙️ Técnico</option>
+            <option value="admin" {% if usr.rol == 'admin' %}selected{% endif %}>👑 Administrador</option>
+        </select>
+        {% endif %}
+    </td>
+
+    <td class="py-3 px-4 text-center">
+        {% if usr == request.user %}
+        <span class="text-emerald-600 font-bold">● Activo</span>
+        {% else %}
+        <button hx-post="{% url 'panel_usuario_toggle_activo' usr.id %}"
+                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                hx-target="this"
+                hx-swap="outerHTML"
+                class="px-2.5 py-1 text-[10px] font-bold rounded-full border transition
+                       {% if usr.activo %} bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 {% else %} bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100 {% endif %}">
+            {% if usr.activo %} ● Activo {% else %} ○ Inactivo {% endif %}
+        </button>
+        {% endif %}
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="5" class="text-center py-8 text-slate-400">
+        🚫 No se encontraron usuarios registrados o que coincidan con los criterios de búsqueda.
+    </td>
+</tr>
+{% endfor %}

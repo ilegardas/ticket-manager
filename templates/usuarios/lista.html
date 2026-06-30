@@ -1,0 +1,44 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Gestión de Usuarios - Ticket Manager{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="border-b border-slate-200 pb-4">
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Gestión de Usuarios y Roles</h1>
+        <p class="text-sm text-slate-500">Administración de personal, asignación de perfiles técnicos y control operativo de adscripciones.</p>
+    </div>
+
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">🔍</span>
+            <input type="text" 
+                   name="q" 
+                   hx-get="{% url 'panel_usuarios_list' %}" 
+                   hx-trigger="keyup changed delay:300ms" 
+                   hx-target="#usuarios-table-body" 
+                   placeholder="Buscar usuario por nombre, correo electrónico, número de empleado, puesto o CCT..." 
+                   class="w-full text-sm pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+        </div>
+    </div>
+
+    <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50 border-b border-slate-200 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+                        <th class="py-3 px-4">Usuario</th>
+                        <th class="py-3 px-4">Datos de Adscripción</th>
+                        <th class="py-3 px-4">Centro de Trabajo (CCT)</th>
+                        <th class="py-3 px-4 text-center">Rol de Acceso</th>
+                        <th class="py-3 px-4 text-center">Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="usuarios-table-body" class="divide-y divide-slate-100 text-xs text-slate-600">
+                    {% include 'usuarios/partials/usuarios_row.html' %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

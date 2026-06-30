@@ -112,6 +112,8 @@ urlpatterns = [
     path('panel/usuarios/<int:user_id>/toggle/', views.panel_usuario_toggle_activo, name='panel_usuario_toggle_activo'),
     path('panel/usuarios/<int:user_id>/editar/', views.panel_usuario_editar, name='panel_usuario_editar'),
     path('panel/usuarios/importar-csv/', views.panel_usuario_importar_csv, name='panel_usuario_importar_csv'),
+    path('panel/reportes/', views.panel_reportes_avanzados, name='panel_reportes_avanzados'),
+    path('panel/reportes/exportar/', views.exportar_reporte_csv, name='exportar_reporte_csv'),
 
     
     # 🔌 8. ENTRADA DE ROUTER HÍBRIDA TOLERANTE A INTERFERENCIAS

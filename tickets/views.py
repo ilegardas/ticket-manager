@@ -1577,6 +1577,7 @@ def panel_conocimiento_crear(request):
 def panel_conocimiento_importar_csv(request):
     """
     📥 ACCIÓN / MODAL HTMX: Procesa de forma masiva la inserción de soluciones vía CSV
+    Soporta codificación de Excel con acentos/eñes y delimitadores mixtos (, o ;)
     """
     if request.method == "POST":
         csv_file = request.FILES.get('file')
@@ -1584,11 +1585,19 @@ def panel_conocimiento_importar_csv(request):
             return HttpResponse("Formato inválido. Sube un archivo .csv", status=400)
 
         try:
-            data_set = csv_file.read().decode('UTF-8')
+            # 🎯 'utf-8-sig' remueve el BOM invisible que mete Excel al guardar CSV
+            data_set = csv_file.read().decode('utf-8-sig')
             io_string = io.StringIO(data_set)
-            next(io_string) # Brincamos la cabecera del CSV
+            
+            # Leer la primera línea para detectar automáticamente si usa coma o punto y coma
+            primera_linea = io_string.readline()
+            delimitador = ';' if ';' in primera_linea else ','
+            
+            # Regresar el cursor al inicio del archivo de texto
+            io_string.seek(0)
+            next(io_string) # Brincamos la cabecera con el delimitador ya detectado
 
-            for row in csv.reader(io_string, delimiter=','):
+            for row in csv.reader(io_string, delimiter=delimitador):
                 if len(row) < 3:
                     continue
                 

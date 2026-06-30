@@ -60,13 +60,23 @@
     </td>
 
     <!-- Botón de Edición -->
-    <td class="py-3 px-4 text-center">
-        <button hx-get="{% url 'panel_usuario_editar' usr.id %}"
-                hx-target="#modal-container"
-                hx-swap="innerHTML"
-                class="text-blue-600 dark:text-amber-400 hover:text-blue-800 dark:hover:text-amber-300 font-bold transition hover:underline">
-            ✏️ Editar
-        </button>
+    <td class="py-3 px-4 text-center whitespace-nowrap">
+        <div class="flex items-center justify-center gap-3 text-xs">
+            <button hx-get="{% url 'panel_usuario_editar' usuario.id %}" hx-target="#body-modal-box" hx-swap="innerHTML" onclick="openModal()"
+                    class="text-blue-600 dark:text-cyan-400 hover:text-blue-800 dark:hover:text-cyan-300 font-bold transition hover:underline">
+                📝 Editar
+            </button>
+    
+            <span class="text-slate-200 dark:text-slate-800">|</span>
+    
+            <form action="{% url 'panel_usuario_eliminar' usuario.id %}" method="POST" class="inline"
+                  onsubmit="return confirm('¿Estás completamente seguro de eliminar a {{ usuario.nombre_completo }}? Esta acción borrará su acceso de forma permanente.');">
+                {% csrf_token %}
+                <button type="submit" class="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-bold transition hover:underline">
+                    🗑️ Eliminar
+                </button>
+            </form>
+        </div>
     </td>
 </tr>
 {% empty %}

@@ -1,0 +1,88 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Centro de Reportes BI - Ticket Manager{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="border-b border-slate-200 dark:border-slate-800 pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-amber-400">Inteligencia de Datos y Reportes</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-300">Filtros cruzados avanzados, extracción de datos y análisis de métricas operativas.</p>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="descargarReporte()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2 px-3 rounded-lg shadow-sm transition flex items-center gap-1.5">
+                📊 Descargar Excel
+            </button>
+            <button onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white border dark:border-slate-700 font-bold text-xs py-2 px-3 rounded-lg shadow-sm transition">
+                🖨️ Imprimir / PDF
+            </button>
+        </div>
+    </div>
+
+    <form id="form-filtros" hx-get="{% url 'panel_reportes_avanzados' %}" hx-target="#reportes-dinamicos" hx-trigger="change delay:200ms"
+          class="bg-white dark:bg-darkPanel p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <div>
+            <label class="block text-[11px] font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1">Fecha Inicio</label>
+            <input type="date" name="fecha_inicio" class="w-full text-xs p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none">
+        </div>
+        <div>
+            <label class="block text-[11px] font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1">Fecha Fin</label>
+            <input type="date" name="fecha_fin" class="w-full text-xs p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none">
+        </div>
+        <div>
+            <label class="block text-[11px] font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1">Estado</label>
+            <select name="estado" class="w-full text-xs p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-700 dark:text-slate-200 outline-none">
+                <option value="">— Todos —</option>
+                {% for est in estados %} <option value="{{ est.id }}">{{ est.nombre }}</option> {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="block text-[11px] font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1">Especialista</label>
+            <select name="asignado" class="w-full text-xs p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-700 dark:text-slate-200 outline-none">
+                <option value="">— Todos —</option>
+                {% for tec in tecnicos %} <option value="{{ tec.id }}">{{ tec.nombre_completo }}</option> {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="block text-[11px] font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1">Sistema</label>
+            <select name="sistema" hx-get="{% url 'ajax_cargar_modulos' %}" hx-target="#select-modulo-rep" hx-trigger="change"
+                    class="w-full text-xs p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-700 dark:text-slate-200 outline-none">
+                <option value="">— Todos —</option>
+                {% for sis in sistemas %} <option value="{{ sis.id }}">{{ sis.nombre }}</option> {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="block text-[11px] font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1">Módulo</label>
+            <select name="modulo" id="select-modulo-rep" class="w-full text-xs p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-700 dark:text-slate-200 outline-none">
+                <option value="">— Selecciona Sistema Primero —</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-[11px] font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1">Impacto</label>
+            <select name="impacto" class="w-full text-xs p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-700 dark:text-slate-200 outline-none">
+                <option value="">— Todos —</option>
+                <option value="caido_total">Caído Total</option>
+                <option value="parcial">Parcialmente Funcional</option>
+                <option value="funcional">Funcional</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-[11px] font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1">Región / Zona</label>
+            <input type="text" name="region" placeholder="Ej. Centro, Delicias" class="w-full text-xs p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none">
+        </div>
+    </form>
+
+    <div id="reportes-dinamicos" class="space-y-6">
+        {% include 'configuracion/partials/reportes_resultados.html' %}
+    </div>
+</div>
+
+<script>
+    // Función para ejecutar la descarga de Excel enviando los filtros actuales por URL
+    function descargarReporte() {
+        const urlParams = new URLSearchParams(new FormData(document.getElementById('form-filtros'))).toString();
+        window.location.href = "{% url 'exportar_reporte_csv' %}?" + urlParams;
+    }
+</script>
+{% endblock %}

@@ -1224,3 +1224,99 @@ def panel_usuario_toggle_activo(request, user_id):
         return HttpResponse(f'<button hx-post="/api/panel/usuarios/{usuario.id}/toggle/" hx-headers=\'{{"X-CSRFToken": "{request.META.get("CSRF_COOKIE")}"}}\' hx-target="this" hx-swap="outerHTML" class="px-2.5 py-1 text-[10px] font-bold rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100">● Activo</button>')
     else:
         return HttpResponse(f'<button hx-post="/api/panel/usuarios/{usuario.id}/toggle/" hx-headers=\'{{"X-CSRFToken": "{request.META.get("CSRF_COOKIE")}"}}\' hx-target="this" hx-swap="outerHTML" class="px-2.5 py-1 text-[10px] font-bold rounded-full border bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100">○ Inactivo</button>')
+
+
+
+
+@login_required
+def panel_usuario_editar(request, user_id):
+    """
+    🔄 ACCIÓN / MODAL HTMX: Renderiza el formulario de edición o procesa el cambio
+    """
+    if request.user.rol != 'admin':
+        return HttpResponse("No autorizado", status=403)
+
+    usuario = get_object_or_404(Usuario, pk=user_id)
+
+    if request.method == "POST":
+        usuario.nombre_completo = request.POST.get("nombre_completo")
+        usuario.numero_empleado = request.POST.get("numero_empleado")
+        usuario.cct = request.POST.get("cct")
+        usuario.puesto_cargo = request.POST.get("puesto_cargo")
+        usuario.nivel_educativo = request.POST.get("nivel_educativo")
+        usuario.region_zona = request.POST.get("region_zona")
+        usuario.save()
+        
+        # Le regresamos únicamente la fila limpia renderizada de nuevo
+        return render(request, 'usuarios/partials/usuarios_row.html', {'usuarios': [usuario]})
+
+    # GET: Devuelve el modal de edición
+    return render(request, 'usuarios/partials/modal_editar.html', {'usuario': usuario})
+
+
+@login_required
+def panel_usuario_importar_csv(request):
+    """
+    📥 ACCIÓN / MODAL HTMX: Procesa de forma masiva la inserción de personal vía CSV
+    """
+    if request.user.rol != 'admin':
+        return HttpResponse("No autorizado", status=403)
+
+    if request.method == "POST":
+        csv_file = request.FILES.get('file')
+        if not csv_file or not csv_file.name.endswith('.csv'):
+            return HttpResponse("Formato inválido. Sube un archivo .csv", status=400)
+
+        # Leer archivo de forma segura codificado en hilos de texto
+        data_set = csv_file.read().decode('UTF-8')
+        io_string = io.StringIO(data_set)
+        next(io_string) # Brincamos los encabezados del CSV
+
+        for row in csv.reader(io_string, delimiter=','):
+            if len(row) < 2:
+                continue
+            
+            correo = row[0].strip()
+            nombre = row[1].strip()
+            num_emp = row[2].strip() if len(row) > 2 else None
+            puesto = row[3].strip() if len(row) > 3 else None
+            cct_val = row[4].strip() if len(row) > 4 else None
+            region = row[5].strip() if len(row) > 5 else None
+            nivel = row[6].strip() if len(row) > 6 else None
+
+            if correo and nombre:
+                # Si el usuario no existe, lo crea; si existe, actualiza sus campos de adscripción
+                usuario, creado = Usuario.objects.get_or_create(
+                    correo_electronico=correo,
+                    defaults={
+                        'nombre_completo': nombre,
+                        'numero_empleado': num_emp,
+                        'puesto_cargo': puesto,
+                        'cct': cct_val,
+                        'region_zona': region,
+                        'nivel_educativo': nivel,
+                        'rol': 'usuario'
+                    }
+                )
+                if creado:
+                    # Contraseña genérica por defecto (pueden cambiarla luego)
+                    usuario.set_password(num_emp if num_emp else "Seech2026*")
+                    usuario.save()
+                else:
+                    # Si ya existía, solo refrescamos la adscripción por si cambió de escuela o zona
+                    usuario.numero_empleado = num_emp
+                    usuario.puesto_cargo = puesto
+                    usuario.cct = cct_val
+                    usuario.region_zona = region
+                    usuario.nivel_educativo = nivel
+                    usuario.save()
+
+        # Al finalizar, HTMX recarga y refresca la lista completa de usuarios
+        usuarios = Usuario.objects.all().order_by('-fecha_registro')
+        return render(request, 'usuarios/partials/usuarios_row.html', {'usuarios': usuarios})
+
+    # GET: Devuelve el modal para seleccionar el archivo
+    return render(request, 'usuarios/partials/modal_csv.html')
+
+
+

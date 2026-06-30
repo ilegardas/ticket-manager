@@ -1,11 +1,11 @@
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-5 space-y-4 h-fit">
-        <h3 class="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2">➕ Agregar Módulo</h3>
+    <div class="bg-white dark:bg-darkPanel border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm p-5 space-y-4 h-fit">
+        <h3 class="text-sm font-bold text-slate-800 dark:text-amber-400 border-b border-slate-100 dark:border-slate-800 pb-2">➕ Agregar Módulo</h3>
         <form hx-post="{% url 'panel_config_modulos' %}" hx-target="#tab-content" class="space-y-3">
             {% csrf_token %}
             <div>
-                <label class="block text-xs font-semibold text-slate-400 mb-1">Sistema Perteneciente:</label>
-                <select name="sistema" required class="w-full text-xs p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                <label class="block text-xs font-semibold text-slate-400 dark:text-darkTextSub mb-1">Sistema Perteneciente:</label>
+                <select name="sistema" required class="w-full text-xs p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-amber-500">
                     <option value="">Selecciona Sistema</option>
                     {% for sis in sistemas_list %}
                     <option value="{{ sis.id }}">{{ sis.nombre }}</option>
@@ -13,46 +13,45 @@
                 </select>
             </div>
             <div>
-                <label class="block text-xs font-semibold text-slate-400 mb-1">Nombre del Módulo:</label>
+                <label class="block text-xs font-semibold text-slate-400 dark:text-darkTextSub mb-1">Nombre del Módulo:</label>
                 <input type="text" name="nombre" required placeholder="Ej. Ventas, Facturación, Nómina"
-                       class="w-full text-xs p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                       class="w-full text-xs p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:ring-2 focus:ring-amber-500 transition">
             </div>
-            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs py-2 px-4 rounded-lg shadow-sm transition">
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 dark:bg-amber-500 dark:hover:bg-amber-600 text-white dark:text-slate-950 font-bold text-xs py-2 px-4 rounded-lg shadow-sm transition">
                 Guardar Módulo
             </button>
         </form>
     </div>
 
-    <div class="lg:col-span-2 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+    <div class="lg:col-span-2 bg-white dark:bg-darkPanel border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
         <table class="w-full text-left border-collapse">
             <thead>
-                <tr class="bg-slate-50 border-b border-slate-200 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+                <tr class="bg-slate-50 dark:bg-darkBg/50 border-b border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider">
                     <th class="py-3 px-4">ID</th>
                     <th class="py-3 px-4">Módulo</th>
                     <th class="py-3 px-4">Sistema</th>
-                    <th class="py-3 px-4 text-right">Acciones</th> </tr>
+                    <th class="py-3 px-4 text-right">Acciones</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100 text-xs text-slate-600">
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-xs text-slate-600 dark:text-slate-300">
                 {% for mod in modulos %}
-                <tr class="hover:bg-slate-50/50">
-                    <td class="py-3 px-4 font-mono font-bold text-slate-400">#{{ mod.id }}</td>
-                    <td class="py-3 px-4 font-semibold text-slate-800">{{ mod.nombre }}</td>
-                    <td class="py-3 px-4 text-blue-600 font-medium bg-blue-50/20">{{ mod.sistema.nombre }}</td>
-                    
-                    <td class="py-3 px-4 text-right"> <button hx-post="{% url 'panel_config_modulo_eliminar' mod.id %}"
+                <tr class="hover:bg-slate-50/50 dark:hover:bg-darkBg/40 transition">
+                    <td class="py-3 px-4 font-mono font-bold text-slate-400 dark:text-darkTextSub">#{{ mod.id }}</td>
+                    <td class="py-3 px-4 font-semibold text-slate-800 dark:text-slate-100">{{ mod.nombre }}</td>
+                    <td class="py-3 px-4"><span class="text-blue-600 dark:text-cyan-400 font-medium bg-blue-50/20 dark:bg-cyan-950/20 px-2 py-0.5 rounded border border-blue-100/30 dark:border-cyan-900/30">{{ mod.sistema.nombre }}</span></td>
+                    <td class="py-3 px-4 text-right">
+                        <button hx-post="{% url 'panel_config_modulo_eliminar' mod.id %}"
                                 hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                                 hx-target="#tab-content"
                                 hx-confirm="¿Estás seguro de que deseas eliminar este módulo?"
-                                class="text-red-500 hover:text-red-700 font-semibold p-1 hover:underline text-[11px]">
+                                class="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-bold p-1 hover:underline text-[11px]">
                             🗑️ Eliminar
                         </button>
                     </td>
-                    
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="3" class="text-center py-6 text-slate-400">No hay módulos vinculados.</td>
+                    <td colspan="4" class="text-center py-6 text-slate-400 dark:text-darkTextSub/60">No hay módulos vinculados.</td>
                 </tr>
                 {% endfor %}
             </tbody>

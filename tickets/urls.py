@@ -114,6 +114,7 @@ urlpatterns = [
     path('panel/usuarios/importar-csv/', views.panel_usuario_importar_csv, name='panel_usuario_importar_csv'),
     path('panel/reportes/', views.panel_reportes_avanzados, name='panel_reportes_avanzados'),
     path('panel/reportes/exportar/', views.exportar_reporte_csv, name='exportar_reporte_csv'),
+    path('panel/conocimiento/<int:pk>/', views.panel_conocimiento_detalle, name='panel_conocimiento_detalle'),
 
     
     # 🔌 8. ENTRADA DE ROUTER HÍBRIDA TOLERANTE A INTERFERENCIAS

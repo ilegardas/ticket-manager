@@ -909,7 +909,8 @@ def panel_ticket_create(request):
 
         # Buscamos o asignamos el primer estado por defecto (Ej. Abierto / Nuevo)
         primer_estado = Estado.objects.order_by('orden').first()
-
+        
+        impacto_val = request.POST.get("impacto")
         # Construimos el Ticket mapeando el usuario autenticado automáticamente
         nuevo_ticket = Ticket.objects.create(
             titulo=titulo,
@@ -921,6 +922,7 @@ def panel_ticket_create(request):
             estado=primer_estado,
             codigo_error=codigo_error,
             medio_ingreso=medio_ingreso,
+            impacto_proceso=impacto_val,
             usuario_reporta=request.user
         )
         

@@ -1,0 +1,104 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Solución #{{ solucion.id }} - Ticket Manager{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <div class="flex items-center justify-between no-print">
+        <a href="{% url 'panel_conocimiento_lista' %}" class="inline-flex items-center text-xs font-semibold text-slate-500 dark:text-darkTextSub hover:text-slate-900 dark:hover:text-amber-400 transition">
+            ← Volver a la base de conocimiento
+        </a>
+        <button onclick="window.print()" class="bg-slate-100 hover:bg-slate-200 dark:bg-darkPanel dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border dark:border-slate-700 font-bold text-xs py-1.5 px-3 rounded-lg shadow-sm transition">
+            🖨️ Imprimir Solución
+        </button>
+    </div>
+
+    <div class="border-b border-slate-200 dark:border-slate-800 pb-5">
+        <div class="flex items-center gap-2 mb-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-cyan-400">
+                {{ solucion.sistema.nombre|default:"Sistema General" }}
+            </span>
+            {% if solucion.modulo %}
+            <span class="text-xs text-slate-400 dark:text-slate-600 font-medium">/</span>
+            <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                {{ solucion.modulo.nombre }}
+            </span>
+            {% endif %}
+        </div>
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-amber-400">{{ solucion.titulo }}</h1>
+        
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-400 dark:text-slate-500 mt-2 font-medium">
+            <span>📅 Creado desde Ticket: 
+                {% if solucion.ticket_origen %}
+                <span class="font-mono font-bold text-slate-600 dark:text-darkTextSub">{{ solucion.ticket_origen.folio }}</span>
+                {% else %}
+                <span class="italic">Manual</span>
+                {% endif %}
+            </span>
+            <span>•</span>
+            <span class="flex items-center gap-1">
+                👁️ Consultado <strong>{{ solucion.veces_consultado }}</strong> veces
+            </span>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <div class="lg:col-span-2 space-y-6">
+            
+            <div class="bg-white dark:bg-darkPanel rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 space-y-3">
+                <h3 class="text-xs font-bold uppercase text-slate-400 dark:text-darkTextSub tracking-wider">Descripción Sintomática</h3>
+                <p class="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-wrap leading-relaxed bg-slate-50/50 dark:bg-darkBg/30 p-4 rounded-lg border border-slate-100 dark:border-slate-800/60">
+                    {{ solucion.descripcion_problema }}
+                </p>
+                
+                {% if solucion.codigo_error %}
+                <div class="p-3 bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 rounded-lg mt-2">
+                    <span class="text-[11px] font-bold text-red-800 dark:text-red-400 uppercase tracking-wide">Código de Error Mapeado:</span>
+                    <code class="block text-xs text-red-600 dark:text-red-400 font-mono mt-1 font-bold">{{ solucion.codigo_error }}</code>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="bg-white dark:bg-darkPanel rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 space-y-3">
+                <h3 class="text-xs font-bold uppercase text-slate-400 dark:text-darkTextSub tracking-wider">Solución y Pasos de Corrección</h3>
+                <div class="text-sm text-slate-800 dark:text-slate-100 whitespace-pre-wrap leading-relaxed bg-emerald-50/20 dark:bg-emerald-950/10 p-5 rounded-lg border border-emerald-100/40 dark:border-emerald-900/30 text-justify">
+                    {{ solucion.solucion_aplicada }}
+                </div>
+            </div>
+
+        </div>
+
+        <div class="space-y-6">
+            <div class="bg-white dark:bg-darkPanel rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-5 space-y-4 text-xs">
+                <h4 class="font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">Metadatos de Ingeniería</h4>
+                
+                <div class="space-y-3">
+                    <div>
+                        <span class="block text-slate-400 dark:text-slate-500 font-semibold mb-0.5">Causa Raíz Determinada:</span>
+                        <span class="text-slate-800 dark:text-slate-200 font-medium capitalize bg-slate-100 dark:bg-darkBg px-2 py-1 rounded inline-block border dark:border-slate-800 mt-1">
+                            {{ solucion.causa_raiz|default:"No especificada"|replace:"_"," " }}
+                        </span>
+                    </div>
+
+                    <div class="pt-2 border-t border-slate-100 dark:border-slate-800">
+                        <span class="block text-slate-400 dark:text-slate-500 font-semibold mb-0.5">ID del Registro:</span>
+                        <span class="font-mono text-slate-600 dark:text-darkTextSub font-bold">#CON-{{ solucion.id }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    @media print {
+        #sidebar-wrapper, aside, nav, header, .no-print, button { display: none !important; }
+        main, body, .max-w-4xl { width: 100% !important; max-width: 100% !important; background: #fff !important; color: #000 !important; padding: 0 !important; margin: 0 !important; }
+        .grid { display: block !important; }
+        .lg\:col-span-2 { width: 100% !important; }
+        .bg-slate-50\/50, .bg-emerald-50\/20 { background: #f9f9f9 !important; border: 1px solid #ddd !important; }
+    }
+</style>
+{% endblock %}

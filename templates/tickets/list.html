@@ -33,65 +33,59 @@
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
-                    <tr class="bg-slate-50 dark:bg-darkBg/50 border-b border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                        <th class="py-3 px-4">Ticket / Folio</th>
-                        <th class="py-3 px-4">Incidencia / Sistema</th>
-                        <th class="py-3 px-4">Especialista Asignado</th>
-                        <th class="py-3 px-4 text-center">Prioridad</th>
-                        <th class="py-3 px-4 text-center">Estado</th>
-                        <th class="py-3 px-4 text-center">Acción</th>
+                    <tr class="bg-slate-50/50 dark:bg-darkBg/10 border-b border-slate-200 dark:border-slate-800 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+                        <th class="py-3 px-4">Folio / Fecha</th> <th class="py-3 px-4">Incidencia</th>
+                        <th class="py-3 px-4">Sistema / Vía</th>
+                        <th class="py-3 px-4">Estado</th>
+                        <th class="py-3 px-4">Impacto</th> <th class="py-3 px-4">Asignado</th>
                     </tr>
                 </thead>
-                <tbody id="tickets-table-body" class="divide-y divide-slate-100 dark:divide-slate-800 text-xs text-slate-600 dark:text-slate-300">
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-slate-600 dark:text-slate-300">
                     {% for tk in tickets %}
-                    <tr class="hover:bg-slate-50/50 dark:hover:bg-darkBg/40 transition">
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-darkBg/20 transition">
+                        
+                        <td class="py-3 px-4 font-mono">
+                            <span class="block font-bold text-blue-600 dark:text-darkTextSub">{{ tk.folio }}</span>
+                            <span class="block text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">{{ tk.fecha_creacion|date:"d/m/Y H:i" }}</span>
+                        </td>
+                
+                        <td class="py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">
+                            {{ tk.titulo }}
+                        </td>
+                
                         <td class="py-3 px-4">
-                            <div class="font-mono font-bold text-blue-600 dark:text-darkTextSub text-sm">{{ tk.folio }}</div>
-                            <div class="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Vía: {{ tk.get_medio_ingreso_display }}</div>
+                            <span class="block font-medium">{{ tk.sistema.nombre|default:"—" }}</span>
+                            <span class="block text-[10px] text-slate-400 dark:text-slate-500 capitalize mt-0.5">Vía: {{ tk.medio_ingreso|default:"portal" }}</span>
                         </td>
-
-                        <td class="py-3 px-4 max-w-xs md:max-w-sm">
-                            <div class="font-bold text-slate-900 dark:text-slate-100 truncate">{{ tk.titulo }}</div>
-                            <div class="text-[11px] text-slate-400 dark:text-slate-400 mt-0.5 truncate">
-                                <span class="font-semibold text-slate-500 dark:text-slate-300">{{ tk.sistema.nombre|default:"Sin Sistema" }}</span> 
-                                {% if tk.modulo %} / {{ tk.modulo.nombre }}{% endif %}
-                            </div>
-                        </td>
-
+                
                         <td class="py-3 px-4">
-                            {% if tk.usuario_asignado %}
-                            <div class="font-medium text-slate-700 dark:text-slate-200">{{ tk.usuario_asignado.nombre_completo }}</div>
-                            {% else %}
-                            <div class="text-slate-400 dark:text-slate-500 italic">⚠️ Sin asignar</div>
-                            {% endif %}
-                        </td>
-
-                        <td class="py-3 px-4 text-center">
-                            <span class="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-bold border"
-                                  style="background-color: {{ tk.prioridad.color }}15; color: {{ tk.prioridad.color }}; border-color: {{ tk.prioridad.color }}35">
-                                {{ tk.prioridad.nombre }}
-                            </span>
-                        </td>
-
-                        <td class="py-3 px-4 text-center">
-                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold border shadow-xs"
-                                  style="background-color: {{ tk.estado.color }}15; color: {{ tk.estado.color }}; border-color: {{ tk.estado.color }}35">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold border" style="background-color: {{ tk.estado.color }}15; color: {{ tk.estado.color }}; border-color: {{ tk.estado.color }}30">
                                 {{ tk.estado.nombre }}
                             </span>
                         </td>
-
-                        <td class="py-3 px-4 text-center">
-                            <a href="{% url 'panel_ticket_detail' tk.id %}" class="text-blue-600 dark:text-amber-400 hover:text-blue-800 dark:hover:text-amber-300 font-bold transition hover:underline">
-                                👁️ Ver
-                            </a>
+                
+                        <td class="py-3 px-4">
+                            {% if tk.impacto_proceso == 'caido_total' %}
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900/50">
+                                    🔴 Caído Total
+                                </span>
+                            {% elif tk.impacto_proceso == 'parcial' %}
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50">
+                                    🟡 Parcial
+                                </span>
+                            {% else %}
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/50">
+                                    🟢 Funcional
+                                </span>
+                            {% endif %}
                         </td>
+                
+                        <td class="py-3 px-4 font-medium">
+                            {{ tk.usuario_asignado.nombre_completo|default:"Sin Asignar" }}
+                        </td>
+                
                     </tr>
                     {% empty %}
-                    <tr>
-                        <td colspan="6" class="text-center py-8 text-slate-400 dark:text-darkTextSub/60">
-                            🚫 No se encontraron tickets registrados en la mesa de ayuda.
-                        </td>
-                    </tr>
                     {% endfor %}
                 </tbody>
             </table>

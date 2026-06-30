@@ -3,6 +3,72 @@
 {% block title %}Centro de Reportes BI - Ticket Manager{% endblock %}
 
 {% block content %}
+<style>
+    @media print {
+        /* 1. Forzar que todo use fondo claro y letras oscuras legibles en papel */
+        html, body, div, table, tr, td, th, h1, h3, span {
+            background: #ffffff !important;
+            color: #000000 !important;
+            box-shadow: none !important;
+            text-shadow: none !important;
+        }
+
+        /* 2. Ocultar la barra de filtros, el menú lateral y los botones de descarga */
+        #form-filtros, 
+        .flex.gap-2, 
+        aside, 
+        nav, 
+        header, 
+        button,
+        .no-print {
+            display: none !important;
+        }
+
+        /* 3. Romper restricciones de Grid/Flex laterales para que ocupe el 100% de la hoja */
+        main, .space-y-6, #reportes-dinamicos {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            display: block !important;
+        }
+
+        /* 4. Forzar que los gráficos y las tarjetas se acomoden uno abajo del otro en vertical */
+        .grid {
+            display: block !important;
+        }
+        
+        .grid > div {
+            width: 100% !important;
+            margin-bottom: 2rem !important;
+            page-break-inside: avoid !important; /* Evita que el gráfico se parta a la mitad entre dos hojas */
+        }
+
+        /* 5. Destruir scrolls horizontales de la tabla para que estire todas las columnas */
+        .overflow-x-auto {
+            overflow: visible !important;
+        }
+        
+        table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            page-break-inside: auto !important;
+        }
+        
+        tr {
+            page-break-inside: avoid !important;
+            page-break-after: auto !important;
+        }
+
+        /* 6. Ajustar márgenes de página físicos */
+        @page {
+            size: letter landscape; /* Cambia a 'portrait' si lo prefieres en vertical */
+            margin: 1.5cm;
+        }
+    }
+</style>
+
+
 <div class="space-y-6">
     <div class="border-b border-slate-200 dark:border-slate-800 pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>

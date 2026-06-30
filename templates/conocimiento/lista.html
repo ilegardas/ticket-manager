@@ -9,10 +9,16 @@
             <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-amber-400">Base de Conocimiento</h1>
             <p class="text-sm text-slate-500 dark:text-slate-300">Repositorio técnico de soluciones documentadas, trazas de error y procedimientos globales.</p>
         </div>
-        <div>
-            <a href="#" class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 dark:bg-amber-500 dark:hover:bg-amber-600 text-white dark:text-slate-950 text-xs font-bold py-2 px-4 rounded-lg shadow-sm transition">
+        <div class="flex gap-2">
+            <button hx-get="{% url 'panel_conocimiento_importar_csv' %}" hx-target="#body-modal-box" hx-swap="innerHTML" onclick="openModal()"
+                    class="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white border dark:border-slate-700 text-xs font-bold py-2 px-4 rounded-lg shadow-sm transition">
+                📥 Importar CSV
+            </button>
+            
+            <button hx-get="{% url 'panel_conocimiento_crear' %}" hx-target="#body-modal-box" hx-swap="innerHTML" onclick="openModal()"
+                    class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 dark:bg-amber-500 dark:hover:bg-amber-600 text-white dark:text-slate-950 text-xs font-bold py-2 px-4 rounded-lg shadow-sm transition">
                 💡 Redactar Nueva Solución
-            </a>
+            </button>
         </div>
     </div>
 

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" class="h-full bg-slate-50">
+<html lang="es" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,17 +7,31 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
     <script>
+        // 🛠️ Habilitamos el modo oscuro por clase y mapeamos la paleta de image_735dbc.png
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        darkBg: '#1e222b',      // Fondo general profundo
+                        darkPanel: '#252a34'   // Tarjetas y componentes oscuros
+                    }
                 }
             }
         }
+
+        // ⚡ Script de Inicialización Crítico: Evita parpadeos blancos al cargar pantallas
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
     </script>
 </head>
-<body class="h-full text-slate-900 antialiased font-sans flex flex-col md:flex-row">
+<body class="h-full text-slate-900 dark:text-slate-100 antialiased font-sans flex flex-col md:flex-row bg-slate-50 dark:bg-darkBg transition-colors duration-150">
 
+    <!-- Responsivo: Navbar Móvil -->
     <div class="md:hidden bg-slate-950 text-white p-4 flex justify-between items-center border-b border-slate-800">
         <span class="font-bold tracking-tight text-sm">TicketManager</span>
         <button onclick="document.getElementById('sidebar').classList.toggle('-translate-x-full')" class="text-slate-400 hover:text-white focus:outline-none">
@@ -25,53 +39,78 @@
         </button>
     </div>
 
-    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-slate-950 text-slate-200 transform -translate-x-full md:translate-x-0 md:static md:h-full transition-transform duration-300 ease-in-out flex flex-col border-r border-slate-800 shadow-xl">
+    <!-- Menú Lateral Principal (Sidebar) -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-slate-950 dark:bg-darkPanel text-slate-200 transform -translate-x-full md:translate-x-0 md:static md:h-full transition-transform duration-300 ease-in-out flex flex-col border-r border-slate-800 shadow-xl">
         <div class="p-6 border-b border-slate-800 flex items-center space-x-2">
-            <div class="h-7 w-7 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white text-sm">T</div>
+            <div class="h-7 w-7 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white text-sm shadow-md shadow-blue-500/20">T</div>
             <span class="font-bold tracking-tight text-lg text-white">TicketManager</span>
         </div>
         
+        <!-- Enlaces de Navegación -->
         <nav class="flex-1 px-4 py-6 space-y-1">
-            <a href="{% url 'panel_dashboard' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg text-slate-400 hover:bg-slate-900 hover:text-white transition">
-                <svg class="mr-3 h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+            <a href="{% url 'panel_dashboard' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg text-slate-400 hover:bg-slate-900/60 dark:hover:bg-darkBg/60 hover:text-white transition">
+                <svg class="mr-3 h-5 w-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
                 Dashboard
             </a>
-            <a href="{% url 'panel_tickets_list' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg text-slate-400 hover:bg-slate-900 hover:text-white transition">
-                <svg class="mr-3 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            <a href="{% url 'panel_tickets_list' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg text-slate-400 hover:bg-slate-900/60 dark:hover:bg-darkBg/60 hover:text-white transition">
+                <svg class="mr-3 h-5 w-5 text-slate-400 dark:text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                 Tickets
             </a>
-            <a href="{% url 'panel_conocimiento_lista' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg text-slate-400 hover:bg-slate-900 hover:text-white transition">
-                <svg class="mr-3 h-5 w-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+            <a href="{% url 'panel_conocimiento_lista' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg text-slate-400 hover:bg-slate-900/60 dark:hover:bg-darkBg/60 hover:text-white transition">
+                <svg class="mr-3 h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
                 Base de Conocimiento
             </a>
-            <a href="{% url 'panel_config_sistemas' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg text-slate-400 hover:bg-slate-900 hover:text-white transition">
-                <svg class="mr-3 h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <a href="{% url 'panel_config_sistemas' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg text-slate-400 hover:bg-slate-900/60 dark:hover:bg-darkBg/60 hover:text-white transition">
+                <svg class="mr-3 h-5 w-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                 Configuración
             </a>
 
             {% if request.user.rol == 'admin' %}
-            <a href="{% url 'panel_usuarios_list' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg text-slate-400 hover:bg-slate-900 hover:text-white transition">
-                <svg class="mr-3 h-5 w-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.35c1.34 0 2.43-1.09 2.43-2.43S13.34.48 12 .48 9.57 1.57 9.57 2.91 10.66 4.35 12 4.35zm0 2.43c-2.97 0-9 1.49-9 4.46v2.43h18v-2.43c0-2.97-6-4.46-9-4.46z"/></svg>
+            <a href="{% url 'panel_usuarios_list' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg text-slate-400 hover:bg-slate-900/60 dark:hover:bg-darkBg/60 hover:text-white transition">
+                <svg class="mr-3 h-5 w-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.35c1.34 0 2.43-1.09 2.43-2.43S13.34.48 12 .48 9.57 1.57 9.57 2.91 10.66 4.35 12 4.35zm0 2.43c-2.97 0-9 1.49-9 4.46v2.43h18v-2.43c0-2.97-6-4.46-9-4.46z"/></svg>
                 Control de Usuarios
             </a>
             {% endif %}
-            
         </nav>
 
-        <div class="p-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
-            <div class="truncate max-w-[140px]">
-                <p class="font-semibold text-slate-200 truncate">{{ request.user.username }}</p>
+        <!-- Sección de Control de Tema & Perfil -->
+        <div class="p-4 border-t border-slate-800 space-y-3">
+            <!-- 🌗 Interruptor del Modo Oscuro Analítico -->
+            <button onclick="toggleTheme()" class="w-full flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg bg-slate-900 dark:bg-darkBg hover:bg-slate-850 dark:hover:bg-slate-900 text-xs font-semibold text-slate-300 hover:text-white transition border border-slate-800">
+                <span class="dark:hidden flex items-center gap-1.5">🌙 Activar Modo Oscuro</span>
+                <span class="hidden dark:flex items-center gap-1.5">☀️ Activar Modo Claro</span>
+            </button>
+
+            <!-- Datos de Usuario -->
+            <div class="flex items-center justify-between text-xs text-slate-400 pt-1">
+                <div class="truncate max-w-[140px]">
+                    <p class="font-semibold text-slate-200 truncate">{{ request.user.nombre_completo|default:request.user.correo_electronico }}</p>
+                </div>
+                <a href="/admin/logout/" class="hover:text-red-400 font-medium transition">Salir</a>
             </div>
-            <a href="/admin/logout/" class="hover:text-red-400 font-medium transition">Salir</a>
         </div>
     </aside>
 
-    <main class="flex-1 h-full overflow-y-auto bg-slate-50">
+    <!-- Contenedor de Vistas Dinámicas -->
+    <main class="flex-1 h-full overflow-y-auto bg-slate-50 dark:bg-darkBg transition-colors duration-150">
         <div class="container mx-auto p-4 md:p-8 max-w-7xl">
             {% block content %}
             {% endblock %}
         </div>
     </main>
 
+    <!-- 🛠️ JavaScript Maestro para Alternar Temas sin Recarga -->
+    <script>
+        function toggleTheme() {
+            const htmlTag = document.documentElement;
+            if (htmlTag.classList.contains('dark')) {
+                htmlTag.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                htmlTag.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+    </script>
 </body>
 </html>

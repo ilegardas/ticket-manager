@@ -1576,8 +1576,8 @@ def panel_conocimiento_crear(request):
 @login_required
 def panel_conocimiento_importar_csv(request):
     """
-    📥 ACCIÓN / MODAL HTMX: Procesa de forma masiva la inserción de soluciones vía CSV
-    Soporta codificación de Excel con acentos/eñes y delimitadores mixtos (, o ;)
+    📥 IMPORTADOR INDESTRUCTIBLE: Procesa la inserción masiva controlando
+    estructuras de celdas vacías o filas incompletas desde Excel.
     """
     if request.method == "POST":
         csv_file = request.FILES.get('file')
@@ -1585,40 +1585,43 @@ def panel_conocimiento_importar_csv(request):
             return HttpResponse("Formato inválido. Sube un archivo .csv", status=400)
 
         try:
-            # 🎯 'utf-8-sig' remueve el BOM invisible que mete Excel al guardar CSV
+            # Captura la codificación nativa de Excel con soporte de eñes y acentos
             data_set = csv_file.read().decode('utf-8-sig')
             io_string = io.StringIO(data_set)
             
-            # Leer la primera línea para detectar automáticamente si usa coma o punto y coma
+            # Autodetección robusta de delimitadores corporativos Windows (; o ,)
             primera_linea = io_string.readline()
             delimitador = ';' if ';' in primera_linea else ','
             
-            # Regresar el cursor al inicio del archivo de texto
             io_string.seek(0)
-            next(io_string) # Brincamos la cabecera con el delimitador ya detectado
+            next(io_string) # Brincamos la cabecera
 
             for row in csv.reader(io_string, delimiter=delimitador):
-                if len(row) < 3:
+                # Limpieza de líneas vacías accidentales en el Excel
+                if not row or len(row) == 0:
                     continue
                 
-                titulo_csv = row[0].strip()
-                desc_csv = row[1].strip()
-                sol_csv = row[2].strip()
-                codigo_csv = row[3].strip() if len(row) > 3 else None
-                causa_csv = row[4].strip() if len(row) > 4 else None
+                # Extracción segura: Si Excel no generó las columnas opcionales, evita el IndexError
+                titulo_csv = row[0].strip() if len(row) > 0 else None
+                desc_csv = row[1].strip() if len(row) > 1 else None
+                sol_csv = row[2].strip() if len(row) > 2 else None
+                codigo_csv = row[3].strip() if (len(row) > 3 and row[3].strip()) else None
+                causa_csv = row[4].strip() if (len(row) > 4 and row[4].strip()) else None
 
+                # Inyección únicamente si los 3 pilares obligatorios están cubiertos
                 if titulo_csv and desc_csv and sol_csv:
                     ConocimientoEntry.objects.create(
                         titulo=titulo_csv,
                         descripcion_problema=desc_csv,
                         solucion_aplicada=sol_csv,
                         codigo_error=codigo_csv,
-                        causa_raiz=causa_csv
+                        causa_raiz=causa_csv,
+                        sistema=None # Se inicializa general para asignarle sistema después en la edición si es necesario
                     )
             
             return HttpResponse('<script>window.location.reload();</script>')
         except Exception as e:
-            return HttpResponse(f"Error procesando el archivo: {str(e)}", status=500)
+            # Si algo falla, pintamos el error exacto en la consola de HTMX para saber qué celda lo causó
+            return HttpResponse(f"Error crítico en la matriz de datos: {str(e)}", status=500)
 
-    # GET: Devuelve el modal de arrastre de archivo
     return render(request, 'conocimiento/partials/modal_csv.html')

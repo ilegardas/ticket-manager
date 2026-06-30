@@ -1,11 +1,28 @@
 {% for nota in notas %}
-<div class="p-3 rounded-xl {% if nota.tipo == 'sistema' %}bg-slate-100/70 border border-slate-200/50{% else %}bg-blue-50/50 border border-blue-100/50{% endif %} text-xs space-y-1">
-    <div class="flex items-center justify-between font-semibold text-slate-700">
-        <span class="text-slate-900">{% if nota.autor %}{{ nota.autor.nombre_completo|default:nota.autor.username }}{% else %}Sistema{% endif %}</span>
-        <span class="text-[10px] text-slate-400 font-normal">{{ nota.fecha_creacion|date:"d/m H:i" }}</span>
+<!-- Caja contenedora adaptable al modo oscuro -->
+<div class="p-3 rounded-lg border text-xs transition duration-150 
+            {% if nota.tipo == 'sistema' %}
+                bg-slate-50/60 dark:bg-darkBg/40 border-slate-100 dark:border-slate-800 text-slate-500 dark:text-darkTextSub font-medium
+            {% else %}
+                bg-white dark:bg-darkPanel border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200
+            {% endif %}">
+    
+    <div class="flex items-center justify-between font-semibold mb-1 text-[11px]">
+        <span>
+            {% if nota.tipo == 'sistema' %}
+                🤖 Sistema
+            {% else %}
+                👤 {{ nota.autor.nombre_completo|default:nota.autor.correo_electronico }}
+            {% endif %}
+        </span>
+        <span class="text-slate-400 dark:text-slate-500 font-mono text-[10px]">
+            {{ nota.fecha_creacion|date:"d/m/Y H:i" }}
+        </span>
     </div>
-    <p class="text-slate-600 leading-relaxed whitespace-pre-wrap">{{ nota.contenido }}</p>
+    <p class="whitespace-pre-wrap leading-relaxed pl-0.5">{{ nota.contenido }}</p>
 </div>
 {% empty %}
-<p class="text-xs text-slate-400 text-center py-6">No hay comentarios en este ticket todavía.</p>
+<div class="text-center py-4 text-xs text-slate-400 dark:text-darkTextSub/60 italic">
+    No hay notas ni comentarios registrados todavía.
+</div>
 {% endfor %}

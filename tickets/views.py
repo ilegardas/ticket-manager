@@ -1655,3 +1655,27 @@ def panel_conocimiento_importar_csv(request):
             return HttpResponse(f"Error interno: {str(e)}", status=500)
 
     return render(request, 'conocimiento/partials/modal_csv.html')
+
+
+@login_required
+@require_http_methods(["POST"])
+def panel_usuario_eliminar(request, user_id):
+    """
+    🗑️ CONTROLADOR DE SEGURIDAD: Elimina permanentemente a un usuario del sistema.
+    Evita que el administrador en sesión se autoelimine.
+    """
+    if request.user.rol != 'admin':
+        return HttpResponse("No autorizado.", status=403)
+
+    usuario_a_borrar = get_object_or_404(Usuario, pk=user_id)
+
+    # 🛡️ Protección crucial de integridad
+    if usuario_a_borrar.id == request.user.id:
+        return HttpResponse('<script>alert("❌ Error: No puedes eliminar tu propia cuenta de administrador en sesión."); window.location.reload();</script>')
+
+    usuario_a_borrar.delete()
+    print(f"🗑️ El administrador {request.user.correo_electronico} eliminó permanentemente la cuenta de {usuario_a_borrar.correo_electronico}")
+    
+    return redirect('panel_usuarios_list')
+
+

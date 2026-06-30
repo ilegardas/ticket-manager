@@ -1430,36 +1430,77 @@ def panel_reportes_avanzados(request):
 @login_required
 def exportar_reporte_csv(request):
     """
-    📥 EXPORTADOR: Genera y descarga un archivo CSV/Excel con los filtros actuales de la pantalla
+    📥 EXPORTADOR AVANZADO: Genera y descarga un archivo CSV/Excel aplicando
+    exactamente los mismos filtros cruzados activos en la pantalla principal.
     """
-    # Replicamos los mismos filtros del request de arriba
-    qs = Ticket.objects.select_related('sistema', 'modulo', 'estado', 'usuario_reporta').all()
-    
-    if request.GET.get('sistema'):
-        qs = qs.filter(sistema_id=request.GET.get('sistema'))
-    if request.GET.get('estado'):
-        qs = qs.filter(estado_id=request.GET.get('estado'))
-    if request.GET.get('fecha_inicio'):
-        qs = qs.filter(fecha_creacion__date__gte=request.GET.get('fecha_inicio'))
+    # 1. Recuperamos absolutamente todos los parámetros del request
+    fecha_inicio = request.GET.get('fecha_inicio')
+    fecha_fin = request.GET.get('fecha_fin')
+    estado_id = request.GET.get('estado')
+    asignado_id = request.GET.get('asignado')
+    categoria_id = request.GET.get('categoria')
+    sistema_id = request.GET.get('sistema')
+    modulo_id = request.GET.get('modulo')
+    impacto = request.GET.get('impacto')
+    region = request.GET.get('region')
 
-    # Creamos la respuesta HTTP configurando el MIME Type de Excel
+    # QuerySet Base con relaciones optimizadas
+    qs = Ticket.objects.select_related(
+        'sistema', 'modulo', 'estado', 'categoria', 'usuario_asignado', 'usuario_reporta'
+    ).all()
+
+    # 2. Aplicación exacta de la matriz de filtros cruzados
+    if fecha_inicio:
+        qs = qs.filter(fecha_creacion__date__gte=fecha_inicio)
+    if fecha_fin:
+        qs = qs.filter(fecha_creacion__date__lte=fecha_fin)
+    if estado_id:
+        qs = qs.filter(estado_id=estado_id)
+    if asignado_id:
+        qs = qs.filter(usuario_asignado_id=asignado_id)
+    if categoria_id:
+        qs = qs.filter(categoria_id=categoria_id)
+    if sistema_id:
+        qs = qs.filter(sistema_id=sistema_id)
+    if modulo_id:
+        qs = qs.filter(modulo_id=modulo_id)
+    if impacto:
+        qs = qs.filter(impacto_proceso=impacto)
+    if region:
+        qs = qs.filter(usuario_reporta__region_zona__icontains=region)
+
+    # Ordenamos de más reciente a más antiguo
+    qs = qs.order_by('-fecha_creacion')
+
+    # 3. Construcción del archivo de descarga con codificación Excel para caracteres en español (ñ, acentos)
     response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
-    response['Content-Disposition'] = f'attachment; filename="Reporte_Tickets_{timezone.now().strftime("%Y%m%d")}.csv"'
+    response['Content-Disposition'] = f'attachment; filename="Reporte_Tickets_Filtrado_{timezone.now().strftime("%Y%m%d_%H%M")}.csv"'
 
     writer = csv.writer(response, delimiter=',')
-    # Encabezados
-    writer.writerow(['Folio', 'Título', 'Sistema', 'Estado', 'Reporta', 'Fecha Creación', 'Impacto'])
     
+    # Encabezados del Reporte Corporativo
+    writer.writerow([
+        'Folio', 'Título', 'Sistema', 'Módulo', 'Categoría', 
+        'Estado', 'Asignado A', 'Reporta', 'Región/Zona', 'Impacto', 'Fecha Creación'
+    ])
+    
+    # Inyección de las filas que pasaron el filtro cruzado
     for tk in qs:
         writer.writerow([
             tk.folio, 
             tk.titulo, 
             tk.sistema.nombre if tk.sistema else '—', 
+            tk.modulo.nombre if tk.modulo else '—', 
+            tk.categoria.nombre if tk.categoria else '—', 
             tk.estado.nombre if tk.estado else '—', 
+            tk.usuario_asignado.nombre_completo if tk.usuario_asignado else 'Sin Asignar', 
             tk.usuario_reporta.nombre_completo if tk.usuario_reporta else '—', 
-            tk.fecha_creacion.strftime('%d/%m/%Y'),
-            tk.get_impacto_proceso_display() if tk.impacto_proceso else '—'
+            tk.usuario_reporta.region_zona if (tk.usuario_reporta and hasattr(tk.usuario_reporta, 'region_zona')) else '—',
+            tk.get_impacto_proceso_display() if tk.impacto_proceso else '—',
+            tk.fecha_creacion.strftime('%d/%m/%Y %H:%M')
         ])
         
     return response
+
+
 

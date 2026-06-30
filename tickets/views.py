@@ -1374,7 +1374,7 @@ def panel_reportes_avanzados(request):
     if fecha_inicio:
         qs = qs.filter(fecha_creacion__date__gte=fecha_inicio)
     if fecha_fin:
-        qs = qs.filter(fecha_creacion__date__gte=fecha_fin)
+        qs = qs.filter(fecha_creacion__date__lte=fecha_fin)  # 🎯 CAMBIADO de __gte a __lte
     if estado_id:
         qs = qs.filter(estado_id=estado_id)
     if asignado_id:

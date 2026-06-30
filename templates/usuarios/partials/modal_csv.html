@@ -1,8 +1,8 @@
-<div class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4" id="modal-upload-csv">
-    <div class="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-md overflow-hidden">
-        <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex justify-between items-center">
-            <h3 class="text-sm font-bold text-slate-800">Cargar Personal mediante CSV</h3>
-            <button onclick="document.getElementById('modal-upload-csv').remove()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">×</button>
+<div class="fixed inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4" id="modal-upload-csv">
+    <div class="bg-white dark:bg-darkPanel rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 w-full max-w-md overflow-hidden">
+        <div class="bg-slate-50 dark:bg-darkBg px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+            <h3 class="text-sm font-bold text-slate-800 dark:text-amber-400">📥 Cargar Personal mediante CSV</h3>
+            <button onclick="document.getElementById('modal-upload-csv').remove()" class="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 font-bold text-lg">×</button>
         </div>
         
         <form hx-post="{% url 'panel_usuario_importar_csv' %}" 
@@ -13,22 +13,21 @@
               class="p-6 space-y-4">
             {% csrf_token %}
             
-            <div class="bg-blue-50 border border-blue-100 rounded-lg p-3 text-blue-800 text-[11px] leading-relaxed">
+            <div class="bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 rounded-lg p-3 text-blue-800 dark:text-blue-300 text-[11px] leading-relaxed">
                 💡 <strong>Estructura requerida del CSV:</strong><br>
-                <code class="font-mono bg-white/60 px-1 py-0.5 rounded block mt-1">correo_electronico,nombre_completo,numero_empleado,puesto_cargo,cct,region_zona,nivel_educativo</code>
-                *Las contraseñas iniciales por defecto serán el propio número de empleado o su correo.
+                <code class="font-mono bg-white/60 dark:bg-darkBg/60 px-1 py-0.5 rounded block mt-1 text-slate-800 dark:text-slate-200">correo_electronico,nombre_completo,numero_empleado,puesto_cargo,cct,region_zona,nivel_educativo</code>
             </div>
 
-            <div class="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center hover:bg-slate-50 transition relative">
+            <div class="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-6 text-center hover:bg-slate-50 dark:hover:bg-darkBg/40 transition relative">
                 <input type="file" name="file" accept=".csv" required class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
                 <div class="text-2xl mb-1">📄</div>
-                <p class="text-xs font-bold text-slate-700">Haz clic o arrastra tu archivo .CSV aquí</p>
-                <p class="text-[10px] text-slate-400 mt-0.5">Solo archivos de texto delimitados por comas</p>
+                <p class="text-xs font-bold text-slate-700 dark:text-slate-200">Haz clic o arrastra tu archivo .CSV aquí</p>
+                <p class="text-[10px] text-slate-400 dark:text-darkTextSub mt-0.5 font-medium">Solo archivos de texto delimitados por comas</p>
             </div>
 
-            <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
-                <button type="button" onclick="document.getElementById('modal-upload-csv').remove()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-semibold">Cancelar</button>
-                <button type="submit" class="px-3 py-2 bg-slate-950 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold shadow-sm">🚀 Iniciar Carga Masiva</button>
+            <div class="flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button type="button" onclick="document.getElementById('modal-upload-csv').remove()" class="px-4 py-2 bg-slate-100 dark:bg-darkBg text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg text-xs font-semibold">Cancelar</button>
+                <button type="submit" class="px-4 py-2 bg-slate-950 dark:bg-amber-500 hover:bg-slate-800 dark:hover:bg-amber-600 text-white dark:text-slate-950 rounded-lg text-xs font-bold shadow-sm transition">🚀 Iniciar Carga</button>
             </div>
         </form>
     </div>

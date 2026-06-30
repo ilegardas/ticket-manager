@@ -3,10 +3,22 @@
 {% block title %}Gestión de Usuarios - Ticket Manager{% endblock %}
 
 {% block content %}
+<div id="modal-container"></div>
+
 <div class="space-y-6">
-    <div class="border-b border-slate-200 pb-4">
-        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Gestión de Usuarios y Roles</h1>
-        <p class="text-sm text-slate-500">Administración de personal, asignación de perfiles técnicos y control operativo de adscripciones.</p>
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-4 gap-4">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900">Gestión de Usuarios y Roles</h1>
+            <p class="text-sm text-slate-500">Administración de personal, asignación de perfiles técnicos y carga masiva.</p>
+        </div>
+        <div>
+            <button hx-get="{% url 'panel_usuario_importar_csv' %}" 
+                    hx-target="#modal-container" 
+                    hx-swap="innerHTML"
+                    class="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold py-2 px-3 rounded-lg shadow-sm transition">
+                📥 Importar desde CSV
+            </button>
+        </div>
     </div>
 
     <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
@@ -32,6 +44,7 @@
                         <th class="py-3 px-4">Centro de Trabajo (CCT)</th>
                         <th class="py-3 px-4 text-center">Rol de Acceso</th>
                         <th class="py-3 px-4 text-center">Estado</th>
+                        <th class="py-3 px-4 text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="usuarios-table-body" class="divide-y divide-slate-100 text-xs text-slate-600">

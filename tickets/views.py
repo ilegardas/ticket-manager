@@ -1343,4 +1343,82 @@ def panel_usuario_importar_csv(request):
     return render(request, 'usuarios/partials/modal_csv.html')
 
 
+@login_required
+def panel_reportes_avanzados(request):
+    """
+    📊 CENTRO DE REPORTES AVANZADOS: Filtrado dinámico multivariable, 
+    gráficas en tiempo real y preparación de datos para exportación.
+    """
+    # 1. Recuperamos los parámetros de filtrado desde el request
+    fecha_inicio = request.GET.get('fecha_inicio')
+    fecha_fin = request.GET.get('fecha_fin')
+    estado_id = request.GET.get('estado')
+    asignado_id = request.GET.get('asignado')
+    categoria_id = request.GET.get('categoria')
+    sistema_id = request.GET.get('sistema')
+    modulo_id = request.GET.get('modulo')
+    impacto = request.GET.get('impacto')
+    region = request.GET.get('region')
+
+    # QuerySet Base con relaciones optimizadas
+    qs = Ticket.objects.select_related(
+        'sistema', 'modulo', 'prioridad', 'estado', 'categoria', 'usuario_asignado'
+    ).all()
+
+    # 2. Aplicación consecutiva de filtros (Filtros cruzados)
+    if fecha_inicio:
+        qs = qs.filter(fecha_creacion__date__gte=fecha_inicio)
+    if fecha_fin:
+        qs = qs.filter(fecha_creacion__date__gte=fecha_fin)
+    if estado_id:
+        qs = qs.filter(estado_id=estado_id)
+    if asignado_id:
+        qs = qs.filter(usuario_asignado_id=asignado_id)
+    if categoria_id:
+        qs = qs.filter(categoria_id=categoria_id)
+    if sistema_id:
+        qs = qs.filter(sistema_id=sistema_id)
+    if modulo_id:
+        qs = qs.filter(modulo_id=modulo_id)
+    if impacto:
+        qs = qs.filter(impacto_proceso=impacto)
+    if region:
+        qs = qs.filter(usuario_reporta__region_zona__icontains=region)
+
+    # 3. Datos parciales para las Gráficas del Reporte
+    sistemas_data = qs.values('sistema__nombre').annotate(total=Count('id')).order_by('-total')
+    sistemas_labels = [item['sistema__nombre'] or 'Sin Sistema' for item in sistemas_data]
+    sistemas_valores = [item['total'] for item in sistemas_data]
+
+    estados_data = qs.values('estado__nombre').annotate(total=Count('id')).order_by('-total')
+    estados_labels = [item['estado__nombre'] or 'Sin Estado' for item in estados_data]
+    estados_valores = [item['total'] for item in estados_data]
+
+    # Limitamos el listado inferior a los últimos 200 resultados filtrados por rendimiento
+    tickets_filtrados = qs.order_by('-fecha_creacion')[:200]
+
+    # Contexto unificado
+    context = {
+        'tickets': tickets_filtrados,
+        'total_filtrado': qs.count(),
+        
+        # Catálogos para llenar los selectores del formulario
+        'estados': Estado.objects.all().order_by('orden'),
+        'categorias': Categoria.objects.all().order_by('nombre'),
+        'sistemas': Sistema.objects.filter(activo=True),
+        'tecnicos': Usuario.objects.filter(rol='tecnico'),
+        
+        # Estructuras JSON seguras para Chart.js
+        'sistemas_labels': json.dumps(sistemas_labels),
+        'sistemas_valores': json.dumps(sistemas_valores),
+        'estados_labels': json.dumps(estados_labels),
+        'estados_valores': json.dumps(estados_valores),
+    }
+
+    # Si la petición es por HTMX, refrescamos únicamente el bloque de resultados (gráficas + tabla)
+    if request.headers.get('HX-Request'):
+        return render(request, 'configuracion/partials/reportes_resultados.html', context)
+
+    return render(request, 'configuracion/reportes.html', context)
+
 

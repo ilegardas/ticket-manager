@@ -95,4 +95,23 @@
         </div>
     </div>
 </div>
+
+<div id="modal-box" class="fixed inset-0 z-50 hidden bg-slate-900/60 dark:bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-darkPanel border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+        <div id="body-modal-box">
+            </div>
+    </div>
+</div>
+
+<script>
+    function openModal() {
+        document.getElementById('modal-box').classList.remove('hidden');
+    }
+    function closeModal() {
+        document.getElementById('modal-box').classList.add('hidden');
+        document.getElementById('body-modal-box').innerHTML = '';
+    }
+    // Cerrar si dan clic fuera de la tarjeta
+    document.getElementById('modal-box').addEventListener('click', closeModal);
+</script>
 {% endblock %}

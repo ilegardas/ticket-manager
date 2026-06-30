@@ -1,0 +1,27 @@
+<div class="p-6 space-y-4">
+    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <h3 class="text-sm font-bold text-slate-900 dark:text-amber-400 uppercase tracking-wide">📥 Carga Masiva de Conocimiento</h3>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white font-bold text-sm">✕</button>
+    </div>
+
+    <div class="p-3 bg-blue-50 dark:bg-darkBg border dark:border-slate-800 rounded-lg text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+        El archivo <strong>.csv</strong> debe poseer la estructura exacta separada por comas:<br>
+        <code class="block font-mono bg-white dark:bg-darkPanel p-1 rounded mt-1 text-blue-600 dark:text-darkTextSub font-bold">titulo, descripcion_problema, solucion_aplicada, codigo_error, causa_raiz</code>
+    </div>
+
+    <form hx-post="{% url 'panel_conocimiento_importar_csv' %}" hx-encoding="multipart/form-data" class="space-y-4 text-xs">
+        {% csrf_token %}
+        <div class="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-8 text-center hover:border-amber-500 transition relative">
+            <input type="file" name="file" accept=".csv" required class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+            <div class="text-slate-400 dark:text-slate-500 font-medium">
+                <span class="block text-2xl mb-1">📄</span>
+                Arrastra tu archivo o <span class="text-blue-500 dark:text-amber-400 font-bold">explora tus carpetas</span>
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-100 dark:bg-darkBg text-slate-600 dark:text-slate-300 rounded-lg font-semibold">Cancelar</button>
+            <button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold">Procesar Importación</button>
+        </div>
+    </form>
+</div>

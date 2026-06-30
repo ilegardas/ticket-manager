@@ -1506,3 +1506,22 @@ def exportar_reporte_csv(request):
 
 
 
+@login_required
+def panel_conocimiento_detalle(request, pk):
+    """
+    🖥️ VISTA INTERNA: Muestra el detalle de una solución documentada 
+    e incrementa de forma segura el contador de visitas.
+    """
+    # 1. Recuperamos la entrada optimizando los joins necesarios
+    solucion = get_object_or_404(
+        ConocimientoEntry.objects.select_related('sistema', 'modulo', 'ticket_origen'), 
+        pk=pk
+    )
+    
+    # 2. Incremento atómico directo en la base de datos para evitar colisiones
+    ConocimientoEntry.objects.filter(pk=pk).update(veces_consultado=F('veces_consultado') + 1)
+    
+    # Refrescamos la instancia para mostrar el número de visitas real en el HTML
+    solucion.refresh_from_db()
+
+    return render(request, 'conocimiento/detalle.html', {'solucion': solucion})

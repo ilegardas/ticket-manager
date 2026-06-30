@@ -1525,3 +1525,17 @@ def panel_conocimiento_detalle(request, pk):
     solucion.refresh_from_db()
 
     return render(request, 'conocimiento/detalle.html', {'solucion': solucion})
+
+
+
+@login_required
+def panel_conocimiento_eliminar(request, pk):
+    """
+    🗑️ CONTROLADOR: Elimina de forma segura un registro de la base de conocimiento.
+    """
+    if request.method == "POST":
+        solucion = get_object_or_404(ConocimientoEntry, pk=pk)
+        solucion.delete()
+    return redirect('panel_conocimiento_lista') # Redirige al listado limpio
+
+

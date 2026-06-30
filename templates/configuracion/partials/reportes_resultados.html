@@ -1,15 +1,19 @@
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
     <div class="bg-white dark:bg-darkPanel p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
         <h3 class="text-xs font-bold uppercase text-slate-400 dark:text-darkTextSub mb-3">Volumen por Sistema</h3>
-        <div class="relative h-48 w-full"><canvas id="repSistemas"></canvas></div>
+        <div class="relative h-64 w-full">
+            <canvas id="repSistemas"></canvas>
+        </div>
     </div>
     <div class="bg-white dark:bg-darkPanel p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
         <h3 class="text-xs font-bold uppercase text-slate-400 dark:text-darkTextSub mb-3">Distribución por Estado</h3>
-        <div class="relative h-48 w-full"><canvas id="repEstados"></canvas></div>
+        <div class="relative h-64 w-full flex items-center justify-center">
+            <canvas id="repEstados"></canvas>
+        </div>
     </div>
 </div>
 
-<div class="bg-white dark:bg-darkPanel border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
+<div class="bg-white dark:bg-darkPanel border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden mt-6">
     <div class="p-4 bg-slate-50/50 dark:bg-darkBg/30 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
         <span class="text-xs font-bold text-slate-700 dark:text-white">Muestreo del Reporte (Top 200 filas coincidentes)</span>
         <span class="bg-blue-100 dark:bg-darkBg text-blue-800 dark:text-amber-400 font-mono text-[11px] px-2.5 py-0.5 rounded-full font-bold">Total: {{ total_filtrado }} registros</span>
@@ -39,7 +43,11 @@
                     <td class="py-3 px-4 text-slate-400 dark:text-slate-500 font-mono">{{ tk.fecha_creacion|date:"d/m/Y" }}</td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="5" class="text-center py-8 text-slate-400 italic">Ningún registro coincide con los filtros aplicados.</td></tr>
+                <tr>
+                    <td colspan="5" class="text-center py-8 text-slate-400 dark:text-darkTextSub/60 italic">
+                        Ningún registro coincide con los filtros aplicados.
+                    </td>
+                </tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -47,28 +55,66 @@
 </div>
 
 <script>
-    if (window.Chart) {
+    (function() {
+        if (!window.Chart) return;
+
         const isDarkTheme = document.documentElement.classList.contains('dark');
         const txtColor = isDarkTheme ? '#94a3b8' : '#64748b';
-        
-        // 📈 Gráfica de Sistemas
-        new Chart(document.getElementById('repSistemas').getContext('2d'), {
+        const gridColor = isDarkTheme ? '#2d323f' : '#f1f5f9';
+
+        // 🛡️ Limpieza total de instancias previas en el DOM para permitir refrescos HTMX limpios
+        const oldBar = Chart.getChart("repSistemas");
+        if (oldBar) oldBar.destroy();
+        const oldPie = Chart.getChart("repEstados");
+        if (oldPie) oldPie.destroy();
+
+        // 📈 1. Inicialización de Gráfica de Barras (Sistemas)
+        const ctxBar = document.getElementById('repSistemas').getContext('2d');
+        new Chart(ctxBar, {
             type: 'bar',
             data: {
-                labels: {% if systems_labels %}{{ sistemas_labels|safe }}{% else %}{{ sistemas_labels|safe }}{% endif %},
-                datasets: [{ data: {{ sistemas_valores|safe }}, backgroundColor: isDarkTheme ? '#f97316' : '#3b82f6', borderRadius: 4 }]
+                labels: {% if sistemas_labels %}{{ sistemas_labels|safe }}{% else %}[]{% endif %},
+                datasets: [{
+                    label: 'Tickets',
+                    data: {% if sistemas_valores %}{{ sistemas_valores|safe }}{% else %}[]{% endif %},
+                    backgroundColor: isDarkTheme ? '#cc5de8' : '#3b82f6', // Color morado analítico en oscuro
+                    borderRadius: 4
+                }]
             },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: txtColor } }, y: { ticks: { color: txtColor } } } }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: txtColor, font: { family: 'Inter', size: 10 } } },
+                    y: { grid: { color: gridColor }, ticks: { color: txtColor, font: { family: 'Inter', size: 10 }, beginAtZero: true } }
+                }
+            }
         });
 
-        // 📈 Gráfica de Estados
-        new Chart(document.getElementById('repEstados').getContext('2d'), {
+        // 📈 2. Inicialización de Gráfica de Dona (Estados)
+        const ctxPie = document.getElementById('repEstados').getContext('2d');
+        new Chart(ctxPie, {
             type: 'doughnut',
             data: {
-                labels: {{ estados_labels|safe }},
-                datasets: [{ data: {{ estados_valores|safe }}, backgroundColor: ['#3B82F6', '#F59E0B', '#10B981', '#EF4444', '#6B7280'] }]
+                labels: {% if estados_labels %}{{ estados_labels|safe }}{% else %}[]{% endif %},
+                datasets: [{
+                    data: {% if estados_valores %}{{ estados_valores|safe }}{% else %}[]{% endif %},
+                    backgroundColor: ['#3B82F6', '#F59E0B', '#10B981', '#EF4444', '#6B7280'],
+                    borderColor: isDarkTheme ? '#1e232d' : '#ffffff',
+                    borderWidth: 2
+                }]
             },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: txtColor } } } }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: { color: txtColor, font: { family: 'Inter', size: 11 } }
+                    }
+                }
+            }
         });
-    }
+    })();
 </script>

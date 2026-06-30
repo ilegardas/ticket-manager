@@ -1575,17 +1575,19 @@ def panel_conocimiento_crear(request):
 
 @login_required
 def panel_conocimiento_importar_csv(request):
+    """
+    📥 IMPORTADOR INTELIGENTE: Detecta automáticamente si el archivo CSV 
+    tiene fila de cabecera y procesa los registros de inmediato.
+    """
     if request.method == "POST":
         csv_file = request.FILES.get('file')
         if not csv_file:
-            print("🚨 ERROR: No se recibió ningún archivo en la petición.")
+            print("🚨 ERROR: No se recibió ningún archivo.")
             return HttpResponse("No se subió ningún archivo.", status=400)
             
         if not csv_file.name.endswith('.csv'):
-            print(f"🚨 ERROR: Formato de archivo no válido: {csv_file.name}")
             return HttpResponse("Formato inválido. Sube un archivo .csv", status=400)
 
-        # 1. Intentar decodificar el archivo con diferentes encodings para soportar acentos de Excel
         encodings = ['utf-8-sig', 'latin-1', 'windows-1252', 'utf-8']
         data_set = None
         
@@ -1593,46 +1595,47 @@ def panel_conocimiento_importar_csv(request):
             try:
                 csv_file.seek(0)
                 data_set = csv_file.read().decode(encoding)
-                print(f"✅ Archivo decodificado exitosamente usando: {encoding}")
                 break
             except UnicodeDecodeError:
                 continue
 
         if data_set is None:
-            print("🚨 ERROR: No se pudo decodificar el archivo con ningún encoding estándar.")
-            return HttpResponse("Error de codificación en el archivo. Asegúrate de guardarlo como CSV UTF-8.", status=400)
+            return HttpResponse("Error de codificación en el archivo.", status=400)
 
         try:
             io_string = io.StringIO(data_set)
             
-            # Autodetección de delimitador basada en la primera línea
+            # 1. Autodetección de delimitador
             primera_linea = io_string.readline()
             delimitador = ';' if ';' in primera_linea else ','
-            print(f"🔍 Delimitador detectado automáticamente: '{delimitador}'")
             
+            # 2. Verificar de forma inteligente si la primera línea es un encabezado o datos directos
+            primera_linea_lower = primera_linea.lower()
+            tiene_cabecera = any(palabra in primera_linea_lower for palabra in ['titulo', 'descrip', 'solucion', 'error', 'causa'])
+            
+            # 3. Regresar el cursor al inicio para la lectura completa
             io_string.seek(0)
             reader = csv.reader(io_string, delimiter=delimitador)
             
-            # Brincar cabecera de forma segura
-            try:
+            # Si se autodetectó que es cabecera, nos la saltamos; si no, la procesamos como datos directos
+            if tiene_cabecera:
                 next(reader)
-            except StopIteration:
-                print("🚨 ERROR: El archivo CSV está vacío.")
-                return HttpResponse("El archivo CSV está vacío.", status=400)
+                print("💡 Encabezado técnico detectado y omitido.")
+            else:
+                print("💡 El archivo inicia directamente con datos, no se omitió ninguna fila.")
 
             filas_creadas = 0
-            for i, row in enumerate(reader, start=2): # Empezamos en 2 por la cabecera
+            for i, row in enumerate(reader, start=1 if not tiene_cabecera else 2):
                 if not row or len(row) == 0:
                     continue
                 
-                # Extracción segura de columnas
+                # Extracción por posiciones con resguardo de seguridad
                 titulo_csv = row[0].strip() if len(row) > 0 else ""
                 desc_csv = row[1].strip() if len(row) > 1 else ""
                 sol_csv = row[2].strip() if len(row) > 2 else ""
                 codigo_csv = row[3].strip() if (len(row) > 3 and row[3].strip()) else None
                 causa_csv = row[4].strip() if (len(row) > 4 and row[4].strip()) else None
 
-                # Si al menos tiene título, lo insertamos para no perder el registro
                 if titulo_csv:
                     ConocimientoEntry.objects.create(
                         titulo=titulo_csv,
@@ -1643,14 +1646,12 @@ def panel_conocimiento_importar_csv(request):
                         sistema=None
                     )
                     filas_creadas += 1
-                else:
-                    print(f"⚠️ Fila {i} omitida: El campo 'titulo' está vacío.")
 
-            print(f"🚀 ÉXITO: Se importaron {filas_creadas} registros correctamente.")
+            print(f"🚀 Módulo ejecutado: Se inyectaron {filas_creadas} soluciones a la base de datos.")
             return HttpResponse('<script>window.location.reload();</script>')
             
         except Exception as e:
-            print(f"🚨 ERROR CRÍTICO EN PROCESAMIENTO (Fila {i if 'i' in locals() else 'unknown'}): {str(e)}")
-            return HttpResponse(f"Error interno al procesar los datos: {str(e)}", status=500)
+            print(f"🚨 ERROR CRÍTICO AL INYECTAR: {str(e)}")
+            return HttpResponse(f"Error interno: {str(e)}", status=500)
 
     return render(request, 'conocimiento/partials/modal_csv.html')

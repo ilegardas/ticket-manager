@@ -107,6 +107,9 @@ urlpatterns = [
     path('panel/configuracion/categorias/<int:pk>/eliminar/', views.panel_config_categoria_eliminar, name='panel_config_categoria_eliminar'),
     path('ajax/cargar-modulos/', views.ajax_cargar_modulos, name='ajax_cargar_modulos'),
     path('panel/tickets/<int:ticket_id>/comentario/', views.panel_ticket_add_comentario, name='panel_ticket_add_comentario'),
+    path('panel/usuarios/', views.panel_usuarios_list, name='panel_usuarios_list'),
+    path('panel/usuarios/<int:user_id>/rol/', views.panel_usuario_cambiar_rol, name='panel_usuario_cambiar_rol'),
+    path('panel/usuarios/<int:user_id>/toggle/', views.panel_usuario_toggle_activo, name='panel_usuario_toggle_activo'),
 
     
     # 🔌 8. ENTRADA DE ROUTER HÍBRIDA TOLERANTE A INTERFERENCIAS

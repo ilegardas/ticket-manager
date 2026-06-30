@@ -1158,3 +1158,69 @@ def panel_ticket_add_comentario(request, ticket_id):
         return render(request, 'tickets/partials/chatter_loop.html', {'notas': [nueva_nota]})
         
     return HttpResponse(status=400)
+
+
+
+@login_required
+def panel_usuarios_list(request):
+    """
+    🖥️ VISTA INTERNA: Listado y buscador de usuarios con filtros de adscripción
+    """
+    # Restricción de seguridad: Solo administradores pueden gestionar usuarios
+    if request.user.rol != 'admin':
+        return HttpResponse("No posees los permisos necesarios para ver esta sección.", status=403)
+
+    query = request.GET.get('q', '').strip()
+    usuarios = Usuario.objects.all().order_by('-fecha_registro')
+
+    if query:
+        usuarios = usuarios.filter(
+            Q(nombre_completo__icontains=query) |
+            Q(correo_electronico__icontains=query) |
+            Q(numero_empleado__icontains=query) |
+            Q(cct__icontains=query) |
+            Q(puesto_cargo__icontains=query)
+        )
+
+    if request.headers.get('HX-Request'):
+        return render(request, 'usuarios/partials/usuarios_row.html', {'usuarios': usuarios})
+
+    return render(request, 'usuarios/lista.html', {'usuarios': usuarios})
+
+
+@login_required
+@require_http_methods(["POST"])
+def panel_usuario_cambiar_rol(request, user_id):
+    """⚡ ACCIÓN HTMX: Cambia el rol de un usuario al vuelo"""
+    if request.user.rol != 'admin':
+        return HttpResponse("No autorizado", status=403)
+
+    usuario = get_object_or_404(Usuario, pk=user_id)
+    nuevo_rol = request.POST.get("rol")
+    
+    if nuevo_rol in ['admin', 'tecnico', 'usuario']:
+        usuario.rol = nuevo_rol
+        # Sincronizamos las banderas de Django si es administrador
+        usuario.is_staff = True if nuevo_rol == 'admin' else False
+        usuario.save()
+        return HttpResponse(status=200)
+        
+    return HttpResponse(status=400)
+
+
+@login_required
+@require_http_methods(["POST"])
+def panel_usuario_toggle_activo(request, user_id):
+    """⚡ ACCIÓN HTMX: Activa o desactiva la cuenta de un empleado sin romper registros"""
+    if request.user.rol != 'admin':
+        return HttpResponse("No autorizado", status=403)
+
+    usuario = get_object_or_404(Usuario, pk=user_id)
+    usuario.activo = not usuario.activo
+    usuario.save()
+
+    # Devolvemos únicamente el fragmento del botón modificado con sus nuevos estilos
+    if usuario.activo:
+        return HttpResponse(f'<button hx-post="/api/panel/usuarios/{usuario.id}/toggle/" hx-headers=\'{{"X-CSRFToken": "{request.META.get("CSRF_COOKIE")}"}}\' hx-target="this" hx-swap="outerHTML" class="px-2.5 py-1 text-[10px] font-bold rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100">● Activo</button>')
+    else:
+        return HttpResponse(f'<button hx-post="/api/panel/usuarios/{usuario.id}/toggle/" hx-headers=\'{{"X-CSRFToken": "{request.META.get("CSRF_COOKIE")}"}}\' hx-target="this" hx-swap="outerHTML" class="px-2.5 py-1 text-[10px] font-bold rounded-full border bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100">○ Inactivo</button>')

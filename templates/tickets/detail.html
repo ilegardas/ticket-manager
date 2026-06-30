@@ -10,62 +10,69 @@
 </style>
 
 <div class="space-y-6">
+    <!-- Barra Superior de Navegación -->
     <div class="flex items-center justify-between">
-        <a href="{% url 'panel_tickets_list' %}" class="inline-flex items-center text-xs font-semibold text-slate-500 hover:text-slate-900 transition">
+        <a href="{% url 'panel_tickets_list' %}" class="inline-flex items-center text-xs font-semibold text-slate-500 dark:text-darkTextSub hover:text-slate-900 dark:hover:text-amber-400 transition">
             ← Volver al listado
         </a>
-        <span id="save-indicator" class="text-xs text-emerald-600 font-semibold opacity-0 htmx-indicator bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100 transition-opacity duration-200">
+        <span id="save-indicator" class="text-xs text-emerald-600 dark:text-emerald-400 font-semibold opacity-0 htmx-indicator bg-emerald-50 dark:bg-emerald-950/20 px-2 py-1 rounded-md border border-emerald-100 dark:border-emerald-900/30 transition-opacity duration-200">
             ✓ Cambios guardados de forma automática
         </span>
     </div>
 
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-5 gap-4">
+    <!-- Encabezado del Ticket -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 dark:border-slate-800 pb-5 gap-4">
         <div>
-            <span class="text-xs font-bold uppercase tracking-wider text-blue-600">{{ ticket.sistema.nombre|default:"Sin Sistema" }}</span>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900">#{{ ticket.folio }} · {{ ticket.titulo }}</h1>
-            <p class="text-xs text-slate-400 mt-1">Creado el {{ ticket.fecha_creacion|date:"d/m/Y H:i" }} por {{ ticket.usuario_reporta.nombre_completo|default:ticket.usuario_reporta.correo_electronico }}</p>
+            <span class="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-cyan-400">{{ ticket.sistema.nombre|default:"Sin Sistema" }}</span>
+            <!-- 🌟 Título principal en Amarillo -->
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-amber-400">#{{ ticket.folio }} · {{ ticket.titulo }}</h1>
+            <p class="text-xs text-slate-400 dark:text-slate-300 mt-1">Creado el {{ ticket.fecha_creacion|date:"d/m/Y H:i" }} por {{ ticket.usuario_reporta.nombre_completo|default:ticket.usuario_reporta.correo_electronico }}</p>
         </div>
         <div class="flex items-center gap-2">
             <span id="header-estado-badge" class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold border shadow-sm" 
-                  style="background-color: {{ ticket.estado.color }}10; color: {{ ticket.estado.color }}; border-color: {{ ticket.estado.color }}30">
+                  style="background-color: {{ ticket.estado.color }}20; color: {{ ticket.estado.color }}; border-color: {{ ticket.estado.color }}40">
                 {{ ticket.estado.nombre }}
             </span>
         </div>
     </div>
 
+    <!-- Grid Principal -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
+        <!-- COLUMNA IZQUIERDA: Detalles y Diagnóstico -->
         <div class="lg:col-span-2 space-y-6">
             
-            <div id="main-content-block" class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
+            <!-- Caja de Descripción -->
+            <div id="main-content-block" class="bg-white dark:bg-darkPanel rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 space-y-4">
                 <div class="flex items-center justify-between">
-                    <h3 class="text-sm font-semibold text-slate-800">Descripción del Problema</h3>
-                    <button hx-get="{% url 'panel_ticket_detail' ticket.id %}?action=edit_info" hx-target="#main-content-block" hx-swap="outerHTML" class="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline">
+                    <h3 class="text-sm font-semibold text-slate-800 dark:text-white">Descripción del Problema</h3>
+                    <button hx-get="{% url 'panel_ticket_detail' ticket.id %}?action=edit_info" hx-target="#main-content-block" hx-swap="outerHTML" class="text-xs font-bold text-blue-600 dark:text-amber-400 hover:text-blue-700 dark:hover:text-amber-300 hover:underline">
                         Editar Información
                     </button>
                 </div>
-                <p class="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed bg-slate-50/50 p-4 rounded-lg border border-slate-100">{{ ticket.descripcion }}</p>
+                <p class="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap leading-relaxed bg-slate-50/50 dark:bg-darkBg/50 p-4 rounded-lg border border-slate-100 dark:border-slate-800/80">{{ ticket.descripcion }}</p>
                 
                 {% if ticket.codigo_error %}
-                <div class="p-3 bg-red-50 border border-red-100 rounded-lg">
-                    <span class="text-xs font-bold text-red-800 uppercase tracking-wide">Código de Error Detectado:</span>
-                    <code class="block text-xs text-red-600 font-mono mt-1 font-bold">{{ ticket.codigo_error }}</code>
+                <div class="p-3 bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 rounded-lg">
+                    <span class="text-xs font-bold text-red-800 dark:text-red-400 uppercase tracking-wide">Código de Error Detectado:</span>
+                    <code class="block text-xs text-red-600 dark:text-red-400 font-mono mt-1 font-bold">{{ ticket.codigo_error }}</code>
                 </div>
                 {% endif %}
             </div>
 
-            <form hx-post="{% url 'panel_ticket_detail' ticket.id %}?action=update_diagnostico" hx-trigger="change delay:500ms" hx-indicator="#save-indicator" class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
+            <!-- Formulario de Diagnóstico -->
+            <form hx-post="{% url 'panel_ticket_detail' ticket.id %}?action=update_diagnostico" hx-trigger="change delay:500ms" hx-indicator="#save-indicator" class="bg-white dark:bg-darkPanel rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 space-y-4">
                 {% csrf_token %}
                 
-                <div class="flex items-center justify-between border-b border-slate-100 pb-2">
-                    <h3 class="text-sm font-semibold text-slate-800">Diagnóstico y Cierre</h3>
+                <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                    <h3 class="text-sm font-semibold text-slate-800 dark:text-white">Diagnóstico y Cierre</h3>
                     
                     {% if ticket.solucion_aplicada %}
                     <button type="button"
                             hx-post="{% url 'panel_conocimiento_crear_desde_ticket' ticket.id %}"
                             hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                             hx-confirm="¿Deseas exportar el diagnóstico de este ticket a la Base de Conocimiento?"
-                            class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition">
+                            class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/40 transition">
                         💡 Publicar como Solución
                     </button>
                     {% endif %}
@@ -73,8 +80,9 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm pt-2">
                     <div>
-                        <label class="text-xs font-semibold text-slate-400 block mb-1">Causa Raíz:</label>
-                        <select name="causa_raiz" class="w-full text-xs p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white outline-none font-medium">
+                        <!-- 🍊 Etiqueta secundaria en Naranja -->
+                        <label class="text-xs font-semibold text-slate-400 dark:text-darkTextSub block mb-1">Causa Raíz:</label>
+                        <select name="causa_raiz" class="w-full text-xs p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 font-medium">
                             <option value="">— Selecciona Causa —</option>
                             {% for code, label in ticket.CAUSA_RAIZ_CHOICES %}
                             <option value="{{ code }}" {% if ticket.causa_raiz == code %}selected{% endif %}>{{ label }}</option>
@@ -82,28 +90,31 @@
                         </select>
                     </div>
                     <div>
-                        <label class="text-xs font-semibold text-slate-400 block mb-1">Solución Aplicada:</label>
-                        <textarea name="solucion_aplicada" rows="3" placeholder="Describe los pasos técnicos aplicados..." class="w-full text-xs p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white outline-none resize-none font-medium">{{ ticket.solucion_aplicada|default:'' }}</textarea>
+                        <!-- 🍊 Etiqueta secundaria en Naranja -->
+                        <label class="text-xs font-semibold text-slate-400 dark:text-darkTextSub block mb-1">Solución Aplicada:</label>
+                        <textarea name="solucion_aplicada" rows="3" placeholder="Describe los pasos técnicos aplicados..." class="w-full text-xs p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none resize-none focus:ring-2 focus:ring-amber-500 font-medium">{{ ticket.solucion_aplicada|default:'' }}</textarea>
                     </div>
                 </div>
             </form>
         </div>
 
+        <!-- COLUMNA DERECHA: Controles y Chatter -->
         <div class="space-y-6">
             
-            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
-                <h3 class="text-sm font-semibold text-slate-800 border-b border-slate-100 pb-2">Información de Control</h3>
+            <!-- Caja de Controles de Estado/Asignación -->
+            <div class="bg-white dark:bg-darkPanel rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 space-y-4">
+                <h3 class="text-sm font-semibold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">Información de Control</h3>
                 
                 <div class="space-y-4 text-xs">
                     <div>
-                        <label class="block text-slate-400 font-semibold mb-1">Especialista Asignado:</label>
+                        <label class="block text-slate-400 dark:text-darkTextSub font-semibold mb-1">Especialista Asignado:</label>
                         <select name="usuario_asignado" 
                                 hx-post="{% url 'panel_ticket_detail' ticket.id %}" 
                                 hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                                 hx-target="#chatter-box" 
                                 hx-swap="innerHTML"
                                 hx-indicator="#save-indicator"
-                                class="w-full text-sm p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                                class="w-full text-sm p-2 border border-slate-200 dark:border-slate-700 rounded-lg outline-none bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-amber-500">
                             <option value="">Sin Asignar</option>
                             {% for tec in tecnicos %}
                             <option value="{{ tec.id }}" {% if ticket.usuario_asignado.id == tec.id %}selected{% endif %}>{{ tec.nombre_completo|default:tec.correo_electronico }}</option>
@@ -112,14 +123,14 @@
                     </div>
                     
                     <div>
-                        <label class="block text-slate-400 font-semibold mb-1">Estado / Etapa:</label>
+                        <label class="block text-slate-400 dark:text-darkTextSub font-semibold mb-1">Estado / Etapa:</label>
                         <select name="estado" 
                                 hx-post="{% url 'panel_ticket_detail' ticket.id %}" 
                                 hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                                 hx-target="#chatter-box" 
                                 hx-swap="innerHTML"
                                 hx-indicator="#save-indicator"
-                                class="w-full text-sm p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                                class="w-full text-sm p-2 border border-slate-200 dark:border-slate-700 rounded-lg outline-none bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-amber-500">
                             {% for est in estados %}
                             <option value="{{ est.id }}" {% if ticket.estado.id == est.id %}selected{% endif %}>{{ est.nombre }}</option>
                             {% endfor %}
@@ -127,51 +138,55 @@
                     </div>
                     
                     <div>
-                        <label class="block text-slate-400 font-semibold mb-1">Prioridad de Atención:</label>
+                        <label class="block text-slate-400 dark:text-darkTextSub font-semibold mb-1">Prioridad de Atención:</label>
                         <select name="prioridad" 
                                 hx-post="{% url 'panel_ticket_detail' ticket.id %}" 
                                 hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                                 hx-target="#chatter-box" 
                                 hx-swap="innerHTML"
                                 hx-indicator="#save-indicator"
-                                class="w-full text-sm p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                                class="w-full text-sm p-2 border border-slate-200 dark:border-slate-700 rounded-lg outline-none bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-amber-500">
                             {% for pri in prioridades %}
                             <option value="{{ pri.id }}" {% if ticket.prioridad.id == pri.id %}selected{% endif %}>{{ pri.nombre }}</option>
                             {% endfor %}
                         </select>
                     </div>
 
-                    <div class="pt-2 border-t border-slate-50">
-                        <span class="text-slate-400 font-semibold block mb-0.5">Categoría:</span>
-                        <span class="text-slate-700 font-medium text-xs">{{ ticket.categoria.nombre|default:"—" }}</span>
+                    <div class="pt-2 border-t border-slate-100 dark:border-slate-800">
+                        <span class="text-slate-400 dark:text-slate-500 font-semibold block mb-0.5">Categoría:</span>
+                        <span class="text-slate-700 dark:text-slate-200 font-medium text-xs">{{ ticket.categoria.nombre|default:"—" }}</span>
                     </div>
 
                     <div>
-                        <span class="text-slate-400 font-semibold block mb-0.5">Módulo Afectado:</span>
-                        <span class="text-slate-700 font-medium text-xs">{{ ticket.modulo.nombre|default:"—" }}</span>
+                        <span class="text-slate-400 dark:text-slate-500 font-semibold block mb-0.5">Módulo Afectado:</span>
+                        <span class="text-slate-700 dark:text-slate-200 font-medium text-xs">{{ ticket.modulo.nombre|default:"—" }}</span>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
-                <h3 class="text-sm font-semibold text-slate-800">Historial y Notas</h3>
+            <!-- Caja del Historial (Chatter) -->
+            <div class="bg-white dark:bg-darkPanel rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 space-y-4">
+                <h3 class="text-sm font-semibold text-slate-800 dark:text-white">Historial y Notas</h3>
                 
                 <form hx-post="{% url 'panel_ticket_chatter' ticket.id %}" hx-target="#chatter-box" hx-swap="innerHTML" class="space-y-2" onhtmx:after-request="this.reset()">
                     {% csrf_token %}
                     <textarea name="contenido" rows="2" required placeholder="Escribe un comentario interno..." 
-                              class="w-full text-xs p-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50/50 resize-none"></textarea>
-                    <button type="submit" class="w-full bg-slate-950 hover:bg-slate-800 text-white font-semibold py-2 px-3 rounded-lg text-xs transition shadow-sm">
+                              class="w-full text-xs p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50/50 dark:bg-darkBg/50 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"></textarea>
+                    <button type="submit" class="w-full bg-slate-950 hover:bg-slate-800 dark:bg-amber-500 dark:hover:bg-amber-600 text-white dark:text-slate-950 font-bold py-2 px-3 rounded-lg text-xs transition shadow-sm">
                         Agregar Comentario
                     </button>
                 </form>
 
                 <div id="chatter-box" hx-get="{% url 'panel_ticket_chatter' ticket.id %}" hx-trigger="load" class="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-                    <p class="text-xs text-slate-400 text-center py-4">Cargando notas...</p>
+                    <p class="text-xs text-slate-400 dark:text-darkTextSub/60 text-center py-4">Cargando notas...</p>
                 </div>
             </div>
 
-        </div> </div> </div> <script>
-    // Sincronizar dinámicamente el badge del encabezado al cambiar el estado
+        </div> <!-- Fin Columna Derecha -->
+    </div> <!-- Fin Grid Principal -->
+</div>
+
+<script>
     document.body.addEventListener('htmx:afterOnLoad', function(evt) {
         if (evt.detail.xhr.status === 200 && evt.detail.requestConfig.parameters['estado']) {
             const selectEstado = document.querySelector('select[name="estado"]');

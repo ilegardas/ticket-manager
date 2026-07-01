@@ -1692,3 +1692,65 @@ def panel_usuario_eliminar(request, user_id):
     return redirect('panel_usuarios_list')
 
 
+@login_required
+def panel_usuarios_exportar_excel(request):
+    """
+    📊 EXPORTADOR: Genera un archivo CSV compatible con Excel con codificación
+    Windows-1252 para que las eñes y acentos institucionales se lean correctamente.
+    """
+    if request.user.rol != 'admin':
+        return HttpResponse("No autorizado", status=403)
+
+    # 1. Capturar el filtro actual por si quiere exportar solo lo que buscó
+    query = request.GET.get('q', '').strip()
+    usuarios = Usuario.objects.all().order_by('nombre_completo')
+    
+    if query:
+        usuarios = usuarios.filter(
+            Q(nombre_completo__icontains=query) |
+            Q(correo_electronico__icontains=query) |
+            Q(numero_empleado__icontains=query) |
+            Q(puesto_cargo__icontains=query) |
+            Q(cct__icontains=query)
+        )
+
+    # 2. Configurar la respuesta HTTP para descarga de archivos Excel/CSV
+    response = HttpResponse(content_type='text/csv; charset=windows-1252')
+    response['Content-Disposition'] = 'attachment; filename="reporte_usuarios_seech.csv"'
+
+    # 3. Crear el escritor usando el delimitador nativo de Excel en Windows (punto y coma o coma)
+    # Usamos la codificación 'windows-1252' con 'replace' para evitar errores con caracteres raros
+    writer = csv.writer(response, delimiter=';')
+    
+    # 4. Escribir las cabeceras del reporte
+    writer.writerow([
+        'Nombre Completo', 
+        'Correo Electronico', 
+        'Numero de Empleado', 
+        'Puesto / Cargo', 
+        'CCT', 
+        'Region / Zona', 
+        'Nivel Educativo',
+        'Rol de Acceso', 
+        'Estado'
+    ])
+
+    # 5. Volcar los datos de la base de datos de Railway al archivo
+    for u in usuarios:
+        estado_texto = 'Activo' if u.activo else 'Inactivo'
+        
+        # Codificamos explícitamente a windows-1252 ignorando pérdidas menores de formato
+        writer.writerow([
+            str(u.nombre_completo).encode('windows-1252', 'replace').decode('windows-1252'),
+            str(u.correo_electronico).encode('windows-1252', 'replace').decode('windows-1252'),
+            u.numero_empleado or '',
+            str(u.puesto_cargo or '').encode('windows-1252', 'replace').decode('windows-1252'),
+            u.cct or '',
+            str(u.region_zona or '').encode('windows-1252', 'replace').decode('windows-1252'),
+            str(u.nivel_educativo or '').encode('windows-1252', 'replace').decode('windows-1252'),
+            u.get_rol_display() if hasattr(u, 'get_rol_display') else u.rol,
+            estado_texto
+        ])
+
+    return response
+

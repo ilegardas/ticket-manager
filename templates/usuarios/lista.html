@@ -10,20 +10,20 @@
     </div>
 </div>
 
-<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 dark:border-slate-800 pb-4 gap-4">
-    <div>
-        <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-amber-400">Gestión de Usuarios y Roles</h1>
-        <p class="text-sm text-slate-500 dark:text-slate-300">Administración de personal, asignación de perfiles técnicos y carga masiva.</p>
-    </div>
-    <div>
-        <button hx-get="{% url 'panel_usuario_importar_csv' %}" 
-                hx-target="#body-modal-box" 
-                hx-swap="innerHTML"
-                onclick="openModal()"
-                class="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-amber-500 dark:hover:bg-amber-600 text-white dark:text-slate-950 text-xs font-semibold py-2 px-3 rounded-lg shadow-sm transition">
-            📥 Importar desde CSV
-        </button>
-    </div>
+<div class="flex items-center gap-2">
+    <a href="{% url 'panel_usuarios_exportar_excel' %}"
+       hx-include="[name='q']"
+       class="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white dark:text-slate-950 text-xs font-semibold py-2 px-3 rounded-lg shadow-sm transition">
+        📊 Exportar a Excel
+    </a>
+
+    <button hx-get="{% url 'panel_usuario_importar_csv' %}" 
+            hx-target="#body-modal-box" 
+            hx-swap="innerHTML"
+            onclick="openModal()"
+            class="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-amber-500 dark:hover:bg-amber-600 text-white dark:text-slate-950 text-xs font-semibold py-2 px-3 rounded-lg shadow-sm transition">
+        📥 Importar desde CSV
+    </button>
 </div>
 
 <div class="bg-white dark:bg-darkPanel p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm mt-4">

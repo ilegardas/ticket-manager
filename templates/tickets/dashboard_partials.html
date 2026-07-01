@@ -83,7 +83,7 @@
                 }
             };
 
-            # 🎯 DECLARACIÓN ORDENADA: Definimos la función antes de invocarla
+            // 🎯 DECLARACIÓN ORDENADA: Definimos la función antes de invocarla
             function limpiarYCrearChart(chartId, config) {
                 if (window.misGraficasActivas && window.misGraficasActivas[chartId]) {
                     window.misGraficasActivas[chartId].destroy();
@@ -95,7 +95,7 @@
                 }
             }
 
-            # 🎨 1. Gráfico de Tendencias
+            // 🎨 1. Gráfico de Tendencias
             limpiarYCrearChart('chartTendencias', {
                 type: 'line',
                 data: {
@@ -113,7 +113,7 @@
                 options: chartDefaults
             });
 
-            # 🎨 2. Gráfico de Estados
+            // 🎨 2. Gráfico de Estados
             limpiarYCrearChart('chartEstados', {
                 type: 'doughnut',
                 data: {
@@ -132,7 +132,7 @@
                 }
             });
 
-            # 🎨 3. Gráfico de Sistemas
+            // 🎨 3. Gráfico de Sistemas
             limpiarYCrearChart('chartSistemas', {
                 type: 'bar',
                 data: {
@@ -147,7 +147,7 @@
                 options: chartDefaults
             });
 
-            # 🎨 4. Gráfico de Prioridades
+            // 🎨 4. Gráfico de Prioridades
             limpiarYCrearChart('chartPrioridades', {
                 type: 'bar',
                 data: {

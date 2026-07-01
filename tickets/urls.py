@@ -122,6 +122,7 @@ urlpatterns = [
     path('panel/usuarios/exportar/excel/', views.panel_usuarios_exportar_excel, name='panel_usuarios_exportar_excel'),
     path('panel/tickets/exportar/excel/', views.panel_tickets_exportar_excel, name='panel_tickets_exportar_excel'),
     path('panel/tickets/<int:ticket_id>/recordatorio/', views.panel_ticket_enviar_recordatorio, name='panel_ticket_enviar_recordatorio'),
+    path('panel/usuarios/crear-manual/', views.panel_usuario_crear, name='panel_usuario_crear'),
 
     
     # 🔌 8. ENTRADA DE ROUTER HÍBRIDA TOLERANTE A INTERFERENCIAS

@@ -3,9 +3,13 @@
 {% block title %}Gestión de Usuarios - Ticket Manager{% endblock %}
 
 {% block content %}
-<div id="modal-container"></div>
+<div id="modal-box" class="fixed inset-0 z-50 hidden bg-slate-900/60 dark:bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-darkPanel border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+        <div id="body-modal-box">
+            </div>
+    </div>
+</div>
 
-<!-- Encabezado con contraste optimizado -->
 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 dark:border-slate-800 pb-4 gap-4">
     <div>
         <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-amber-400">Gestión de Usuarios y Roles</h1>
@@ -13,15 +17,15 @@
     </div>
     <div>
         <button hx-get="{% url 'panel_usuario_importar_csv' %}" 
-                hx-target="#modal-container" 
+                hx-target="#body-modal-box" 
                 hx-swap="innerHTML"
+                onclick="openModal()"
                 class="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-amber-500 dark:hover:bg-amber-600 text-white dark:text-slate-950 text-xs font-semibold py-2 px-3 rounded-lg shadow-sm transition">
             📥 Importar desde CSV
         </button>
     </div>
 </div>
 
-<!-- 🔍 Buscador Adaptado al Modo Oscuro -->
 <div class="bg-white dark:bg-darkPanel p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm mt-4">
     <div class="relative">
         <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 dark:text-darkTextSub">🔍</span>
@@ -37,14 +41,12 @@
 
 <br>
 
-<!-- 📦 Contenedor de Tabla Adaptado al Modo Oscuro -->
 <div class="bg-white dark:bg-darkPanel border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
     <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
             <thead>
-                <!-- Cabecera de columnas en gris oscuro para que resalte el texto -->
                 <tr class="bg-slate-50 dark:bg-darkBg/50 border-b border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                    <th class="py-3 px-4">Usuario</th>
+                    <th class="py-3 px-4">Usuario / Cuenta</th>
                     <th class="py-3 px-4">Datos de Adscripción</th>
                     <th class="py-3 px-4">Centro de Trabajo (CCT)</th>
                     <th class="py-3 px-4 text-center">Rol de Acceso</th>
@@ -53,9 +55,28 @@
                 </tr>
             </thead>
             <tbody id="usuarios-table-body" class="divide-y divide-slate-100 dark:divide-slate-800 text-xs text-slate-600 dark:text-slate-300">
-                {% include 'usuarios/partials/usuarios_row.html' with usuario=u %}
+                {% for u in usuarios %}
+                    {% include 'usuarios/partials/usuarios_row.html' with usuario=u %}
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-8 text-slate-400 dark:text-darkTextSub/60">
+                        🚫 No se encontraron usuarios en los registros de la institución.
+                    </td>
+                </tr>
+                {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
+
+<script>
+    function openModal() {
+        document.getElementById('modal-box').classList.remove('hidden');
+    }
+    function closeModal() {
+        document.getElementById('modal-box').classList.add('hidden');
+        document.getElementById('body-modal-box').innerHTML = '';
+    }
+    document.getElementById('modal-box').addEventListener('click', closeModal);
+</script>
 {% endblock %}

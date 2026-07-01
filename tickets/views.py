@@ -781,15 +781,24 @@ def panel_tickets_list(request):
 
 
 
-# 2. AGREGAR NUEVO EXPORTADOR EXCEL
 @login_required
 def panel_tickets_exportar_excel(request):
     """
-    📥 EXPORTADOR EXCEL: Descarga el reporte de tickets respetando el filtro actual del buscador
+    📥 EXPORTADOR INTEGRAL EXCEL: Descarga el reporte de tickets respetando 
+    estrictamente el ordenamiento, buscador y la matriz de filtros cruzados.
     """
+    # 1. Recuperar toda la matriz de parámetros que envía el JS del navegador
     query = request.GET.get('q', '').strip()
+    ordering = request.GET.get('ordering', '-fecha_creacion')
+    asignado_id = request.GET.get('asignado_id')
+    prioridad_id = request.GET.get('prioridad_id')
+    estado_id = request.GET.get('estado_id')
+    impacto = request.GET.get('impacto')
+
+    # QuerySet Base con relaciones cargadas
     qs = Ticket.objects.select_related('sistema', 'modulo', 'estado', 'prioridad', 'usuario_asignado').all()
 
+    # 2. Aplicar el filtro del Buscador (si existe)
     if query:
         qs = qs.filter(
             Q(folio__icontains=query) |
@@ -798,10 +807,31 @@ def panel_tickets_exportar_excel(request):
             Q(usuario_asignado__nombre_completo__icontains=query)
         )
 
-    qs = qs.order_by('-fecha_creacion')
+    # 3. 🎯 FILTROS CRUZADOS ELECTOS: Sincronización exacta con la interfaz
+    if asignado_id:
+        qs = qs.filter(usuario_asignado_id=asignado_id)
+    if prioridad_id:
+        qs = qs.filter(prioridad_id=prioridad_id)
+    if estado_id:
+        qs = qs.filter(estado_id=estado_id)
+    if impacto:
+        qs = qs.filter(impacto_proceso=impacto)
 
+    # 4. 🎯 ORDENAMIENTO DE EXCEL: Aplica el mismo orden de columnas de la pantalla
+    campos_permitidos = [
+        'folio', '-folio', 'titulo', '-titulo', 
+        'usuario_asignado__nombre_completo', '-usuario_asignado__nombre_completo',
+        'prioridad__orden', '-prioridad__orden', 'estado__orden', '-estado__orden',
+        'impacto_proceso', '-impacto_proceso', 'fecha_creacion', '-fecha_creacion'
+    ]
+    if ordering in campos_permitidos:
+        qs = qs.order_by(ordering)
+    else:
+        qs = qs.order_by('-fecha_creacion')
+
+    # 5. Construcción del archivo de salida
     response = HttpResponse(content_type='text/csv; charset=windows-1252')
-    response['Content-Disposition'] = 'attachment; filename="reporte_tickets_mesa.csv"'
+    response['Content-Disposition'] = 'attachment; filename="reporte_tickets_filtrado.csv"'
 
     writer = csv.writer(response, delimiter=';')
     writer.writerow(['Folio', 'Titulo', 'Sistema', 'Modulo', 'Prioridad', 'Estado', 'Impacto', 'Asignado A', 'Fecha Creacion'])

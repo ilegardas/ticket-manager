@@ -3,6 +3,12 @@
 {% block title %}Dashboard de Reportes - Ticket Manager{% endblock %}
 
 {% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Registro global de instancias para poder limpiarlas dinámicamente con HTMX
+    window.misGraficasActivas = window.misGraficasActivas || {};
+</script>
+
 <div class="space-y-6">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-slate-200 dark:border-slate-800 gap-4">
         <div>
@@ -36,10 +42,4 @@
 
     {% include 'tickets/dashboard_partials.html' %}
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    // Contenedor global para almacenar las instancias activas de Chart.js y poder destruirlas al cambiar de fecha
-    window.misGraficasActivas = {};
-</script>
 {% endblock %}

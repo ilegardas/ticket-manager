@@ -175,16 +175,25 @@
 <script>
     function exportarTicketsConFiltro(event) {
         event.preventDefault();
-        const inputBuscador = document.querySelector("input[name='q']");
-        const queryValor = inputBuscador ? inputBuscador.value.trim() : "";
         
-        // Capturamos el ordenamiento del contexto actual de Django
+        // Capturar buscador
+        const queryValor = document.querySelector("input[name='q']")?.value.trim() || "";
+        // Capturar selectores cruzados
+        const asignado = document.querySelector("select[name='asignado_id']")?.value || "";
+        const prioridad = document.querySelector("select[name='prioridad_id']")?.value || "";
+        const estado = document.querySelector("select[name='estado_id']")?.value || "";
+        const impacto = document.querySelector("select[name='impacto']")?.value || "";
+        
         const ordenActual = "{{ current_ordering }}";
         
+        // Construcción dinámica de la URL con parámetros GET cruzados
         let urlDestino = "{% url 'panel_tickets_exportar_excel' %}?ordering=" + ordenActual;
-        if (queryValor) {
-            urlDestino += "&q=" + encodeURIComponent(queryValor);
-        }
+        if (queryValor) urlDestino += "&q=" + encodeURIComponent(queryValor);
+        if (asignado)   urlDestino += "&asignado_id=" + asignado;
+        if (prioridad)  urlDestino += "&prioridad_id=" + prioridad;
+        if (estado)     urlDestino += "&estado_id=" + estado;
+        if (impacto)    urlDestino += "&impacto=" + impacto;
+        
         window.location.href = urlDestino;
     }
 </script>

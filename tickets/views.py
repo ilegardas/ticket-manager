@@ -1195,28 +1195,36 @@ def panel_ticket_add_comentario(request, ticket_id):
 @login_required
 def panel_usuarios_list(request):
     """
-    🖥️ VISTA INTERNA: Listado y buscador de usuarios con filtros de adscripción
+    🔍 LISTADO DE USUARIOS: Soporta búsqueda reactiva mediante HTMX y filtrado regular.
     """
-    # Restricción de seguridad: Solo administradores pueden gestionar usuarios
     if request.user.rol != 'admin':
-        return HttpResponse("No posees los permisos necesarios para ver esta sección.", status=403)
+        return HttpResponse("No autorizado", status=403)
 
+    # 1. Capturamos el texto del buscador
     query = request.GET.get('q', '').strip()
-    usuarios = Usuario.objects.all().order_by('-fecha_registro')
-
+    
+    # 2. Obtenemos el QuerySet base
+    usuarios = Usuario.objects.all().order_by('nombre_completo')
+    
+    # 3. Si el usuario escribió algo, filtramos por múltiples campos institucionales
     if query:
         usuarios = usuarios.filter(
             Q(nombre_completo__icontains=query) |
             Q(correo_electronico__icontains=query) |
             Q(numero_empleado__icontains=query) |
-            Q(cct__icontains=query) |
-            Q(puesto_cargo__icontains=query)
+            Q(puesto_cargo__icontains=query) |
+            Q(cct__icontains=query)
         )
 
-    if request.headers.get('HX-Request'):
-        return render(request, 'usuarios/partials/usuarios_row.html', {'usuarios': usuarios})
+    context = {'usuarios': usuarios}
 
-    return render(request, 'usuarios/lista.html', {'usuarios': usuarios})
+    # 🎯 CLAVE HTMX: Si la petición la hace el buscador en tiempo real, 
+    # solo renderizamos los puros renglones, no toda la página.
+    if request.headers.get('HX-Request'):
+        return render(request, 'usuarios/partials/usuarios_render_search.html', context)
+
+    # Si es una carga normal del navegador, renderiza la página completa
+    return render(request, 'usuarios/lista.html', context)
 
 
 @login_required

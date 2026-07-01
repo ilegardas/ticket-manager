@@ -103,4 +103,23 @@
         window.location.href = urlDestino;
     }
 </script>
+
+<script>
+    function exportarTicketsConFiltro(event) {
+        event.preventDefault();
+        const inputBuscador = document.querySelector("input[name='q']");
+        const queryValor = inputBuscador ? inputBuscador.value.trim() : "";
+        
+        // Capturamos el ordenamiento del contexto actual de Django
+        const ordenActual = "{{ current_ordering }}";
+        
+        let urlDestino = "{% url 'panel_tickets_exportar_excel' %}?ordering=" + ordenActual;
+        if (queryValor) {
+            urlDestino += "&q=" + encodeURIComponent(queryValor);
+        }
+        window.location.href = urlDestino;
+    }
+</script>
+
+
 {% endblock %}

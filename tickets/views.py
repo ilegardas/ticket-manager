@@ -1262,7 +1262,7 @@ def panel_usuario_toggle_activo(request, user_id):
 @login_required
 def panel_usuario_editar(request, user_id):
     """
-    🔄 ACCIÓN / MODAL HTMX: Renderiza el formulario de edición o procesa el cambio
+    🔄 ACCIÓN / MODAL HTMX: Procesa el cambio incluyendo el estado de actividad
     """
     if request.user.rol != 'admin':
         return HttpResponse("No autorizado", status=403)
@@ -1276,12 +1276,17 @@ def panel_usuario_editar(request, user_id):
         usuario.puesto_cargo = request.POST.get("puesto_cargo")
         usuario.nivel_educativo = request.POST.get("nivel_educativo")
         usuario.region_zona = request.POST.get("region_zona")
+        
+        # 🎯 Capturamos el estado y mapeamos el booleano
+        estado_val = request.POST.get("estado")
+        usuario.activo = estado_val in ['True', True, 'Activo']
+        usuario.is_active = usuario.activo # Sincroniza bandera de auth de Django por seguridad
+        
         usuario.save()
         
-        # Le regresamos únicamente la fila limpia renderizada de nuevo
-        return render(request, 'usuarios/partials/usuarios_row.html', {'usuarios': [usuario]})
+        # Le regresamos a HTMX la fila actualizada para que la cambie en caliente
+        return render(request, 'usuarios/partials/usuarios_row.html', {'usuario': usuario})
 
-    # GET: Devuelve el modal de edición
     return render(request, 'usuarios/partials/modal_editar.html', {'usuario': usuario})
 
 

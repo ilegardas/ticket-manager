@@ -1852,9 +1852,9 @@ def _tarea_enviar_correo_async(asunto, html_contenido, remitente, destino):
         "User-Agent": "Django-SEECH-Tickets/1.0"
     }
     
-    # Preparamos el cuerpo de la petición
+    # 🎯 PREPARAMOS EL CUERPO CON TU DOMINIO VERIFICADO
     payload = {
-        "from": "Mesa de Ayuda SEECH <onboarding@resend.dev>",  # O tu dominio verificado en Resend
+        "from": "Mesa de Ayuda SEECH <notificaciones@routripcreator.com>",
         "to": destino,
         "subject": asunto,
         "html": html_contenido

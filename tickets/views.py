@@ -1913,7 +1913,7 @@ def panel_ticket_enviar_recordatorio(request, ticket_id):
         </div>
         <div style="padding: 20px; font-size: 13px; line-height: 1.6; color: #334155;">
             <p>Estimado/a <strong>{ticket.usuario_asignado.nombre_completo}</strong>,</p>
-            <p>Se ha solicitado un estatus prioritario para la siguiente incidencia bajo tu cargo que permanece activa:</p>
+            <p>Este correo es para recordarle que tiene una incidencia bajo su cargo que permanece activa:</p>
             
             <table style="width: 100%; border-collapse: collapse; margin: 15px 0; background-color: #f8fafc; border-radius: 6px;">
                 <tr><td style="padding: 8px; font-weight: bold; width: 120px;">Folio:</td><td style="padding: 8px; font-family: monospace;">{ticket.folio}</td></tr>

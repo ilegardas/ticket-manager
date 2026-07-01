@@ -32,6 +32,71 @@
                    placeholder="Buscar ticket por folio, título, especialista o usuario reportante..." 
                    class="w-full text-sm pl-10 pr-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-amber-500 outline-none transition">
         </div>
+
+        <div class="bg-white dark:bg-darkPanel p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+        <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 dark:text-darkTextSub">🔍</span>
+            <input type="text" 
+                   name="q" 
+                   hx-get="{% url 'panel_tickets_list' %}" 
+                   hx-trigger="keyup changed delay:300ms" 
+                   hx-target="#tickets-table-body" 
+                   hx-include="#filtros-mesa select"
+                   placeholder="Buscar ticket por folio, título, especialista o usuario reportante..." 
+                   class="w-full text-sm pl-10 pr-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-amber-500 outline-none transition">
+        </div>
+
+        <div id="filtros-mesa" class="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-2 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1 text-[10px]">Especialista</label>
+                    <select name="asignado_id" 
+                            hx-get="{% url 'panel_tickets_list' %}" hx-target="#tickets-table-body" hx-include="input[name='q'], #filtros-mesa select"
+                            class="w-full p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-700 dark:text-slate-200 outline-none">
+                        <option value="">— Todos —</option>
+                        {% for tec in tecnicos %}
+                            <option value="{{ tec.id }}">{{ tec.nombre_completo }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+    
+                <div>
+                    <label class="block font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1 text-[10px]">Prioridad</label>
+                    <select name="prioridad_id" 
+                            hx-get="{% url 'panel_tickets_list' %}" hx-target="#tickets-table-body" hx-include="input[name='q'], #filtros-mesa select"
+                            class="w-full p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-700 dark:text-slate-200 outline-none">
+                        <option value="">— Todas —</option>
+                        {% for pri in prioridades %}
+                            <option value="{{ pri.id }}">{{ pri.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+    
+                <div>
+                    <label class="block font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1 text-[10px]">Estado</label>
+                    <select name="estado_id" 
+                            hx-get="{% url 'panel_tickets_list' %}" hx-target="#tickets-table-body" hx-include="input[name='q'], #filtros-mesa select"
+                            class="w-full p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-700 dark:text-slate-200 outline-none">
+                        <option value="">— Todos —</option>
+                        {% for est in estados %}
+                            <option value="{{ est.id }}">{{ est.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+    
+                <div>
+                    <label class="block font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1 text-[10px]">Impacto en Proceso</label>
+                    <select name="impacto" 
+                            hx-get="{% url 'panel_tickets_list' %}" hx-target="#tickets-table-body" hx-include="input[name='q'], #filtros-mesa select"
+                            class="w-full p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-700 dark:text-slate-200 outline-none">
+                        <option value="">— Todos —</option>
+                        <option value="caido_total">🔴 Caído Total</option>
+                        <option value="parcial">🟡 Parcial</option>
+                        <option value="funcional">🟢 Funcional</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
     </div>
 
     <div class="bg-white dark:bg-darkPanel border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">

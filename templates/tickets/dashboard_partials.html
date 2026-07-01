@@ -1,53 +1,49 @@
 <div id="dashboard-contenido" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-    <div class="bg-[#1e232d] p-4 rounded-xl border border-slate-800 shadow-sm">
+    <div class="bg-[#1e232d] p-4 rounded-xl border border-slate-800 shadow-xs">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Tickets</p>
                 <h3 class="text-2xl font-bold text-white mt-1">{{ total_tickets }}</h3>
             </div>
-            <div class="bg-blue-500/10 p-2 rounded-lg text-blue-400">Σ</div>
+            <div class="bg-blue-500/10 p-2 rounded-lg text-blue-400 font-mono text-sm">∑</div>
         </div>
     </div>
-    <div class="bg-[#1e232d] p-4 rounded-xl border border-slate-800 shadow-sm">
+
+    <div class="bg-[#1e232d] p-4 rounded-xl border border-slate-800 shadow-xs">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Pendientes</p>
                 <h3 class="text-2xl font-bold text-amber-500 mt-1">{{ pendientes }}</h3>
             </div>
-            <div class="bg-amber-500/10 p-2 rounded-lg text-amber-500">⏳</div>
+            <div class="bg-amber-500/10 p-2 rounded-lg text-amber-500 text-sm">⏳</div>
         </div>
     </div>
-    <div class="bg-[#1e232d] p-4 rounded-xl border border-slate-800 shadow-sm">
+
+    <div class="bg-[#1e232d] p-4 rounded-xl border border-slate-800 shadow-xs">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Resueltos / Cerrados</p>
                 <h3 class="text-2xl font-bold text-emerald-500 mt-1">{{ resueltos }}</h3>
             </div>
-            <div class="bg-emerald-500/10 p-2 rounded-lg text-emerald-500">✓</div>
+            <div class="bg-emerald-500/10 p-2 rounded-lg text-emerald-500 text-sm">✓</div>
         </div>
     </div>
-    <div class="bg-[#1e232d] p-4 rounded-xl border border-slate-800 shadow-sm">
+
+    <div class="bg-[#1e232d] p-4 rounded-xl border border-slate-800 shadow-xs">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">SLA Cumplido</p>
                 <h3 class="text-2xl font-bold text-blue-400 mt-1">{{ sla_porcentaje }}%</h3>
             </div>
-            <div class="bg-cyan-500/10 p-2 rounded-lg text-cyan-400">⚡</div>
+            <div class="bg-cyan-500/10 p-2 rounded-lg text-cyan-400 text-sm">⚡</div>
         </div>
     </div>
 
     <div class="col-span-1 md:col-span-3 bg-[#1e232d] p-4 rounded-xl border border-slate-800">
-        <div id="grafica-tendencia-container">
-             </div>
-    </div>
-    <div class="col-span-1 bg-[#1e232d] p-4 rounded-xl border border-slate-800">
-        <div id="grafica-dona-container">
-             </div>
-    </div>
+        <div class="text-xs font-bold text-slate-400 mb-2">Tendencia de Creación de Tickets</div>
+        </div>
 
-    <script>
-        // Si tus gráficas se dibujan mediante funciones JS, 
-        // puedes ejecutarlas aquí para que se redibujen con los nuevos datos filtrados
-        // ejemplo: inicializarGraficas({{ datos_grafica_json }});
-    </script>
+    <div class="col-span-1 bg-[#1e232d] p-4 rounded-xl border border-slate-800">
+        <div class="text-xs font-bold text-slate-400 mb-2">Tickets por Estado</div>
+        </div>
 </div>

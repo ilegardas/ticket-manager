@@ -906,52 +906,60 @@ def panel_ticket_chatter(request, pk):
 @login_required
 def panel_dashboard(request):
     """
-    🖥️ VISTA INTERNA: Procesa contadores y series de datos agrupadas para renderizar gráficos
+    📊 CONTROLADOR DEL DASHBOARD: Filtra dinámicamente las métricas y gráficas
+    basado en un rango de fechas. Soporta renderizado parcial mediante HTMX.
     """
-    # 1. KPIs Generales
-    total_tickets = Ticket.objects.count()
-    pendientes = Ticket.objects.exclude(estado__nombre__icontains='cerrado').exclude(estado__nombre__icontains='resuelto').count()
-    resueltos = total_tickets - pendientes
+    # 1. Capturar parámetros de fecha o asignar rango por defecto (últimos 30 días)
+    fecha_inicio_str = request.GET.get('fecha_inicio')
+    fecha_fin_str = request.GET.get('fecha_fin')
 
-    # 2. Agrupación por Estado
-    estados_qs = Ticket.objects.values('estado__nombre').annotate(total=Count('id')).order_by('-total')
-    estados_labels = [item['estado__nombre'] or 'Sin Estado' for item in estados_qs]
-    estados_valores = [item['total'] for item in estados_qs]
+    if fecha_inicio_str:
+        fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+    else:
+        fecha_inicio = (timezone.now() - timedelta(days=30)).date()
 
-    # 3. Agrupación por Sistema
-    sistemas_qs = Ticket.objects.values('sistema__nombre').annotate(total=Count('id')).order_by('-total')[:10]
-    sistemas_labels = [item['sistema__nombre'] or 'Sin Sistema' for item in sistemas_qs]
-    sistemas_valores = [item['total'] for item in sistemas_qs]
+    if fecha_fin_str:
+        fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
+    else:
+        fecha_fin = timezone.now().date()
 
-    # 4. Agrupación por Prioridad
-    prioridades_qs = Ticket.objects.values('prioridad__nombre').annotate(total=Count('id')).order_by('-total')
-    prioridades_labels = [item['prioridad__nombre'] or 'Sin Prioridad' for item in prioridades_qs]
-    prioridades_valores = [item['total'] for item in prioridades_qs]
+    # 2. Filtrar el QuerySet base por el rango seleccionado
+    # Ajusta 'fecha_creacion' si tu modelo de Ticket tiene otro nombre de campo
+    tickets_filtrados = Ticket.objects.filter(
+        fecha_creacion__date__range=[fecha_inicio, fecha_fin]
+    )
 
-    # 5. Tendencia de los últimos 7 días
-    tendencias_labels = []
-    tendencias_valores = []
-    hoy = timezone.now().date()
-    for i in range(6, -1, -1):
-        dia = hoy - timedelta(days=i)
-        cant = Ticket.objects.filter(fecha_creacion__date=dia).count()
-        tendencias_labels.append(dia.strftime('%d/%m'))
-        tendencias_valores.append(cant)
+    # 3. Calcular las métricas basadas en el filtro
+    total_tickets = tickets_filtrados.count()
+    pendientes = tickets_filtrados.filter(~Q(estado__es_estado_cierre=True)).count() # Filtra los no cerrados
+    resueltos = tickets_filtrados.filter(estado__es_estado_cierre=True).count()
+    
+    # Ejemplo de cálculo de SLA (Ajusta la lógica a tus necesidades reales)
+    tickets_con_sla = tickets_filtrados.filter(sla_cumplido=True).count()
+    sla_porcentaje = int((tickets_con_sla / total_tickets) * 100) if total_tickets > 0 else 100
+
+    # 4. Datos para las Gráficas (Ejemplo de conteo por estado para la dona)
+    # Reutiliza la lógica de diccionarios/listas que ya le pasas a Chart.js o ApexCharts
+    tickets_por_estado = tickets_filtrados.values('estado__nombre', 'estado__color').annotate(total=Count('id'))
 
     context = {
         'total_tickets': total_tickets,
         'pendientes': pendientes,
         'resueltos': resueltos,
-        'estados_labels': estados_labels,
-        'estados_valores': estados_valores,
-        'sistemas_labels': sistemas_labels,
-        'sistemas_valores': sistemas_valores,
-        'prioridades_labels': prioridades_labels,
-        'prioridades_valores': prioridades_valores,
-        'tendencias_labels': tendencias_labels,
-        'tendencias_valores': tendencias_valores,
+        'sla_porcentaje': sla_porcentaje,
+        'fecha_inicio': fecha_inicio.strftime('%Y-%m-%d'),
+        'fecha_fin': fecha_fin.strftime('%Y-%m-%d'),
+        # Pasa aquí tus estructuras de datos para las gráficas...
     }
-    return render(request, 'tickets/dashboard.html', context)
+
+    # 🎯 CLAVE HTMX: Si la petición viene del filtro de fechas, solo re-renderizamos el contenido
+    if request.headers.get('HX-Request'):
+        return render(request, 'tickets/dashboard_partials.html', context)
+
+    # Carga completa ordinaria de la página
+    return render(request, 'tickets/panel_dashboard.html', context)
+
+
 
 @login_required
 def panel_ticket_create(request):

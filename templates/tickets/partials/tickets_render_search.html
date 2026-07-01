@@ -54,8 +54,9 @@
             {% if tk.usuario_asignado and not tk.estado.es_estado_cierre %}
                 <button 
                     hx-post="{% url 'panel_ticket_enviar_recordatorio' tk.id %}?from_list=true"
+                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                     hx-swap="outerHTML"
-                    hx-confirm="¿Estás seguro de enviar un recordatorio urgente al especialista para el folio {{ tk.folio }}?"
+                    hx-confirm="¿Estás seguro de enviar un recordatorio al especialista para el folio {{ tk.folio }}?"
                     class="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-bold border cursor-pointer bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 transition duration-150 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20 dark:hover:bg-amber-500/20"
                     title="Enviar alerta urgente de recordatorio">
                     ⚡ Alerta

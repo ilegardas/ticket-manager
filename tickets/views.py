@@ -1893,16 +1893,26 @@ def panel_ticket_enviar_recordatorio(request, ticket_id):
         contenido=f"🔔 Se envió una alerta de recordatorio urgente al especialista {ticket.usuario_asignado.nombre_completo} para acelerar la atención del folio. ({email_status})"
     )
 
-    # 5. RETORNAR EL FRAGMENTO ACTUALIZADO DEL CHATTER (Reutilizando tu bloque HTMX existente)
-    # Buscamos todas las notas del ticket ordenadas para repintar la caja trasera en caliente
-    notas = ticket.chatter.all().order_by('-fecha_creacion')
+   # =========================================================================
+    # 5. RETORNAR EL FRAGMENTO ACTUALIZADO DEL CHATTER REURGENTE (CORREGIDO)
+    # =========================================================================
+    # Forzamos una consulta limpia de las notas asociadas directamente a este ticket
+    notas = ChatterEntry.objects.filter(ticket=ticket).order_by('-fecha_creacion')
     
     html_output = ""
     for nota in notas:
-        is_sistema = (nota.tipo == 'sistema')
-        bg_class = "bg-slate-50/60 dark:bg-[#13161c]/40 border-slate-100 dark:border-slate-800 text-slate-500 dark:text-orange-500 font-medium" if is_sistema else "bg-white dark:bg-[#252a34] border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200"
-        autor_name = "🤖 Sistema" if is_sistema else (nota.autor.nombre_completo if nota.autor else "Usuario")
-        fecha = nota.fecha_creacion.strftime("%d/%m/%Y %H:%M")
+        # Evaluamos de forma segura los atributos del objeto nota real
+        is_sistema = getattr(nota, 'tipo', 'nota') == 'sistema'
+        
+        if is_sistema:
+            bg_class = "bg-slate-50/60 dark:bg-[#13161c]/40 border-slate-100 dark:border-slate-800 text-slate-500 dark:text-orange-500 font-medium"
+            autor_name = "🤖 Sistema"
+        else:
+            bg_class = "bg-white dark:bg-[#252a34] border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200"
+            autor_name = nota.autor.nombre_completo if (hasattr(nota, 'autor') and nota.autor) else "Usuario"
+            
+        fecha = nota.fecha_creacion.strftime("%d/%m/%Y %H:%M") if hasattr(nota, 'fecha_creacion') else "—"
+        contenido_nota = getattr(nota, 'contenido', '')
         
         html_output += f"""
         <div class="p-3 rounded-lg border text-xs transition duration-150 {bg_class}">
@@ -1910,9 +1920,10 @@ def panel_ticket_enviar_recordatorio(request, ticket_id):
                 <span>{autor_name}</span>
                 <span class="text-slate-400 dark:text-slate-500 font-mono text-[10px]">{fecha}</span>
             </div>
-            <p class="whitespace-pre-wrap leading-relaxed pl-0.5">{nota.contenido}</p>
+            <p class="whitespace-pre-wrap leading-relaxed pl-0.5">{contenido_nota}</p>
         </div>
         """
+        
     return HttpResponse(html_output)
 
 

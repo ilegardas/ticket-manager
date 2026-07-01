@@ -14,6 +14,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from datetime import timedelta, datetime
+from django.core.mail import EmailMessage
 
 import csv
 import io
@@ -1827,21 +1828,20 @@ def panel_usuarios_exportar_excel(request):
 @require_http_methods(["POST"])
 def panel_ticket_enviar_recordatorio(request, ticket_id):
     """
-    🔔 ACCIÓN HTMX: Despacha una alerta por correo al especialista asignado 
-    usando Resend e inserta la bitácora del movimiento en el Chatter.
+    🔔 ACCIÓN HTMX: Despacha una alerta utilizando el motor SMTP nativo de Django
     """
     ticket = get_object_or_404(Ticket, pk=ticket_id)
 
-    # 1. Validación de seguridad operativa
     if not ticket.usuario_asignado:
         return HttpResponse("El ticket no tiene un especialista asignado.", status=400)
         
     if ticket.estado and ticket.estado.es_estado_cierre:
-        return HttpResponse("No se puede enviar recordatorios a un ticket cerrado o resuelto.", status=400)
+        return HttpResponse("No se puede enviar recordatorios a un ticket cerrado.", status=400)
 
-    # 2. Redacción técnica del correo institucional (Estructura HTML)
     asunto = f"🚨 RECORDATORIO URGENTE: Ticket Pendiente [{ticket.folio}]"
-    
+    correo_destino = ticket.usuario_asignado.correo_electronico or ticket.usuario_asignado.email
+
+    # (Mantenemos exactamente tu misma plantilla HTML estructurada)
     html_contenido = f"""
     <div style="font-family: sans-serif; max-width: 600px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
         <div style="background-color: #f59e0b; padding: 20px; color: #0f172a; font-weight: bold; font-size: 16px;">
@@ -1860,7 +1860,7 @@ def panel_ticket_enviar_recordatorio(request, ticket_id):
                 <tr><td style="padding: 8px; font-weight: bold;">Reportó:</td><td style="padding: 8px;">{ticket.usuario_reporta.nombre_completo if ticket.usuario_reporta else 'Usuario'}</td></tr>
             </table>
             
-            <p style="margin-top: 15px;">Por favor, ingresa a la plataforma institucional para registrar tus bitácoras de diagnóstico, causa raíz o proceder con el cierre técnico.</p>
+            <p style="margin-top: 15px;">Por favor, ingresa a la plataforma institucional para registrar tus avances.</p>
         </div>
         <div style="background-color: #f1f5f9; padding: 12px; text-align: center; font-size: 11px; color: #64748b;">
             Sistema de Tickets SEECH • Generado por {request.user.nombre_completo}
@@ -1868,74 +1868,37 @@ def panel_ticket_enviar_recordatorio(request, ticket_id):
     </div>
     """
 
-
-    
-    # =========================================================================
-    # 3. Lanzar el correo mediante tu módulo importado de Resend
-    # =========================================================================
-    correo_destino = ticket.usuario_asignado.correo_electronico or ticket.usuario_asignado.email
-    
+    # 🎯 3. ENVIAR CORREO CON EL MOTOR NATIVO DE DJANGO
     try:
-        # 🎯 OPCIÓN A: Si tu archivo resend_email.py usa una función llamada send_email en lugar de send_html_email:
-        # resend_email.send_email(to=correo_destino, subject=asunto, html=html_contenido)
+        email = EmailMessage(
+            subject=asunto,
+            body=html_contenido,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[correo_destino]
+        )
+        email.content_subtype = "html" # Le decimos a Django que lleva diseño HTML
+        email.send(fail_silently=False) # Lanza el error real si falla el SMTP
         
-        # 🎯 OPCIÓN B (La más segura si tienes instalada la librería oficial de Resend en el entorno):
-        import resend
-        # Si ya tienes configurada tu API Key global en settings o variables de entorno:
-        if hasattr(settings, 'RESEND_API_KEY'):
-            resend.api_key = settings.RESEND_API_KEY
-            
-        resend.Emails.send({
-            "from": "Mesa de Ayuda <onboarding@resend.dev>", # O tu correo de dominio verificado
-            "to": correo_destino,
-            "subject": asunto,
-            "html": html_contenido
-        })
-        email_status = "Enviado exitosamente vía Resend API."
-        
+        email_status = "Enviado exitosamente por el servidor SMTP de Django."
     except Exception as e:
-        # Si la opción B falla porque usas el script personalizado 'resend_email.py', 
-        # intentamos llamar a su método genérico pasándole los parámetros limpios:
-        try:
-            # Intentamos llamarlo de forma dinámica por si tu función se llama diferente en resend_email.py
-            if hasattr(resend_email, 'send_email'):
-                resend_email.send_email(correo_destino, asunto, html_contenido)
-                email_status = "Enviado exitosamente usando resend_email.send_email."
-            else:
-                # Si de plano no encontramos la función, tiramos el error para el log
-                raise AttributeError("No se encontró una función de envío compatible en resend_email.py")
-        except Exception as e_inner:
-            print(f"🚨 Alerta de Resend no despachada: {str(e_inner)}")
-            email_status = f"Registrado internamente (Fallo de despacho: {str(e_inner)})"
+        print(f"🚨 Falla en el SMTP de Django: {str(e)}")
+        email_status = f"Registrado internamente (Fallo SMTP: {str(e)})"
 
-    
-
-    # 4. Inyectar la bitácora directamente en el Chatter de la Base de Datos
+    # 4. Registrar en la bitácora del Chatter
     ChatterEntry.objects.create(
         ticket=ticket,
-        tipo='sistema',  # Marcado como evento automático del sistema
+        tipo='sistema',
         autor=request.user,
         contenido=f"🔔 Se envió una alerta de recordatorio urgente al especialista {ticket.usuario_asignado.nombre_completo} para acelerar la atención del folio. ({email_status})"
     )
 
-   # =========================================================================
-    # 5. RETORNAR EL FRAGMENTO ACTUALIZADO DEL CHATTER REURGENTE (CORREGIDO)
-    # =========================================================================
-    # Forzamos una consulta limpia de las notas asociadas directamente a este ticket
+    # 5. Volcar las notas actualizadas de vuelta a HTMX para pintar la pantalla en caliente
     notas = ChatterEntry.objects.filter(ticket=ticket).order_by('-fecha_creacion')
-    
     html_output = ""
     for nota in notas:
-        # Evaluamos de forma segura los atributos del objeto nota real
         is_sistema = getattr(nota, 'tipo', 'nota') == 'sistema'
-        
-        if is_sistema:
-            bg_class = "bg-slate-50/60 dark:bg-[#13161c]/40 border-slate-100 dark:border-slate-800 text-slate-500 dark:text-orange-500 font-medium"
-            autor_name = "🤖 Sistema"
-        else:
-            bg_class = "bg-white dark:bg-[#252a34] border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200"
-            autor_name = nota.autor.nombre_completo if (hasattr(nota, 'autor') and nota.autor) else "Usuario"
-            
+        bg_class = "bg-slate-50/60 dark:bg-[#13161c]/40 border-slate-100 dark:border-slate-800 text-slate-500 dark:text-orange-500 font-medium" if is_sistema else "bg-white dark:bg-[#252a34] border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200"
+        autor_name = "🤖 Sistema" if is_sistema else (nota.autor.nombre_completo if nota.autor else "Usuario")
         fecha = nota.fecha_creacion.strftime("%d/%m/%Y %H:%M") if hasattr(nota, 'fecha_creacion') else "—"
         contenido_nota = getattr(nota, 'contenido', '')
         
@@ -1948,9 +1911,7 @@ def panel_ticket_enviar_recordatorio(request, ticket_id):
             <p class="whitespace-pre-wrap leading-relaxed pl-0.5">{contenido_nota}</p>
         </div>
         """
-        
     return HttpResponse(html_output)
-
 
 
 

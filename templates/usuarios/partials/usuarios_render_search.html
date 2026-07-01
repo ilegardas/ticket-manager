@@ -1,0 +1,9 @@
+{% for u in usuarios %}
+    {% include 'usuarios/partials/usuarios_row.html' with usuario=u %}
+{% empty %}
+<tr>
+    <td colspan="6" class="text-center py-8 text-slate-400 dark:text-darkTextSub/60">
+        🚫 No se encontraron usuarios que coincidan con la búsqueda.
+    </td>
+</tr>
+{% endfor %}

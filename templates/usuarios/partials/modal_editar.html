@@ -1,53 +1,69 @@
-<div class="fixed inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4" id="modal-edit">
-    <div class="bg-white dark:bg-darkPanel rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        <div class="bg-slate-50 dark:bg-darkBg px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
-            <h3 class="text-sm font-bold text-slate-800 dark:text-amber-400">✏️ Editar Información de Personal</h3>
-            <button onclick="document.getElementById('modal-edit').remove()" class="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 font-bold text-lg">×</button>
-        </div>
+<div class="p-6 space-y-4">
+    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <h3 class="text-sm font-bold text-slate-900 dark:text-amber-400 uppercase tracking-wide">
+            📝 Editar Expediente de Usuario
+        </h3>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white font-bold text-sm">✕</button>
+    </div>
+
+    <form hx-post="{% url 'panel_usuario_editar' usuario.id %}" hx-target="this" hx-swap="outerHTML" class="space-y-4 text-xs">
+        {% csrf_token %}
         
-        <form hx-post="{% url 'panel_usuario_editar' usuario.id %}" 
-              hx-target="#user-row-{{ usuario.id }}" 
-              hx-swap="outerHTML"
-              hx-on::after-request="if(event.detail.xhr.status === 200) document.getElementById('modal-edit').remove()"
-              class="p-6 space-y-4">
-            {% csrf_token %}
+        <div>
+            <label class="block font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1">Nombre Completo</label>
+            <input type="text" name="nombre_completo" required value="{{ usuario.nombre_completo }}"
+                   class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1">Puesto / Cargo</label>
+                <input type="text" name="puesto_cargo" value="{{ usuario.puesto_cargo|default:'' }}" placeholder="Ej. Jefe de Departamento"
+                       class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none">
+            </div>
+            <div>
+                <label class="block font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1">Número de Empleado</label>
+                <input type="text" name="numero_empleado" value="{{ usuario.numero_empleado|default:'' }}" placeholder="Ej. 45091"
+                       class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none">
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1">Centro de Trabajo (CCT)</label>
+                <input type="text" name="cct" value="{{ usuario.cct|default:'' }}" placeholder="Ej. 08DPR0000X"
+                       class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none">
+            </div>
+            <div>
+                <label class="block font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1">Región / Zona</label>
+                <input type="text" name="region_zona" value="{{ usuario.region_zona|default:'' }}" placeholder="Ej. Chihuahua"
+                       class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none">
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1">Nivel Educativo</label>
+                <input type="text" name="nivel_educativo" value="{{ usuario.nivel_educativo|default:'' }}" placeholder="Ej. Primaria / Secundarias"
+                       class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none">
+            </div>
             
             <div>
-                <label class="block text-xs font-bold text-slate-500 dark:text-darkTextSub mb-1">Nombre Completo</label>
-                <input type="text" name="nombre_completo" value="{{ usuario.nombre_completo }}" required class="w-full text-xs p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-amber-500">
+                <label class="block font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1">Estado del Acceso</label>
+                <select name="estado" class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-amber-500 font-semibold">
+                    <option value="True" {% if usuario.activo or usuario.is_active %}selected{% endif %}>🟢 Cuenta Activa</option>
+                    <option value="False" {% if not usuario.activo and not usuario.is_active %}selected{% endif %}>🔴 Inactivo / Bloqueado</option>
+                </select>
             </div>
+        </div>
 
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 dark:text-darkTextSub mb-1">Número de Empleado</label>
-                    <input type="text" name="numero_empleado" value="{{ usuario.numero_empleado|default:'' }}" class="w-full text-xs p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-amber-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 dark:text-darkTextSub mb-1">CCT</label>
-                    <input type="text" name="cct" value="{{ usuario.cct|default:'' }}" class="w-full text-xs p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-amber-500 font-mono">
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-xs font-bold text-slate-500 dark:text-darkTextSub mb-1">Puesto o Cargo</label>
-                <input type="text" name="puesto_cargo" value="{{ usuario.puesto_cargo|default:'' }}" class="w-full text-xs p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-amber-500">
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 dark:text-darkTextSub mb-1">Nivel Educativo</label>
-                    <input type="text" name="nivel_educativo" value="{{ usuario.nivel_educativo|default:'' }}" class="w-full text-xs p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-amber-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 dark:text-darkTextSub mb-1">Región / Zona</label>
-                    <input type="text" name="region_zona" value="{{ usuario.region_zona|default:'' }}" class="w-full text-xs p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-amber-500">
-                </div>
-            </div>
-
-            <div class="flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
-                <button type="button" onclick="document.getElementById('modal-edit').remove()" class="px-4 py-2 bg-slate-100 dark:bg-darkBg text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg text-xs font-semibold">Cancelar</button>
-                <button type="submit" class="px-4 py-2 bg-slate-950 dark:bg-amber-500 hover:bg-slate-800 dark:hover:bg-amber-600 text-white dark:text-slate-950 rounded-lg text-xs font-bold shadow-sm transition">Guardar Cambios</button>
-            </div>
-        </form>
-    </div>
+        <div class="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-100 dark:bg-darkBg text-slate-600 dark:text-slate-300 rounded-lg font-semibold hover:bg-slate-200 dark:hover:bg-slate-800 transition">
+                Cancelar
+            </button>
+            <button type="submit" onclick="setTimeout(closeModal, 400)" class="px-4 py-2 bg-blue-600 dark:bg-amber-500 text-white dark:text-slate-950 rounded-lg font-bold hover:bg-blue-500 dark:hover:bg-amber-600 transition">
+                💾 Guardar Cambios
+            </button>
+        </div>
+    </form>
 </div>

@@ -41,21 +41,35 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <!-- Fila: Nivel Educativo, Estado de la Cuenta y 🎭 ROL DE ACCESO (NUEVO) -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
                 <label class="block font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1">Nivel Educativo</label>
-                <input type="text" name="nivel_educativo" value="{{ usuario.nivel_educativo|default:'' }}" placeholder="Ej. Primaria / Secundarias"
+                <input type="text" name="nivel_educativo" value="{{ usuario.nivel_educativo|default:'' }}" placeholder="Ej. Primaria"
                        class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none">
             </div>
             
+            <!-- Selector de Estado -->
             <div>
-                <label class="block font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1">Estado del Acceso</label>
+                <label class="block font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1">Estado</label>
                 <select name="estado" class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-amber-500 font-semibold">
-                    <option value="True" {% if usuario.activo or usuario.is_active %}selected{% endif %}>🟢 Cuenta Activa</option>
-                    <option value="False" {% if not usuario.activo and not usuario.is_active %}selected{% endif %}>🔴 Inactivo / Bloqueado</option>
+                    <option value="True" {% if usuario.activo or usuario.is_active %}selected{% endif %}>🟢 Activo</option>
+                    <option value="False" {% if not usuario.activo and not usuario.is_active %}selected{% endif %}>🔴 Inactivo</option>
+                </select>
+            </div>
+
+            <!-- 🎯 NUEVO: Selector de Perfil / Rol de Acceso -->
+            <div>
+                <label class="block font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1">Perfil / Rol</label>
+                <select name="rol" class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-amber-500 font-semibold">
+                    <option value="usuario" {% if usuario.rol == 'usuario' %}selected{% endif %}>👤 Usuario</option>
+                    <option value="tecnico" {% if usuario.rol == 'tecnico' %}selected{% endif %}>🛠️ Técnico</option>
+                    <option value="admin" {% if usuario.rol == 'admin' %}selected{% endif %}>🔮 Admin</option>
                 </select>
             </div>
         </div>
+
+        
 
         <div class="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
             <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-100 dark:bg-darkBg text-slate-600 dark:text-slate-300 rounded-lg font-semibold hover:bg-slate-200 dark:hover:bg-slate-800 transition">

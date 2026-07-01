@@ -1868,7 +1868,7 @@ def panel_ticket_enviar_recordatorio(request, ticket_id):
     </div>
     """
 
-    # 🎯 3. ENVIAR CORREO CON EL MOTOR NATIVO DE DJANGO
+   # 🎯 3. ENVIAR CORREO CON EL MOTOR NATIVO DE DJANGO
     try:
         email = EmailMessage(
             subject=asunto,
@@ -1876,13 +1876,20 @@ def panel_ticket_enviar_recordatorio(request, ticket_id):
             from_email=settings.DEFAULT_FROM_EMAIL,
             to=[correo_destino]
         )
-        email.content_subtype = "html" # Le decimos a Django que lleva diseño HTML
-        email.send(fail_silently=False) # Lanza el error real si falla el SMTP
+        email.content_subtype = "html"
+        email.send(fail_silently=False) 
         
         email_status = "Enviado exitosamente por el servidor SMTP de Django."
     except Exception as e:
-        print(f"🚨 Falla en el SMTP de Django: {str(e)}")
-        email_status = f"Registrado internamente (Fallo SMTP: {str(e)})"
+        # 🔍 ¡ESTA LÍNEA ES LA CLAVE! 
+        # Forzamos a que el error se imprima con lujo de detalle en el log de Railway
+        import traceback
+        print("🚨 --- ERROR CRÍTICO EN SMTP DE GMAIL ---")
+        traceback.print_exc() 
+        print("🚨 ---------------------------------------")
+        
+        # Devolvemos un error explícito para que HTMX no se quede esperando un 200
+        return HttpResponse(f"Error al enviar correo: {str(e)}", status=500)
 
     # 4. Registrar en la bitácora del Chatter
     ChatterEntry.objects.create(

@@ -9,7 +9,12 @@
             <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-amber-400">Mesa de Trabajo</h1>
             <p class="text-sm text-slate-500 dark:text-slate-300">Monitoreo técnico de incidencias, asignación de folios y tiempos de respuesta.</p>
         </div>
-        <div>
+        <div class="flex items-center gap-2">
+            <a href="#" onclick="exportarTicketsConFiltro(event)" 
+               class="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white dark:text-slate-950 text-xs font-bold py-2 px-4 rounded-lg shadow-sm transition">
+                📊 Exportar a Excel
+            </a>
+            
             <a href="{% url 'panel_ticket_create' %}" class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 dark:bg-amber-500 dark:hover:bg-amber-600 text-white dark:text-slate-950 text-xs font-bold py-2 px-4 rounded-lg shadow-sm transition">
                 ➕ Levantar Nuevo Ticket
             </a>
@@ -39,82 +44,29 @@
                         <th class="py-3 px-4">Especialista Asignado</th>
                         <th class="py-3 px-4 text-center">Prioridad</th>
                         <th class="py-3 px-4 text-center">Estado</th>
-                        <th class="py-3 px-4 text-center">Impacto</th> <th class="py-3 px-4 text-center">Acción</th>
+                        <th class="py-3 px-4 text-center">Impacto</th> 
+                        <th class="py-3 px-4 text-center">Acción</th>
                     </tr>
                 </thead>
                 <tbody id="tickets-table-body" class="divide-y divide-slate-100 dark:divide-slate-800 text-xs text-slate-600 dark:text-slate-300">
-                    {% for tk in tickets %}
-                    <tr class="hover:bg-slate-50/50 dark:hover:bg-darkBg/40 transition">
-                        <td class="py-3 px-4">
-                            <a href="{% url 'panel_ticket_detail' tk.id %}" class="block font-mono font-bold text-blue-600 dark:text-darkTextSub text-sm hover:underline hover:text-blue-800 dark:hover:text-amber-400 transition">
-                                {{ tk.folio }}
-                            </a>
-                            <div class="text-[10px] text-slate-400 dark:text-slate-500 font-mono mt-0.5">{{ tk.fecha_creacion|date:"d/m/Y H:i" }}</div>
-                        </td>
-
-                        <td class="py-3 px-4 max-w-xs md:max-w-sm">
-                            <div class="font-bold text-slate-900 dark:text-slate-100 truncate">{{ tk.titulo }}</div>
-                            <div class="text-[11px] text-slate-400 dark:text-slate-400 mt-0.5 truncate flex items-center gap-1.5">
-                                <span class="font-semibold text-slate-500 dark:text-slate-300">{{ tk.sistema.nombre|default:"Sin Sistema" }}</span> 
-                                {% if tk.modulo %}<span>/ {{ tk.modulo.nombre }}</span>{% endif %}
-                                <span class="text-[10px] text-slate-400 dark:text-slate-600 font-medium lowercase bg-slate-100 dark:bg-darkBg px-1.5 py-0.2 rounded border dark:border-slate-800">via: {{ tk.medio_ingreso|default:"portal" }}</span>
-                            </div>
-                        </td>
-
-                        <td class="py-3 px-4">
-                            {% if tk.usuario_asignado %}
-                            <div class="font-medium text-slate-700 dark:text-slate-200">{{ tk.usuario_asignado.nombre_completo }}</div>
-                            {% else %}
-                            <div class="text-slate-400 dark:text-slate-500 italic">⚠️ Sin asignar</div>
-                            {% endif %}
-                        </td>
-
-                        <td class="py-3 px-4 text-center">
-                            <span class="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-bold border"
-                                  style="background-color: {{ tk.prioridad.color }}15; color: {{ tk.prioridad.color }}; border-color: {{ tk.prioridad.color }}35">
-                                {{ tk.prioridad.nombre }}
-                            </span>
-                        </td>
-
-                        <td class="py-3 px-4 text-center">
-                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold border shadow-xs"
-                                  style="background-color: {{ tk.estado.color }}15; color: {{ tk.estado.color }}; border-color: {{ tk.estado.color }}35">
-                                {{ tk.estado.nombre }}
-                            </span>
-                        </td>
-
-                        <td class="py-3 px-4 text-center">
-                            {% if tk.impacto_proceso == 'caido_total' or tk.impacto == 'caido_total' %}
-                                <span class="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-bold bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900/40 shadow-xs">
-                                    🔴 Caído Total
-                                </span>
-                            {% elif tk.impacto_proceso == 'parcial' or tk.impacto == 'parcial' %}
-                                <span class="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-bold bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/40 shadow-xs">
-                                    🟡 Parcial
-                                </span>
-                            {% else %}
-                                <span class="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/40 shadow-xs">
-                                    🟢 Funcional
-                                </span>
-                            {% endif %}
-                        </td>
-
-                        <td class="py-3 px-4 text-center">
-                            <a href="{% url 'panel_ticket_detail' tk.id %}" class="text-blue-600 dark:text-amber-400 hover:text-blue-800 dark:hover:text-amber-300 font-bold transition hover:underline">
-                                👁️ Ver
-                            </a>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="7" class="text-center py-8 text-slate-400 dark:text-darkTextSub/60">
-                            🚫 No se encontraron tickets registrados en la mesa de ayuda.
-                        </td>
-                    </tr>
-                    {% endfor %}
+                    {% include 'tickets/partials/tickets_render_search.html' %}
                 </tbody>
             </table>
         </div>
     </div>
 </div>
+
+<script>
+    function exportarTicketsConFiltro(event) {
+        event.preventDefault();
+        const inputBuscador = document.querySelector("input[name='q']");
+        const queryValor = inputBuscador ? inputBuscador.value.trim() : "";
+        
+        let urlDestino = "{% url 'panel_tickets_exportar_excel' %}";
+        if (queryValor) {
+            urlDestino += "?q=" + encodeURIComponent(queryValor);
+        }
+        window.location.href = urlDestino;
+    }
+</script>
 {% endblock %}

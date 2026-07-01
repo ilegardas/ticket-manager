@@ -1827,15 +1827,16 @@ def panel_usuarios_exportar_excel(request):
 
 def _tarea_enviar_correo_async(asunto, html_contenido, remitente, destino):
     """
-    🧵 HILO SECUNDARIO OPTIMIZADO: Envía el correo mediante la API HTTP de Resend (Puerto 443).
-    Se salta por completo el bloqueo de sockets [Errno 101] de Railway.
+    🧵 HILO SECUNDARIO ULTRA-SEGURO: Envía el correo mediante la API HTTP de Resend (Puerto 443)
+    utilizando urllib nativo de Python para garantizar CERO errores de ModuleNotFoundError.
     """
-    # 🎯 IMPORTACIÓN LOCAL SEGURA PARA EVITAR EL NAMEERROR
-    import requests
+    # 🎯 IMPORTS NATIVOS (Vienen incluidos por defecto en Python)
+    import urllib.request
+    import urllib.error
     import json
     from django.conf import settings
     
-    # Recuperamos la API Key de tus variables de entorno de Django/settings
+    # Recuperamos la API Key de tus variables de Railway
     api_key = getattr(settings, 'EMAIL_HOST_PASSWORD', '') 
     
     if not api_key or api_key.startswith('smtp'):
@@ -1844,11 +1845,14 @@ def _tarea_enviar_correo_async(asunto, html_contenido, remitente, destino):
 
     url = "https://api.resend.com/emails"
     
+    # Preparamos las cabeceras estándar
     headers = {
         "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "User-Agent": "Django-SEECH-Tickets/1.0"
     }
     
+    # Preparamos el cuerpo de la petición
     payload = {
         "from": "Mesa de Ayuda SEECH <onboarding@resend.dev>",  # O tu dominio verificado en Resend
         "to": destino,
@@ -1857,16 +1861,27 @@ def _tarea_enviar_correo_async(asunto, html_contenido, remitente, destino):
     }
 
     try:
-        # Enviamos como una petición web normal (HTTPS)
-        response = requests.post(url, headers=headers, data=json.dumps(payload), timeout=10)
+        # Convertimos el diccionario a un string JSON codificado en bytes
+        data_bytes = json.dumps(payload).encode('utf-8')
         
-        if response.status_code in [200, 201]:
-            print(f"🚀 [API SUCCESS] Recordatorio entregado por HTTP exitosamente a: {destino}")
-        else:
-            print(f"🚨 [API REJECT] Resend rechazó el correo: Status {response.status_code} - {response.text}")
+        # Estructuramos la petición HTTP Request nativa
+        req = urllib.request.Request(url, data=data_bytes, headers=headers, method="POST")
+        
+        # Disparamos la petición por el puerto seguro web 443
+        with urllib.request.urlopen(req, timeout=10) as response:
+            status_code = response.getcode()
+            response_body = response.read().decode('utf-8')
             
+            if status_code in [200, 201]:
+                print(f"🚀 [API SUCCESS] Recordatorio entregado vía HTTP Nativo a: {destino}")
+            else:
+                print(f"🚨 [API REJECT] Resend respondió con código anómalo {status_code}: {response_body}")
+                
+    except urllib.error.HTTPError as e:
+        # Capturamos errores específicos devueltos por el servidor de Resend (ej: 401 Unauthorized)
+        print(f"🚨 [HTTP ERROR] Resend rechazó la solicitud (Status {e.code}): {e.read().decode('utf-8')}")
     except Exception as e:
-        print(f"🚨 [HTTP FATAL ERROR] Fallo crítico en la petición web: {str(e)}")
+        print(f"🚨 [NATIVE FATAL ERROR] Fallo crítico de conexión en urllib: {str(e)}")
 
 
 

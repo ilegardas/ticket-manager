@@ -1868,22 +1868,47 @@ def panel_ticket_enviar_recordatorio(request, ticket_id):
     </div>
     """
 
+
+    
+    # =========================================================================
     # 3. Lanzar el correo mediante tu módulo importado de Resend
-    # Nota: Si el especialista tiene un correo real, se le envía; si estás en pruebas, puedes poner settings.DEFAULT_FROM_EMAIL
+    # =========================================================================
     correo_destino = ticket.usuario_asignado.correo_electronico or ticket.usuario_asignado.email
     
     try:
-        # Usamos la función de tu archivo 'resend_email.py' que ya maneja la llave API de Resend
-        resend_email.send_html_email(
-            to_email=correo_destino,
-            subject=asunto,
-            html_content=html_contenido
-        )
-        email_status = "Enviado exitosamente vía Resend."
+        # 🎯 OPCIÓN A: Si tu archivo resend_email.py usa una función llamada send_email en lugar de send_html_email:
+        # resend_email.send_email(to=correo_destino, subject=asunto, html=html_contenido)
+        
+        # 🎯 OPCIÓN B (La más segura si tienes instalada la librería oficial de Resend en el entorno):
+        import resend
+        # Si ya tienes configurada tu API Key global en settings o variables de entorno:
+        if hasattr(settings, 'RESEND_API_KEY'):
+            resend.api_key = settings.RESEND_API_KEY
+            
+        resend.Emails.send({
+            "from": "Mesa de Ayuda <onboarding@resend.dev>", # O tu correo de dominio verificado
+            "to": correo_destino,
+            "subject": asunto,
+            "html": html_contenido
+        })
+        email_status = "Enviado exitosamente vía Resend API."
+        
     except Exception as e:
-        # Fallback de seguridad por si la API key de Resend no está lista, para que guarde el Chatter de todas formas
-        print(f"🚨 Alerta de Resend no despachada: {str(e)}")
-        email_status = f"Registrado internamente (Fallo de despacho: {str(e)})"
+        # Si la opción B falla porque usas el script personalizado 'resend_email.py', 
+        # intentamos llamar a su método genérico pasándole los parámetros limpios:
+        try:
+            # Intentamos llamarlo de forma dinámica por si tu función se llama diferente en resend_email.py
+            if hasattr(resend_email, 'send_email'):
+                resend_email.send_email(correo_destino, asunto, html_contenido)
+                email_status = "Enviado exitosamente usando resend_email.send_email."
+            else:
+                # Si de plano no encontramos la función, tiramos el error para el log
+                raise AttributeError("No se encontró una función de envío compatible en resend_email.py")
+        except Exception as e_inner:
+            print(f"🚨 Alerta de Resend no despachada: {str(e_inner)}")
+            email_status = f"Registrado internamente (Fallo de despacho: {str(e_inner)})"
+
+    
 
     # 4. Inyectar la bitácora directamente en el Chatter de la Base de Datos
     ChatterEntry.objects.create(

@@ -906,10 +906,10 @@ def panel_ticket_chatter(request, pk):
 @login_required
 def panel_dashboard(request):
     """
-    📊 CONTROLADOR DEL DASHBOARD: Filtra dinámicamente las métricas y gráficas
-    basado en un rango de fechas. Soporta renderizado parcial mediante HTMX.
+    📊 DASHBOARD DE REPORTES: Calcula métricas en base a un rango de fechas.
+    Soporta recargas parciales asíncronas con HTMX.
     """
-    # 1. Capturar parámetros de fecha o asignar rango por defecto (últimos 30 días)
+    # Capturar parámetros GET o asignar los últimos 30 días por defecto
     fecha_inicio_str = request.GET.get('fecha_inicio')
     fecha_fin_str = request.GET.get('fecha_fin')
 
@@ -923,24 +923,20 @@ def panel_dashboard(request):
     else:
         fecha_fin = timezone.now().date()
 
-    # 2. Filtrar el QuerySet base por el rango seleccionado
-    # Ajusta 'fecha_creacion' si tu modelo de Ticket tiene otro nombre de campo
+    # QuerySet base amarrado al filtro estricto de fechas
     tickets_filtrados = Ticket.objects.filter(
         fecha_creacion__date__range=[fecha_inicio, fecha_fin]
     )
 
-    # 3. Calcular las métricas basadas en el filtro
+    # Conteos rápidos para las tarjetas
     total_tickets = tickets_filtrados.count()
-    pendientes = tickets_filtrados.filter(~Q(estado__es_estado_cierre=True)).count() # Filtra los no cerrados
+    pendientes = tickets_filtrados.filter(~Q(estado__es_estado_cierre=True)).count()
     resueltos = tickets_filtrados.filter(estado__es_estado_cierre=True).count()
     
-    # Ejemplo de cálculo de SLA (Ajusta la lógica a tus necesidades reales)
-    tickets_con_sla = tickets_filtrados.filter(sla_cumplido=True).count()
+    # Cálculo de SLA (ejemplo genérico, adáptalo a tus booleanos si aplica)
+    # Si no tienes el campo 'sla_cumplido', pon una constante o quítalo de la tarjeta
+    tickets_con_sla = tickets_filtrados.filter(sla_cumplido=True).count() if hasattr(Ticket, 'sla_cumplido') else total_tickets
     sla_porcentaje = int((tickets_con_sla / total_tickets) * 100) if total_tickets > 0 else 100
-
-    # 4. Datos para las Gráficas (Ejemplo de conteo por estado para la dona)
-    # Reutiliza la lógica de diccionarios/listas que ya le pasas a Chart.js o ApexCharts
-    tickets_por_estado = tickets_filtrados.values('estado__nombre', 'estado__color').annotate(total=Count('id'))
 
     context = {
         'total_tickets': total_tickets,
@@ -949,14 +945,13 @@ def panel_dashboard(request):
         'sla_porcentaje': sla_porcentaje,
         'fecha_inicio': fecha_inicio.strftime('%Y-%m-%d'),
         'fecha_fin': fecha_fin.strftime('%Y-%m-%d'),
-        # Pasa aquí tus estructuras de datos para las gráficas...
     }
 
-    # 🎯 CLAVE HTMX: Si la petición viene del filtro de fechas, solo re-renderizamos el contenido
+    # 🎯 SI LA PETICIÓN ES HTMX: Devolvemos únicamente el fragmento central
     if request.headers.get('HX-Request'):
         return render(request, 'tickets/dashboard_partials.html', context)
 
-    # Carga completa ordinaria de la página
+    # Carga inicial completa de la página corporativa
     return render(request, 'tickets/panel_dashboard.html', context)
 
 

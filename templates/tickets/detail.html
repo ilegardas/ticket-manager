@@ -164,14 +164,15 @@
                     </div>
                     <div>
                     {% if ticket.usuario_asignado and not ticket.estado.es_estado_cierre %}
-                        <button hx-post="{% url 'panel_ticket_enviar_recordatorio' ticket.id %}"
-                                hx-target="#chatter-box"
-                                hx-swap="innerHTML"
-                                hx-confirm="¿Quieres enviarle una alerta de recordatorio a {{ ticket.usuario_asignado.nombre_completo }}?"
-                                class="inline-flex items-center gap-1.5 w-full justify-center bg-amber-500 hover:bg-amber-600 dark:bg-amber-500 dark:hover:bg-amber-600 text-slate-950 text-xs font-bold py-2 px-4 rounded-lg shadow-sm transition mt-2">
-                            🔔 Enviar Recordatorio Urgente
-                        </button>
-                        {% endif %}
+                    <button hx-post="{% url 'panel_ticket_enviar_recordatorio' ticket.id %}"
+                            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                            hx-target="#chatter-box"
+                            hx-swap="innerHTML"
+                            hx-confirm="¿Quieres enviarle una alerta de recordatorio a {{ ticket.usuario_asignado.nombre_completo }}?"
+                            class="inline-flex items-center gap-1.5 w-full justify-center bg-amber-500 hover:bg-amber-600 dark:bg-amber-500 dark:hover:bg-amber-600 text-slate-950 text-xs font-bold py-2 px-4 rounded-lg shadow-sm transition mt-2">
+                        🔔 Enviar Recordatorio Urgente
+                    </button>
+                    {% endif %}
                     </div>    
                     
                 </div>

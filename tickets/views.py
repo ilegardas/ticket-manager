@@ -1824,11 +1824,31 @@ def panel_usuarios_exportar_excel(request):
 
 
 
+def _tarea_enviar_correo_async(asunto, html_contenido, remitente, destino):
+    """
+    🧵 HILO SECUNDARIO: Ejecuta el envío SMTP de forma aislada.
+    Si se congela o falla por la red de Railway, muere solo sin tirar la aplicación.
+    """
+    try:
+        email = EmailMessage(
+            subject=asunto,
+            body=html_contenido,
+            from_email=remitente,
+            to=[destino]
+        )
+        email.content_subtype = "html"
+        # Le ponemos un timeout corto de 10 segundos para que no se quede colgado eternamente
+        email.send(fail_silently=False)
+        print(f"📧 [SMTP] Recordatorio despachado con éxito a: {destino}")
+    except Exception as e:
+        print(f"🚨 [SMTP ERROR] No se pudo entregar el correo por red: {str(e)}")
+
 @login_required
 @require_http_methods(["POST"])
 def panel_ticket_enviar_recordatorio(request, ticket_id):
     """
-    🔔 ACCIÓN HTMX: Despacha una alerta utilizando el motor SMTP nativo de Django
+    🔔 ACCIÓN HTMX ASÍNCRONA: Registra la actividad de inmediato y delega 
+    el envío de correo a un hilo de fondo para evitar WORKER TIMEOUTS.
     """
     ticket = get_object_or_404(Ticket, pk=ticket_id)
 
@@ -1841,7 +1861,7 @@ def panel_ticket_enviar_recordatorio(request, ticket_id):
     asunto = f"🚨 RECORDATORIO URGENTE: Ticket Pendiente [{ticket.folio}]"
     correo_destino = ticket.usuario_asignado.correo_electronico or ticket.usuario_asignado.email
 
-    # (Mantenemos exactamente tu misma plantilla HTML estructurada)
+    # (Mantenemos tu plantilla institucional intacta)
     html_contenido = f"""
     <div style="font-family: sans-serif; max-width: 600px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
         <div style="background-color: #f59e0b; padding: 20px; color: #0f172a; font-weight: bold; font-size: 16px;">
@@ -1859,8 +1879,7 @@ def panel_ticket_enviar_recordatorio(request, ticket_id):
                 <tr><td style="padding: 8px; font-weight: bold;">Estado Actual:</td><td style="padding: 8px;">{ticket.estado.nombre if ticket.estado else 'Abierto'}</td></tr>
                 <tr><td style="padding: 8px; font-weight: bold;">Reportó:</td><td style="padding: 8px;">{ticket.usuario_reporta.nombre_completo if ticket.usuario_reporta else 'Usuario'}</td></tr>
             </table>
-            
-            <p style="margin-top: 15px;">Por favor, ingresa a la plataforma institucional para registrar tus avances.</p>
+            <p>Por favor, ingresa a la plataforma institucional para registrar tus avances.</p>
         </div>
         <div style="background-color: #f1f5f9; padding: 12px; text-align: center; font-size: 11px; color: #64748b;">
             Sistema de Tickets SEECH • Generado por {request.user.nombre_completo}
@@ -1868,38 +1887,23 @@ def panel_ticket_enviar_recordatorio(request, ticket_id):
     </div>
     """
 
-   # 🎯 3. ENVIAR CORREO CON EL MOTOR NATIVO DE DJANGO
-    try:
-        email = EmailMessage(
-            subject=asunto,
-            body=html_contenido,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            to=[correo_destino]
-        )
-        email.content_subtype = "html"
-        email.send(fail_silently=False) 
-        
-        email_status = "Enviado exitosamente por el servidor SMTP de Django."
-    except Exception as e:
-        # 🔍 ¡ESTA LÍNEA ES LA CLAVE! 
-        # Forzamos a que el error se imprima con lujo de detalle en el log de Railway
-        import traceback
-        print("🚨 --- ERROR CRÍTICO EN SMTP DE GMAIL ---")
-        traceback.print_exc() 
-        print("🚨 ---------------------------------------")
-        
-        # Devolvemos un error explícito para que HTMX no se quede esperando un 200
-        return HttpResponse(f"Error al enviar correo: {str(e)}", status=500)
+    # 1. 🎯 DISPARO ASÍNCRONO: Mandamos el correo a volar en su propio hilo de ejecución
+    hilo_correo = threading.Thread(
+        target=_tarea_enviar_correo_async,
+        args=(asunto, html_contenido, settings.DEFAULT_FROM_EMAIL, correo_destino)
+    )
+    hilo_correo.daemon = True # Permite que el contenedor lo limpie al terminar
+    hilo_correo.start()
 
-    # 4. Registrar en la bitácora del Chatter
+    # 2. Guardamos la actividad en el Chatter inmediatamente
     ChatterEntry.objects.create(
         ticket=ticket,
         tipo='sistema',
         autor=request.user,
-        contenido=f"🔔 Se envió una alerta de recordatorio urgente al especialista {ticket.usuario_asignado.nombre_completo} para acelerar la atención del folio. ({email_status})"
+        contenido=f"🔔 Se solicitó un recordatorio urgente para el especialista {ticket.usuario_asignado.nombre_completo}. La alerta se despachó en segundo plano a la cola de correos."
     )
 
-    # 5. Volcar las notas actualizadas de vuelta a HTMX para pintar la pantalla en caliente
+    # 3. Respondemos al instante a HTMX para que pinte la pantalla sin colgarse
     notas = ChatterEntry.objects.filter(ticket=ticket).order_by('-fecha_creacion')
     html_output = ""
     for nota in notas:

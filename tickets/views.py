@@ -698,27 +698,21 @@ def compat_ticket_detail(request, pk):
 @login_required
 def panel_tickets_list(request):
     """
-    🖥️ VISTA INTERNA: Soporta búsqueda, filtros de estado y ORDENAMIENTO dinámico por columnas.
+    🖥️ VISTA INTERNA: Mesa de trabajo con soporte total de ordenamiento multivariable.
     """
     filtrar = request.GET.get('filtrar', '')
     query = request.GET.get('q', '').strip()
-    
-    # 1. Capturamos el parámetro de ordenamiento (por defecto ordenamos por fecha de creación descendente)
     ordering = request.GET.get('ordering', '-fecha_creacion')
     
     qs = Ticket.objects.select_related(
         'sistema', 'modulo', 'prioridad', 'estado', 'usuario_asignado'
     ).all()
 
-    titulo_panel = "Panel Global de Tickets"
     if filtrar == 'pendientes':
         qs = qs.exclude(estado__nombre__icontains='cerrado').exclude(estado__nombre__icontains='resuelto')
-        titulo_panel = "Tickets Pendientes (Abiertos)"
     elif filtrar == 'resueltos':
         qs = qs.filter(Q(estado__nombre__icontains='cerrado') | Q(estado__nombre__icontains='resuelto'))
-        titulo_panel = "Tickets Resueltos / Cerrados"
 
-    # 🔍 Aplicamos buscador
     if query:
         qs = qs.filter(
             Q(folio__icontains=query) |
@@ -727,9 +721,17 @@ def panel_tickets_list(request):
             Q(usuario_asignado__nombre_completo__icontains=query)
         )
 
-    # 🎯 Aplicamos el ordenamiento dinámico de Django
-    # Validamos que sea un campo permitido para evitar errores de inyección maliciosa
-    campos_permitidos = ['folio', '-folio', 'titulo', '-titulo', 'usuario_asignado__nombre_completo', '-usuario_asignado__nombre_completo', 'fecha_creacion', '-fecha_creacion']
+    # 🎯 1. Expandimos la matriz de campos de ordenamiento permitidos
+    campos_permitidos = [
+        'folio', '-folio', 
+        'titulo', '-titulo', 
+        'usuario_asignado__nombre_completo', '-usuario_asignado__nombre_completo',
+        'prioridad__orden', '-prioridad__orden',
+        'estado__orden', '-estado__orden',
+        'impacto_proceso', '-impacto_proceso',
+        'fecha_creacion', '-fecha_creacion'
+    ]
+    
     if ordering in campos_permitidos:
         qs = qs.order_by(ordering)
     else:
@@ -737,15 +739,17 @@ def panel_tickets_list(request):
 
     tickets = qs[:100]
     
-    # 2. Lógica para calcular el "siguiente orden" que usará la plantilla al dar clic
+    # 🎯 2. Mapeamos los siguientes estados alternantes para la cabecera HTML
     context = {
         'tickets': tickets,
         'titulo_panel': titulo_panel,
         'current_ordering': ordering,
-        # Si el orden actual es ascendente, el siguiente será descendente (con el signo menos)
         'next_folio': '-folio' if ordering == 'folio' else 'folio',
         'next_titulo': '-titulo' if ordering == 'titulo' else 'titulo',
         'next_asignado': '-usuario_asignado__nombre_completo' if ordering == 'usuario_asignado__nombre_completo' else 'usuario_asignado__nombre_completo',
+        'next_prioridad': '-prioridad__orden' if ordering == 'prioridad__orden' else 'prioridad__orden',
+        'next_estado': '-estado__orden' if ordering == 'estado__orden' else 'estado__orden',
+        'next_impacto': '-impacto_proceso' if ordering == 'impacto_proceso' else 'impacto_proceso',
     }
 
     if request.headers.get('HX-Request'):

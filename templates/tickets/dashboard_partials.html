@@ -66,11 +66,39 @@
         </div>
     </div>
 <script>
-   // 🎨 1. Gráfico de Tendencias
+        (function() {
+            const isDark = document.documentElement.classList.contains('dark');
+            const labelColor = isDark ? '#94a3b8' : '#64748b';
+            const gridColor = isDark ? '#334155' : '#f1f5f9';
+
+            const chartDefaults = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { color: labelColor, font: { family: 'Inter', size: 11 } } }
+                },
+                scales: {
+                    x: { grid: { color: gridColor }, ticks: { color: labelColor, font: { family: 'Inter' } } },
+                    y: { grid: { color: gridColor }, ticks: { color: labelColor, font: { family: 'Inter' } } }
+                }
+            };
+
+            # 🎯 DECLARACIÓN ORDENADA: Definimos la función antes de invocarla
+            function limpiarYCrearChart(chartId, config) {
+                if (window.misGraficasActivas && window.misGraficasActivas[chartId]) {
+                    window.misGraficasActivas[chartId].destroy();
+                }
+                const canvasElement = document.getElementById(chartId);
+                if (canvasElement) {
+                    const ctx = canvasElement.getContext('2d');
+                    window.misGraficasActivas[chartId] = new Chart(ctx, config);
+                }
+            }
+
+            # 🎨 1. Gráfico de Tendencias
             limpiarYCrearChart('chartTendencias', {
                 type: 'line',
                 data: {
-                    // 🎯 Agregamos el fallback de array vacío si viene nulo
                     labels: {{ tendencias_labels|safe|default:"[]" }},
                     datasets: [{
                         label: 'Tickets Creados',
@@ -85,7 +113,7 @@
                 options: chartDefaults
             });
 
-            // 🎨 2. Gráfico de Estados
+            # 🎨 2. Gráfico de Estados
             limpiarYCrearChart('chartEstados', {
                 type: 'doughnut',
                 data: {
@@ -104,7 +132,7 @@
                 }
             });
 
-            // 🎨 3. Gráfico de Sistemas
+            # 🎨 3. Gráfico de Sistemas
             limpiarYCrearChart('chartSistemas', {
                 type: 'bar',
                 data: {
@@ -119,7 +147,7 @@
                 options: chartDefaults
             });
 
-            // 🎨 4. Gráfico de Prioridades
+            # 🎨 4. Gráfico de Prioridades
             limpiarYCrearChart('chartPrioridades', {
                 type: 'bar',
                 data: {
@@ -142,4 +170,5 @@
                     }
                 }
             });
-</script>
+        })();
+    </script>

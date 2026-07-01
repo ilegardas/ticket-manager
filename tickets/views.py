@@ -1814,3 +1814,96 @@ def panel_usuarios_exportar_excel(request):
 
     return response
 
+
+
+@login_required
+@require_http_methods(["POST"])
+def panel_ticket_enviar_recordatorio(request, ticket_id):
+    """
+    🔔 ACCIÓN HTMX: Despacha una alerta por correo al especialista asignado 
+    usando Resend e inserta la bitácora del movimiento en el Chatter.
+    """
+    ticket = get_object_or_404(Ticket, pk=ticket_id)
+
+    # 1. Validación de seguridad operativa
+    if not ticket.usuario_asignado:
+        return HttpResponse("El ticket no tiene un especialista asignado.", status=400)
+        
+    if ticket.estado and ticket.estado.es_estado_cierre:
+        return HttpResponse("No se puede enviar recordatorios a un ticket cerrado o resuelto.", status=400)
+
+    # 2. Redacción técnica del correo institucional (Estructura HTML)
+    asunto = f"🚨 RECORDATORIO URGENTE: Ticket Pendiente [{ticket.folio}]"
+    
+    html_contenido = f"""
+    <div style="font-family: sans-serif; max-width: 600px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+        <div style="background-color: #f59e0b; padding: 20px; color: #0f172a; font-weight: bold; font-size: 16px;">
+            ⚠️ Recordatorio de Atención - Mesa de Ayuda SEECH
+        </div>
+        <div style="padding: 20px; font-size: 13px; line-height: 1.6; color: #334155;">
+            <p>Estimado/a <strong>{ticket.usuario_asignado.nombre_completo}</strong>,</p>
+            <p>Se ha solicitado un estatus prioritario para la siguiente incidencia bajo tu cargo que permanece activa:</p>
+            
+            <table style="width: 100%; border-collapse: collapse; margin: 15px 0; background-color: #f8fafc; border-radius: 6px;">
+                <tr><td style="padding: 8px; font-weight: bold; width: 120px;">Folio:</td><td style="padding: 8px; font-family: monospace;">{ticket.folio}</td></tr>
+                <tr><td style="padding: 8px; font-weight: bold;">Título:</td><td style="padding: 8px;">{ticket.titulo}</td></tr>
+                <tr><td style="padding: 8px; font-weight: bold;">Sistema:</td><td style="padding: 8px;">{ticket.sistema.nombre if ticket.sistema else 'General'}</td></tr>
+                <tr><td style="padding: 8px; font-weight: bold;">Prioridad:</td><td style="padding: 8px; color: {ticket.prioridad.color if ticket.prioridad else '#000'}; font-weight: bold;">{ticket.prioridad.nombre if ticket.prioridad else 'Normal'}</td></tr>
+                <tr><td style="padding: 8px; font-weight: bold;">Estado Actual:</td><td style="padding: 8px;">{ticket.estado.nombre if ticket.estado else 'Abierto'}</td></tr>
+                <tr><td style="padding: 8px; font-weight: bold;">Reportó:</td><td style="padding: 8px;">{ticket.usuario_reporta.nombre_completo if ticket.usuario_reporta else 'Usuario'}</td></tr>
+            </table>
+            
+            <p style="margin-top: 15px;">Por favor, ingresa a la plataforma institucional para registrar tus bitácoras de diagnóstico, causa raíz o proceder con el cierre técnico.</p>
+        </div>
+        <div style="background-color: #f1f5f9; padding: 12px; text-align: center; font-size: 11px; color: #64748b;">
+            Sistema de Tickets SEECH • Generado por {request.user.nombre_completo}
+        </div>
+    </div>
+    """
+
+    # 3. Lanzar el correo mediante tu módulo importado de Resend
+    # Nota: Si el especialista tiene un correo real, se le envía; si estás en pruebas, puedes poner settings.DEFAULT_FROM_EMAIL
+    correo_destino = ticket.usuario_asignado.correo_electronico or ticket.usuario_asignado.email
+    
+    try:
+        # Usamos la función de tu archivo 'resend_email.py' que ya maneja la llave API de Resend
+        resend_email.send_html_email(
+            to_email=correo_destino,
+            subject=asunto,
+            html_content=html_contenido
+        )
+        email_status = "Enviado exitosamente vía Resend."
+    except Exception as e:
+        # Fallback de seguridad por si la API key de Resend no está lista, para que guarde el Chatter de todas formas
+        print(f"🚨 Alerta de Resend no despachada: {str(e)}")
+        email_status = f"Registrado internamente (Fallo de despacho: {str(e)})"
+
+    # 4. Inyectar la bitácora directamente en el Chatter de la Base de Datos
+    ChatterEntry.objects.create(
+        ticket=ticket,
+        tipo='sistema',  # Marcado como evento automático del sistema
+        autor=request.user,
+        contenido=f"🔔 Se envió una alerta de recordatorio urgente al especialista {ticket.usuario_asignado.nombre_completo} para acelerar la atención del folio. ({email_status})"
+    )
+
+    # 5. RETORNAR EL FRAGMENTO ACTUALIZADO DEL CHATTER (Reutilizando tu bloque HTMX existente)
+    # Buscamos todas las notas del ticket ordenadas para repintar la caja trasera en caliente
+    notas = ticket.chatter.all().order_by('-fecha_creacion')
+    
+    html_output = ""
+    for nota in notas:
+        is_sistema = (nota.tipo == 'sistema')
+        bg_class = "bg-slate-50/60 dark:bg-[#13161c]/40 border-slate-100 dark:border-slate-800 text-slate-500 dark:text-orange-500 font-medium" if is_sistema else "bg-white dark:bg-[#252a34] border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200"
+        autor_name = "🤖 Sistema" if is_sistema else (nota.autor.nombre_completo if nota.autor else "Usuario")
+        fecha = nota.fecha_creacion.strftime("%d/%m/%Y %H:%M")
+        
+        html_output += f"""
+        <div class="p-3 rounded-lg border text-xs transition duration-150 {bg_class}">
+            <div class="flex items-center justify-between font-semibold mb-1 text-[11px]">
+                <span>{autor_name}</span>
+                <span class="text-slate-400 dark:text-slate-500 font-mono text-[10px]">{fecha}</span>
+            </div>
+            <p class="whitespace-pre-wrap leading-relaxed pl-0.5">{nota.contenido}</p>
+        </div>
+        """
+    return HttpResponse(html_output)

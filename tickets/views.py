@@ -1907,3 +1907,56 @@ def panel_ticket_enviar_recordatorio(request, ticket_id):
         </div>
         """
     return HttpResponse(html_output)
+
+
+
+
+@login_required
+def panel_usuario_crear(request):
+    """
+    ➕ VISTA / MODAL HTMX: Renderiza el formulario de alta manual o procesa la creación
+    """
+    if request.user.rol != 'admin':
+        return HttpResponse("No autorizado", status=403)
+
+    if request.method == "POST":
+        correo = request.POST.get("correo_electronico", "").strip()
+        nombre = request.POST.get("nombre_completo", "").strip()
+        num_emp = request.POST.get("numero_empleado", "").strip()
+        puesto = request.POST.get("puesto_cargo", "").strip()
+        cct_val = request.POST.get("cct", "").strip()
+        region = request.POST.get("region_zona", "").strip()
+        nivel = request.POST.get("nivel_educativo", "").strip()
+        rol_val = request.POST.get("rol", "usuario")
+
+        if not correo or not nombre:
+            return HttpResponse("El correo y el nombre son obligatorios.", status=400)
+
+        # Evitar duplicados por correo electrónico
+        if Usuario.objects.filter(correo_electronico=correo).exists():
+            return HttpResponse('<script>alert("❌ Error: Este correo ya se encuentra registrado.");</script>', status=200)
+
+        # Crear el registro en la base de datos de Railway
+        nuevo_usuario = Usuario.objects.create(
+            correo_electronico=correo,
+            nombre_completo=nombre,
+            numero_empleado=num_emp if num_emp else None,
+            puesto_cargo=puesto if puesto else None,
+            cct=cct_val if cct_val else None,
+            region_zona=region if region else None,
+            nivel_educativo=nivel if nivel else None,
+            rol=rol_val,
+            activo=True,
+            is_staff=True if rol_val == 'admin' else False
+        )
+        
+        # Configurar contraseña inicial por defecto
+        password_inicial = num_emp if num_emp else "Seech2026*"
+        nuevo_usuario.set_password(password_inicial)
+        nuevo_usuario.save()
+
+        # Provocamos que la página completa se refresque para pintar al nuevo integrante en orden
+        return HttpResponse('<script>window.location.reload();</script>')
+
+    # GET: Devuelve el fragmento HTML para inyectar en el modal box
+    return render(request, 'usuarios/partials/modal_crear.html')

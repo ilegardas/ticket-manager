@@ -695,38 +695,90 @@ def compat_ticket_detail(request, pk):
 
 #Inicia ruteo a vistas dentro de django 
 
+# 1. ACTUALIZAR LISTADO EXISTENTE
 @login_required
 def panel_tickets_list(request):
     """
-    🖥️ VISTA INTERNA: Muestra el listado permitiendo filtrar por clic desde el Dashboard
+    🖥️ VISTA INTERNA: Muestra el listado permitiendo filtrar de forma reactiva con HTMX y buscador.
     """
     filtrar = request.GET.get('filtrar', '')
+    query = request.GET.get('q', '').strip()
     
-    # Base del QuerySet optimizado
     qs = Ticket.objects.select_related(
         'sistema', 'modulo', 'prioridad', 'estado', 'usuario_asignado'
     ).all()
 
-    # Aplicamos filtros dinámicos según la tarjeta clickeada
     titulo_panel = "Panel Global de Tickets"
     if filtrar == 'pendientes':
         qs = qs.exclude(estado__nombre__icontains='cerrado').exclude(estado__nombre__icontains='resuelto')
         titulo_panel = "Tickets Pendientes (Abiertos)"
     elif filtrar == 'resueltos':
-        from django.db.models import Q
         qs = qs.filter(Q(estado__nombre__icontains='cerrado') | Q(estado__nombre__icontains='resuelto'))
         titulo_panel = "Tickets Resueltos / Cerrados"
 
+    # 🔍 Aplicamos buscador si se escribe en el input
+    if query:
+        qs = qs.filter(
+            Q(folio__icontains=query) |
+            Q(titulo__icontains=query) |
+            Q(descripcion__icontains=query) |
+            Q(usuario_asignado__nombre_completo__icontains=query)
+        )
+
     tickets = qs.order_by('-fecha_creacion')[:100]
     
-    return render(request, 'tickets/list.html', {
+    context = {
         'tickets': tickets,
         'titulo_panel': titulo_panel
-    })
+    }
+
+    # 🎯 Si la petición viene de HTMX, regresamos SOLO los renglones limpios
+    if request.headers.get('HX-Request'):
+        return render(request, 'tickets/partials/tickets_render_search.html', context)
+        
+    return render(request, 'tickets/list.html', context)
 
 
-# 🎯 Declaración explícita global para este bloque de vistas
-User = get_user_model()
+# 2. AGREGAR NUEVO EXPORTADOR EXCEL
+@login_required
+def panel_tickets_exportar_excel(request):
+    """
+    📥 EXPORTADOR EXCEL: Descarga el reporte de tickets respetando el filtro actual del buscador
+    """
+    query = request.GET.get('q', '').strip()
+    qs = Ticket.objects.select_related('sistema', 'modulo', 'estado', 'prioridad', 'usuario_asignado').all()
+
+    if query:
+        qs = qs.filter(
+            Q(folio__icontains=query) |
+            Q(titulo__icontains=query) |
+            Q(descripcion__icontains=query) |
+            Q(usuario_asignado__nombre_completo__icontains=query)
+        )
+
+    qs = qs.order_by('-fecha_creacion')
+
+    response = HttpResponse(content_type='text/csv; charset=windows-1252')
+    response['Content-Disposition'] = 'attachment; filename="reporte_tickets_mesa.csv"'
+
+    writer = csv.writer(response, delimiter=';')
+    writer.writerow(['Folio', 'Titulo', 'Sistema', 'Modulo', 'Prioridad', 'Estado', 'Impacto', 'Asignado A', 'Fecha Creacion'])
+
+    for tk in qs:
+        impacto_txt = tk.get_impacto_proceso_display() if hasattr(tk, 'get_impacto_proceso_display') else (tk.impacto_proceso or 'Funcional')
+        writer.writerow([
+            tk.folio,
+            str(tk.titulo).encode('windows-1252', 'replace').decode('windows-1252'),
+            str(tk.sistema.nombre if tk.sistema else '—').encode('windows-1252', 'replace').decode('windows-1252'),
+            str(tk.modulo.nombre if tk.modulo else '—').encode('windows-1252', 'replace').decode('windows-1252'),
+            tk.prioridad.nombre if tk.prioridad else '—',
+            tk.estado.nombre if tk.estado else '—',
+            impacto_txt,
+            str(tk.usuario_asignado.nombre_completo if tk.usuario_asignado else 'Sin Asignar').encode('windows-1252', 'replace').decode('windows-1252'),
+            tk.fecha_creacion.strftime('%d/%m/%Y %H:%M')
+        ])
+        
+    return response
 
 @login_required
 def panel_ticket_detail(request, pk):

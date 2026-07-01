@@ -806,72 +806,7 @@ def panel_tickets_exportar_excel(request):
         
     return response
 
-@login_required
-def panel_ticket_detail(request, pk):
-    """
-    🖥️ VISTA INTERNA: Muestra, edita y procesa las actualizaciones dinámicas con HTMX
-    """
-    ticket = get_object_or_404(
-        Ticket.objects.select_related('sistema', 'modulo', 'prioridad', 'estado', 'categoria', 'usuario_reporta', 'usuario_asignado'),
-        pk=pk
-    )
-    action = request.GET.get('action', '')
 
-    # 1. 🎛️ MANEJO DE PETICIONES GET (Intercambios dinámicos de HTMX)
-    if request.method == "GET":
-        if action == "edit_info":
-            return render(request, 'tickets/partials/edit_form.html', {
-                'ticket': ticket,
-                'sistemas': Sistema.objects.filter(activo=True)
-            })
-        elif action == "view_info":
-            return render(request, 'tickets/detail.html', {'ticket': ticket})
-
-   # 2. 💾 MANEJO DE PETICIONES POST (Guardado de Datos)
-    if request.method == "POST":
-        # Si viene del formulario de la izquierda (Título, Descripción, Sistema)
-        if action == "update_info":
-            ticket.titulo = request.POST.get("titulo")
-            ticket.descripcion = request.POST.get("descripcion")
-            sistema_id = request.POST.get("sistema")
-            ticket.sistema_id = sistema_id if sistema_id else None
-            ticket.save()
-            return render(request, 'tickets/partials/view_info.html', {'ticket': ticket})
-
-        # Si viene del formulario de Diagnóstico y Cierre
-        if action == "update_diagnostico":
-            causa_raiz = request.POST.get("causa_raiz")
-            solucion_aplicada = request.POST.get("solucion_aplicada")
-            if causa_raiz is not None: ticket.causa_raiz = causa_raiz
-            if solucion_aplicada is not None: ticket.solucion_aplicada = solucion_aplicada
-            ticket.save()
-            return HttpResponse(status=204)
-
-        # Si viene de los selectores automáticos de la derecha (Especialista, Estado, Prioridad)
-        estado_id = request.POST.get("estado")
-        usuario_asignado_id = request.POST.get("usuario_asignado")
-        prioridad_id = request.POST.get("prioridad")
-
-        # Guardar solo si el parámetro viene en el POST
-        if estado_id: ticket.estado_id = estado_id
-        if prioridad_id: ticket.prioridad_id = prioridad_id
-        if usuario_asignado_id is not None:
-            ticket.usuario_asignado_id = usuario_asignado_id if usuario_asignado_id else None
-        
-        ticket.save()
-
-        # Generar entrada automática en el historial si es necesario, o simplemente refrescar el chatter
-        notas = ChatterEntry.objects.filter(ticket=ticket).order_by('-fecha_creacion')
-        return render(request, 'tickets/partials/chatter.html', {'notas': notas, 'ticket': ticket})
-
-    # 3. 📄 RENDERIZADO INICIAL (Primera carga completa de la página)
-    context = {
-        'ticket': ticket,
-        'estados': Estado.objects.all().order_by('orden'),
-        'prioridades': Prioridad.objects.all(),
-        'tecnicos': User.objects.filter(rol='tecnico') or User.objects.filter(is_staff=True) or User.objects.all(),
-    }
-    return render(request, 'tickets/detail.html', context)
 
 
 @login_required
@@ -1074,7 +1009,8 @@ def panel_ticket_detail(request, pk):
         'ticket': ticket,
         'estados': Estado.objects.all().order_by('orden'),
         'prioridades': Prioridad.objects.all(),
-        'tecnicos': User.objects.filter(rol='tecnico') or User.objects.filter(is_staff=True) or User.objects.all(),
+        # 🎯 CAMBIAMOS 'User' POR 'Usuario' AQUÍ:
+        'tecnicos': Usuario.objects.filter(rol='tecnico') or Usuario.objects.filter(is_staff=True) or Usuario.objects.all(),
     }
     return render(request, 'tickets/detail.html', context)
 

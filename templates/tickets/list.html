@@ -41,44 +41,47 @@
                     <tr class="bg-slate-50 dark:bg-darkBg/50 border-b border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider select-none">
                         
                         <th class="py-3 px-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-darkBg transition group"
-                            hx-get="{% url 'panel_tickets_list' %}?ordering={{ next_folio }}"
-                            hx-target="#tickets-table-body"
-                            hx-include="[name='q']">
+                            hx-get="{% url 'panel_tickets_list' %}?ordering={{ next_folio }}" hx-target="#tickets-table-body" hx-include="[name='q']">
                             <div class="flex items-center gap-1">
-                                Ticket / Folio
-                                <span class="text-slate-300 dark:text-slate-600 group-hover:text-slate-400">
-                                    {% if current_ordering == 'folio' %}▲{% elif current_ordering == '-folio' %}▼{% else %}↕{% endif %}
-                                </span>
+                                Ticket / Folio <span class="text-slate-300 dark:text-slate-600 group-hover:text-slate-400">{% if current_ordering == 'folio' %}▲{% elif current_ordering == '-folio' %}▼{% else %}↕{% endif %}</span>
                             </div>
                         </th>
                         
                         <th class="py-3 px-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-darkBg transition group"
-                            hx-get="{% url 'panel_tickets_list' %}?ordering={{ next_titulo }}"
-                            hx-target="#tickets-table-body"
-                            hx-include="[name='q']">
+                            hx-get="{% url 'panel_tickets_list' %}?ordering={{ next_titulo }}" hx-target="#tickets-table-body" hx-include="[name='q']">
                             <div class="flex items-center gap-1">
-                                Incidencia / Sistema
-                                <span class="text-slate-300 dark:text-slate-600 group-hover:text-slate-400">
-                                    {% if current_ordering == 'titulo' %}▲{% elif current_ordering == '-titulo' %}▼{% else %}↕{% endif %}
-                                </span>
+                                Incidencia / Sistema <span class="text-slate-300 dark:text-slate-600 group-hover:text-slate-400">{% if current_ordering == 'titulo' %}▲{% elif current_ordering == '-titulo' %}▼{% else %}↕{% endif %}</span>
                             </div>
                         </th>
                         
                         <th class="py-3 px-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-darkBg transition group"
-                            hx-get="{% url 'panel_tickets_list' %}?ordering={{ next_asignado }}"
-                            hx-target="#tickets-table-body"
-                            hx-include="[name='q']">
+                            hx-get="{% url 'panel_tickets_list' %}?ordering={{ next_asignado }}" hx-target="#tickets-table-body" hx-include="[name='q']">
                             <div class="flex items-center gap-1">
-                                Especialista Asignado
-                                <span class="text-slate-300 dark:text-slate-600 group-hover:text-slate-400">
-                                    {% if current_ordering == 'usuario_asignado__nombre_completo' %}▲{% elif current_ordering == '-usuario_asignado__nombre_completo' %}▼{% else %}↕{% endif %}
-                                </span>
+                                Especialista Asignado <span class="text-slate-300 dark:text-slate-600 group-hover:text-slate-400">{% if current_ordering == 'usuario_asignado__nombre_completo' %}▲{% elif current_ordering == '-usuario_asignado__nombre_completo' %}▼{% else %}↕{% endif %}</span>
                             </div>
                         </th>
                         
-                        <th class="py-3 px-4 text-center">Prioridad</th>
-                        <th class="py-3 px-4 text-center">Estado</th>
-                        <th class="py-3 px-4 text-center">Impacto</th> 
+                        <th class="py-3 px-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-darkBg transition group text-center"
+                            hx-get="{% url 'panel_tickets_list' %}?ordering={{ next_prioridad }}" hx-target="#tickets-table-body" hx-include="[name='q']">
+                            <div class="flex items-center justify-center gap-1">
+                                Prioridad <span class="text-slate-300 dark:text-slate-600 group-hover:text-slate-400">{% if current_ordering == 'prioridad__orden' %}▲{% elif current_ordering == '-prioridad__orden' %}▼{% else %}↕{% endif %}</span>
+                            </div>
+                        </th>
+                
+                        <th class="py-3 px-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-darkBg transition group text-center"
+                            hx-get="{% url 'panel_tickets_list' %}?ordering={{ next_estado }}" hx-target="#tickets-table-body" hx-include="[name='q']">
+                            <div class="flex items-center justify-center gap-1">
+                                Estado <span class="text-slate-300 dark:text-slate-600 group-hover:text-slate-400">{% if current_ordering == 'estado__orden' %}▲{% elif current_ordering == '-estado__orden' %}▼{% else %}↕{% endif %}</span>
+                            </div>
+                        </th>
+                
+                        <th class="py-3 px-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-darkBg transition group text-center"
+                            hx-get="{% url 'panel_tickets_list' %}?ordering={{ next_impacto }}" hx-target="#tickets-table-body" hx-include="[name='q']">
+                            <div class="flex items-center justify-center gap-1">
+                                Impacto <span class="text-slate-300 dark:text-slate-600 group-hover:text-slate-400">{% if current_ordering == 'impacto_proceso' %}▲{% elif current_ordering == '-impacto_proceso' %}▼{% else %}↕{% endif %}</span>
+                            </div>
+                        </th> 
+                        
                         <th class="py-3 px-4 text-center">Acción</th>
                     </tr>
                 </thead>

@@ -698,19 +698,23 @@ def compat_ticket_detail(request, pk):
 @login_required
 def panel_tickets_list(request):
     """
-    🖥️ VISTA INTERNA: Soporta búsqueda, filtros de estado y ORDENAMIENTO dinámico por columnas.
+    🖥️ VISTA INTERNA: Mesa de trabajo con filtros cruzados multivariable y búsqueda HTMX.
     """
     filtrar = request.GET.get('filtrar', '')
     query = request.GET.get('q', '').strip()
     ordering = request.GET.get('ordering', '-fecha_creacion')
     
+    # 🎯 1. Recuperar los nuevos parámetros de selectores
+    asignado_id = request.GET.get('asignado_id')
+    prioridad_id = request.GET.get('prioridad_id')
+    estado_id = request.GET.get('estado_id')
+    impacto = request.GET.get('impacto')
+    
     qs = Ticket.objects.select_related(
         'sistema', 'modulo', 'prioridad', 'estado', 'usuario_asignado'
     ).all()
 
-    # 🎯 CONFIGURACIÓN INICIAL DEL TÍTULO (Faltaba esta línea base)
     titulo_panel = "Panel Global de Tickets"
-    
     if filtrar == 'pendientes':
         qs = qs.exclude(estado__nombre__icontains='cerrado').exclude(estado__nombre__icontains='resuelto')
         titulo_panel = "Tickets Pendientes (Abiertos)"
@@ -718,7 +722,7 @@ def panel_tickets_list(request):
         qs = qs.filter(Q(estado__nombre__icontains='cerrado') | Q(estado__nombre__icontains='resuelto'))
         titulo_panel = "Tickets Resueltos / Cerrados"
 
-    # 🔍 Aplicamos buscador
+    # 🔍 2. Aplicar buscador de texto plano
     if query:
         qs = qs.filter(
             Q(folio__icontains=query) |
@@ -727,17 +731,23 @@ def panel_tickets_list(request):
             Q(usuario_asignado__nombre_completo__icontains=query)
         )
 
-    # Matrix de ordenamiento seguro
+    # 🎛️ 3. Aplicar Matriz de Filtros Selectores Cruzados de forma consecutiva
+    if asignado_id:
+        qs = qs.filter(usuario_asignado_id=asignado_id)
+    if prioridad_id:
+        qs = qs.filter(prioridad_id=prioridad_id)
+    if estado_id:
+        qs = qs.filter(estado_id=estado_id)
+    if impacto:
+        qs = qs.filter(impacto_proceso=impacto)
+
+    # Ordenamiento de columnas seguro
     campos_permitidos = [
-        'folio', '-folio', 
-        'titulo', '-titulo', 
+        'folio', '-folio', 'titulo', '-titulo', 
         'usuario_asignado__nombre_completo', '-usuario_asignado__nombre_completo',
-        'prioridad__orden', '-prioridad__orden',
-        'estado__orden', '-estado__orden',
-        'impacto_proceso', '-impacto_proceso',
-        'fecha_creacion', '-fecha_creacion'
+        'prioridad__orden', '-prioridad__orden', 'estado__orden', '-estado__orden',
+        'impacto_proceso', '-impacto_proceso', 'fecha_creacion', '-fecha_creacion'
     ]
-    
     if ordering in campos_permitidos:
         qs = qs.order_by(ordering)
     else:
@@ -747,7 +757,7 @@ def panel_tickets_list(request):
     
     context = {
         'tickets': tickets,
-        'titulo_panel': titulo_panel, # 🎯 Ahora sí se mapea correctamente sin crasheos
+        'titulo_panel': titulo_panel,
         'current_ordering': ordering,
         'next_folio': '-folio' if ordering == 'folio' else 'folio',
         'next_titulo': '-titulo' if ordering == 'titulo' else 'titulo',
@@ -755,12 +765,18 @@ def panel_tickets_list(request):
         'next_prioridad': '-prioridad__orden' if ordering == 'prioridad__orden' else 'prioridad__orden',
         'next_estado': '-estado__orden' if ordering == 'estado__orden' else 'estado__orden',
         'next_impacto': '-impacto_proceso' if ordering == 'impacto_proceso' else 'impacto_proceso',
+        
+        # 🎯 4. Enviamos catálogos obligatorios para pintar las opciones en el HTML inicial
+        'estados': Estado.objects.all().order_by('orden'),
+        'prioridades': Prioridad.objects.all(),
+        'tecnicos': Usuario.objects.filter(rol='tecnico') or Usuario.objects.filter(is_staff=True) or Usuario.objects.all(),
     }
 
     if request.headers.get('HX-Request'):
         return render(request, 'tickets/partials/tickets_render_search.html', context)
         
     return render(request, 'tickets/list.html', context)
+
 
 
 

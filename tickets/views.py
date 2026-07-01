@@ -909,16 +909,18 @@ def panel_dashboard(request):
     📊 DASHBOARD DE REPORTES: Filtra métricas basadas en un rango de fechas.
     Carga por defecto el año en curso si no se especifican parámetros.
     """
+    # 🎯 CORRECCIÓN: Importación local para evitar el NameError
+    from datetime import datetime, date
+    
     fecha_inicio_str = request.GET.get('fecha_inicio')
     fecha_fin_str = request.GET.get('fecha_fin')
 
-    # 🎯 CONFIGURACIÓN POR DEFAULT: Año en curso
     hoy = timezone.now().date()
     
     if fecha_inicio_str:
         fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
     else:
-        # Forzar el 1 de Enero del año actual (2026)
+        # 🎯 Ahora sí, 'date' está perfectamente definido aquí adentro
         fecha_inicio = date(hoy.year, 1, 1)
 
     if fecha_fin_str:

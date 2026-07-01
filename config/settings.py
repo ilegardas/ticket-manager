@@ -152,18 +152,27 @@ CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_HTTPONLY = True
 
 # =========================================================================
-# 📧 CONFIGURACIÓN INSTITUCIONAL DE CORREO ELECTRÓNICO (SMTP)
+# 📧 CONFIGURACIÓN INSTITUCIONAL DE CORREO ELECTRÓNICO (SMTP GMAIL SSL FORZADO)
 # =========================================================================
-# Cambiamos el fallback predeterminado a smtp para asegurar salidas reales
-EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
-EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
-EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 465))
-EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
+# Forzamos el backend SMTP real ignorando fallbacks de consola
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
+# Servidor oficial de Google
+EMAIL_HOST = 'smtp.gmail.com'
+
+# 🎯 FORZAMOS PUERTO 465 DIRECTO (Evita que Railway intente usar el 587 bloqueado)
+EMAIL_PORT = 465
+
+# 🎯 CONFIGURACIÓN ESTRICTA DE SEGURIDAD PARA PUERTO 465
+EMAIL_USE_TLS = False
+EMAIL_USE_SSL = True
+
+# Estos campos sí los leemos de tus variables de Railway para proteger tus datos
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 
-# Remitente predeterminado si no se configura la variable en Railway
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'Mesa de Ayuda SEECH <ivan.legarda@seech.edu.mx>')
+# Remitente predeterminado usando tu cuenta autenticada
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', f"Mesa de Ayuda SEECH <{EMAIL_HOST_USER}>")
 
 
 

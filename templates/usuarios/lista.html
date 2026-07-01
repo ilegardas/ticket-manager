@@ -11,8 +11,8 @@
 </div>
 
 <div class="flex items-center gap-2">
-    <a href="{% url 'panel_usuarios_exportar_excel' %}"
-       hx-include="[name='q']"
+    <a href="#"
+       onclick="exportarUsuariosConFiltro(event)"
        class="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white dark:text-slate-950 text-xs font-semibold py-2 px-3 rounded-lg shadow-sm transition">
         📊 Exportar a Excel
     </a>
@@ -79,4 +79,29 @@
     }
     document.getElementById('modal-box').addEventListener('click', closeModal);
 </script>
+
+<script>
+    // ... tus funciones de modal existentes ...
+
+    function exportarUsuariosConFiltro(event) {
+        event.preventDefault(); // Evitamos que intente navegar al '#'
+        
+        // 1. Buscamos el input del buscador por su atributo name="q"
+        const inputBuscador = document.querySelector("input[name='q']");
+        const queryValor = inputBuscador ? inputBuscador.value.trim() : "";
+        
+        // 2. Construimos la URL base que ya registraste en tus urls.py
+        let urlDestino = "{% url 'panel_usuarios_exportar_excel' %}";
+        
+        // 3. Si hay texto escrito en el buscador, se lo pegamos como parámetro GET
+        if (queryValor) {
+            urlDestino += "?q=" + encodeURIComponent(queryValor);
+        }
+        
+        // 4. Redirigimos al navegador a esa URL para que inicie la descarga del CSV filtrado
+        window.location.href = urlDestino;
+    }
+</script>
+
+
 {% endblock %}

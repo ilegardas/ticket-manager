@@ -66,41 +66,15 @@
         </div>
     </div>
 
-    <script>
-        (function() {
-            const isDark = document.documentElement.classList.contains('dark');
-            const labelColor = isDark ? '#94a3b8' : '#64748b';
-            const gridColor = isDark ? '#334155' : '#f1f5f9';
-
-            const chartDefaults = {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { labels: { color: labelColor, font: { family: 'Inter', size: 11 } } }
-                },
-                scales: {
-                    x: { grid: { color: gridColor }, ticks: { color: labelColor, font: { family: 'Inter' } } },
-                    y: { grid: { color: gridColor }, ticks: { color: labelColor, font: { family: 'Inter' } } }
-                }
-            };
-
-            // Función auxiliar para destruir instancias viejas y evitar congelamientos
-            function limpiarYCrearChart(chartId, config) {
-                if (window.misGraficasActivas[chartId]) {
-                    window.misGraficasActivas[chartId].destroy();
-                }
-                const ctx = document.getElementById(chartId).getContext('2d');
-                window.misGraficasActivas[chartId] = new Chart(ctx, config);
-            }
-
-            // 🎨 1. Gráfico de Tendencias
+   // 🎨 1. Gráfico de Tendencias
             limpiarYCrearChart('chartTendencias', {
                 type: 'line',
                 data: {
-                    labels: {{ tendencias_labels|safe }},
+                    // 🎯 Agregamos el fallback de array vacío si viene nulo
+                    labels: {{ tendencias_labels|safe|default:"[]" }},
                     datasets: [{
                         label: 'Tickets Creados',
-                        data: {{ tendencias_valores|safe }},
+                        data: {{ tendencias_valores|safe|default:"[]" }},
                         borderColor: '#3B82F6',
                         backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.05)',
                         fill: true,
@@ -115,9 +89,9 @@
             limpiarYCrearChart('chartEstados', {
                 type: 'doughnut',
                 data: {
-                    labels: {{ estados_labels|safe }},
+                    labels: {{ estados_labels|safe|default:"[]" }},
                     datasets: [{
-                        data: {{ estados_valores|safe }},
+                        data: {{ estados_valores|safe|default:"[]" }},
                         backgroundColor: ['#3B82F6', '#F59E0B', '#10B981', '#EF4444', '#6B7280'],
                         borderWidth: isDark ? 2 : 1,
                         borderColor: isDark ? '#1e232d' : '#ffffff'
@@ -134,10 +108,10 @@
             limpiarYCrearChart('chartSistemas', {
                 type: 'bar',
                 data: {
-                    labels: {{ sistemas_labels|safe }},
+                    labels: {{ sistemas_labels|safe|default:"[]" }},
                     datasets: [{
                         label: 'Cantidad',
-                        data: {{ sistemas_valores|safe }},
+                        data: {{ sistemas_valores|safe|default:"[]" }},
                         backgroundColor: isDark ? '#a855f7' : '#60A5FA',
                         borderRadius: 6
                     }]
@@ -149,10 +123,10 @@
             limpiarYCrearChart('chartPrioridades', {
                 type: 'bar',
                 data: {
-                    labels: {{ prioridades_labels|safe }},
+                    labels: {{ prioridades_labels|safe|default:"[]" }},
                     datasets: [{
                         label: 'Tickets',
-                        data: {{ prioridades_valores|safe }},
+                        data: {{ prioridades_valores|safe|default:"[]" }},
                         backgroundColor: ['#EF4444', '#F59E0B', '#3B82F6', '#10B981'],
                         borderRadius: 4
                     }]
@@ -168,6 +142,3 @@
                     }
                 }
             });
-        })();
-    </script>
-</div>

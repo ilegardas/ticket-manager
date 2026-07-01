@@ -906,37 +906,44 @@ def panel_ticket_chatter(request, pk):
 @login_required
 def panel_dashboard(request):
     """
-    📊 DASHBOARD DE REPORTES: Calcula métricas en base a un rango de fechas.
-    Soporta recargas parciales asíncronas con HTMX.
+    📊 DASHBOARD DE REPORTES: Filtra métricas basadas en un rango de fechas.
+    Carga por defecto el año en curso si no se especifican parámetros.
     """
-    # Capturar parámetros GET o asignar los últimos 30 días por defecto
     fecha_inicio_str = request.GET.get('fecha_inicio')
     fecha_fin_str = request.GET.get('fecha_fin')
 
+    # 🎯 CONFIGURACIÓN POR DEFAULT: Año en curso
+    hoy = timezone.now().date()
+    
     if fecha_inicio_str:
         fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
     else:
-        fecha_inicio = (timezone.now() - timedelta(days=30)).date()
+        # Forzar el 1 de Enero del año actual (2026)
+        fecha_inicio = date(hoy.year, 1, 1)
 
     if fecha_fin_str:
         fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
     else:
-        fecha_fin = timezone.now().date()
+        fecha_fin = hoy
 
-    # QuerySet base amarrado al filtro estricto de fechas
+    # QuerySet filtrado por el rango establecido
     tickets_filtrados = Ticket.objects.filter(
         fecha_creacion__date__range=[fecha_inicio, fecha_fin]
     )
 
-    # Conteos rápidos para las tarjetas
+    # Cálculos para las tarjetas superiores
     total_tickets = tickets_filtrados.count()
     pendientes = tickets_filtrados.filter(~Q(estado__es_estado_cierre=True)).count()
     resueltos = tickets_filtrados.filter(estado__es_estado_cierre=True).count()
     
-    # Cálculo de SLA (ejemplo genérico, adáptalo a tus booleanos si aplica)
-    # Si no tienes el campo 'sla_cumplido', pon una constante o quítalo de la tarjeta
     tickets_con_sla = tickets_filtrados.filter(sla_cumplido=True).count() if hasattr(Ticket, 'sla_cumplido') else total_tickets
     sla_porcentaje = int((tickets_con_sla / total_tickets) * 100) if total_tickets > 0 else 100
+
+    # =========================================================================
+    # 📈 AQUÍ DEBES AGREGAR TU LÓGICA DE DATOS PARA LAS GRÁFICAS EXISTENTES
+    # Ej: consultar los históricos agrupados por día o por estado para pasárselos 
+    # a Chart.js o ApexCharts en el contexto.
+    # =========================================================================
 
     context = {
         'total_tickets': total_tickets,
@@ -947,11 +954,11 @@ def panel_dashboard(request):
         'fecha_fin': fecha_fin.strftime('%Y-%m-%d'),
     }
 
-    # 🎯 SI LA PETICIÓN ES HTMX: Devolvemos únicamente el fragmento central
+    # Si la petición es disparada por HTMX (cambio de inputs), solo devolvemos las tarjetas y la data nueva
     if request.headers.get('HX-Request'):
         return render(request, 'tickets/dashboard_partials.html', context)
 
-    # Carga inicial completa de la página corporativa
+    # Carga completa al iniciar la página
     return render(request, 'tickets/panel_dashboard.html', context)
 
 

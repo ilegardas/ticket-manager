@@ -1892,6 +1892,7 @@ def panel_ticket_enviar_recordatorio(request, ticket_id):
     """
     🔔 ACCIÓN HTMX ASÍNCRONA: Registra la actividad de inmediato y delega 
     el envío de correo a un hilo de fondo para evitar WORKER TIMEOUTS.
+    Soporta ejecuciones tanto desde el detalle como desde la vista de lista.
     """
     ticket = get_object_or_404(Ticket, pk=ticket_id)
 
@@ -1946,7 +1947,15 @@ def panel_ticket_enviar_recordatorio(request, ticket_id):
         contenido=f"🔔 Se solicitó un recordatorio urgente para el especialista {ticket.usuario_asignado.nombre_completo}. La alerta se despachó en segundo plano a la cola de correos."
     )
 
-    # 3. Respondemos al instante a HTMX para que pinte la pantalla sin colgarse
+    # 3. 🎯 RESPUESTA DINÁMICA: Si se invoca desde la lista de tickets, respondemos un botón deshabilitado
+    if request.GET.get('from_list') == 'true':
+        return HttpResponse("""
+            <button class="px-2 py-1 text-xs font-medium rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 cursor-not-allowed" disabled>
+                ✓ Enviado
+            </button>
+        """)
+
+    # 4. Si viene del detalle del ticket, genera e inserta la línea de Chatter completa ordinaria
     notas = ChatterEntry.objects.filter(ticket=ticket).order_by('-fecha_creacion')
     html_output = ""
     for nota in notas:

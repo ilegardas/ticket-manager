@@ -1827,22 +1827,44 @@ def panel_usuarios_exportar_excel(request):
 
 def _tarea_enviar_correo_async(asunto, html_contenido, remitente, destino):
     """
-    🧵 HILO SECUNDARIO: Ejecuta el envío SMTP de forma aislada.
-    Si se congela o falla por la red de Railway, muere solo sin tirar la aplicación.
+    🧵 HILO SECUNDARIO OPTIMIZADO: Envía el correo mediante la API HTTP de Resend (Puerto 443).
+    Se salta por completo el bloqueo de sockets [Errno 101] de Railway.
     """
+    # 1. Recuperamos la API Key de tus variables de entorno de Django/settings
+    api_key = getattr(settings, 'EMAIL_HOST_PASSWORD', '') 
+    
+    if not api_key or api_key.startswith('smtp'):
+        print("🚨 [API ERROR] Para enviar por HTTP necesitas poner tu API Key real de Resend (re_...) en EMAIL_HOST_PASSWORD")
+        return
+
+    url = "https://api.resend.com/emails"
+    
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    
+    payload = {
+        "from": "Mesa de Ayuda SEECH <onboarding@resend.dev>",  # O tu dominio verificado en Resend
+        "to": destino,
+        "subject": asunto,
+        "html": html_contenido
+    }
+
     try:
-        email = EmailMessage(
-            subject=asunto,
-            body=html_contenido,
-            from_email=remitente,
-            to=[destino]
-        )
-        email.content_subtype = "html"
-        # Le ponemos un timeout corto de 10 segundos para que no se quede colgado eternamente
-        email.send(fail_silently=False)
-        print(f"📧 [SMTP] Recordatorio despachado con éxito a: {destino}")
+        # Enviamos como una petición web normal (HTTPS), evadiendo los puertos de correo bloqueados
+        response = requests.post(url, headers=headers, data=json.dumps(payload), timeout=10)
+        
+        if response.status_code in [200, 201]:
+            print(f"🚀 [API SUCCESS] Recordatorio entregado por HTTP exitosamente a: {destino}")
+        else:
+            print(f"🚨 [API REJECT] Resend rechazó el correo: Status {response.status_code} - {response.text}")
+            
     except Exception as e:
-        print(f"🚨 [SMTP ERROR] No se pudo entregar el correo por red: {str(e)}")
+        print(f"🚨 [HTTP FATAL ERROR] Fallo crítico en la petición web: {str(e)}")
+
+
+
 
 @login_required
 @require_http_methods(["POST"])

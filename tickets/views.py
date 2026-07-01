@@ -1830,7 +1830,12 @@ def _tarea_enviar_correo_async(asunto, html_contenido, remitente, destino):
     🧵 HILO SECUNDARIO OPTIMIZADO: Envía el correo mediante la API HTTP de Resend (Puerto 443).
     Se salta por completo el bloqueo de sockets [Errno 101] de Railway.
     """
-    # 1. Recuperamos la API Key de tus variables de entorno de Django/settings
+    # 🎯 IMPORTACIÓN LOCAL SEGURA PARA EVITAR EL NAMEERROR
+    import requests
+    import json
+    from django.conf import settings
+    
+    # Recuperamos la API Key de tus variables de entorno de Django/settings
     api_key = getattr(settings, 'EMAIL_HOST_PASSWORD', '') 
     
     if not api_key or api_key.startswith('smtp'):
@@ -1852,7 +1857,7 @@ def _tarea_enviar_correo_async(asunto, html_contenido, remitente, destino):
     }
 
     try:
-        # Enviamos como una petición web normal (HTTPS), evadiendo los puertos de correo bloqueados
+        # Enviamos como una petición web normal (HTTPS)
         response = requests.post(url, headers=headers, data=json.dumps(payload), timeout=10)
         
         if response.status_code in [200, 201]:

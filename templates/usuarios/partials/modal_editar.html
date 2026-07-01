@@ -6,7 +6,7 @@
         <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white font-bold text-sm">✕</button>
     </div>
 
-    <form hx-post="{% url 'panel_usuario_editar' usuario.id %}" hx-target="this" hx-swap="outerHTML" class="space-y-4 text-xs">
+    <form hx-post="{% url 'panel_usuario_editar' usuario.id %}" hx-target="#usuario-row-{{ usuario.id }}" hx-swap="outerHTML" class="space-y-4 text-xs">
         {% csrf_token %}
         
         <div>

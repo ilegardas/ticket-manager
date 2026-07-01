@@ -1,37 +1,45 @@
 {% extends 'layouts/base.html' %}
 
+{% block title %}Dashboard de Reportes - Ticket Manager{% endblock %}
+
 {% block content %}
 <div class="space-y-6">
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between pb-4 border-b border-slate-800 gap-4">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-slate-200 dark:border-slate-800 gap-4">
         <div>
-            <h1 class="text-2xl font-bold text-white tracking-tight">Dashboard de Reportes</h1>
-            <p class="text-xs text-slate-400 mt-0.5">Monitoreo de incidencias, estados y desempeño de atención.</p>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-amber-400">Dashboard de Reportes</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-300">Monitoreo de incidencias, estados y desempeño de atención.</p>
         </div>
 
-        <div class="flex items-center gap-3 bg-[#1e232d] p-2 rounded-xl border border-slate-800 text-[11px] text-slate-300" id="rango-fechas-panel">
+        <div class="flex items-center gap-3 bg-white dark:bg-darkPanel p-2 rounded-xl border border-slate-200 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-300 shadow-xs" id="rango-fechas-panel">
             <div class="flex items-center gap-1.5">
-                <label for="fecha_inicio" class="text-slate-400 font-semibold">Desde:</label>
+                <label for="fecha_inicio" class="text-slate-400 dark:text-darkTextSub font-semibold">Desde:</label>
                 <input type="date" id="fecha_inicio" name="fecha_inicio" value="{{ fecha_inicio }}"
                        hx-get="{% url 'panel_dashboard' %}"
                        hx-trigger="change"
-                       hx-target="#dashboard-contenido"
+                       hx-target="#dashboard-contenido-dinamico"
                        hx-swap="outerHTML"
                        hx-include="#rango-fechas-panel input"
-                       class="bg-[#13161c] border border-slate-800 rounded px-2 py-1 text-white focus:outline-none focus:border-blue-500 font-mono">
+                       class="bg-slate-50 dark:bg-[#13161c] border border-slate-200 dark:border-slate-800 rounded px-2 py-1 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 font-mono">
             </div>
             <div class="flex items-center gap-1.5">
-                <label for="fecha_fin" class="text-slate-400 font-semibold">Hasta:</label>
+                <label for="fecha_fin" class="text-slate-400 dark:text-darkTextSub font-semibold">Hasta:</label>
                 <input type="date" id="fecha_fin" name="fecha_fin" value="{{ fecha_fin }}"
                        hx-get="{% url 'panel_dashboard' %}"
                        hx-trigger="change"
-                       hx-target="#dashboard-contenido"
+                       hx-target="#dashboard-contenido-dinamico"
                        hx-swap="outerHTML"
                        hx-include="#rango-fechas-panel input"
-                       class="bg-[#13161c] border border-slate-800 rounded px-2 py-1 text-white focus:outline-none focus:border-blue-500 font-mono">
+                       class="bg-slate-50 dark:bg-[#13161c] border border-slate-200 dark:border-slate-800 rounded px-2 py-1 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 font-mono">
             </div>
         </div>
     </div>
 
     {% include 'tickets/dashboard_partials.html' %}
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Contenedor global para almacenar las instancias activas de Chart.js y poder destruirlas al cambiar de fecha
+    window.misGraficasActivas = {};
+</script>
 {% endblock %}

@@ -695,14 +695,16 @@ def compat_ticket_detail(request, pk):
 
 #Inicia ruteo a vistas dentro de django 
 
-# 1. ACTUALIZAR LISTADO EXISTENTE
 @login_required
 def panel_tickets_list(request):
     """
-    🖥️ VISTA INTERNA: Muestra el listado permitiendo filtrar de forma reactiva con HTMX y buscador.
+    🖥️ VISTA INTERNA: Soporta búsqueda, filtros de estado y ORDENAMIENTO dinámico por columnas.
     """
     filtrar = request.GET.get('filtrar', '')
     query = request.GET.get('q', '').strip()
+    
+    # 1. Capturamos el parámetro de ordenamiento (por defecto ordenamos por fecha de creación descendente)
+    ordering = request.GET.get('ordering', '-fecha_creacion')
     
     qs = Ticket.objects.select_related(
         'sistema', 'modulo', 'prioridad', 'estado', 'usuario_asignado'
@@ -716,7 +718,7 @@ def panel_tickets_list(request):
         qs = qs.filter(Q(estado__nombre__icontains='cerrado') | Q(estado__nombre__icontains='resuelto'))
         titulo_panel = "Tickets Resueltos / Cerrados"
 
-    # 🔍 Aplicamos buscador si se escribe en el input
+    # 🔍 Aplicamos buscador
     if query:
         qs = qs.filter(
             Q(folio__icontains=query) |
@@ -725,18 +727,33 @@ def panel_tickets_list(request):
             Q(usuario_asignado__nombre_completo__icontains=query)
         )
 
-    tickets = qs.order_by('-fecha_creacion')[:100]
+    # 🎯 Aplicamos el ordenamiento dinámico de Django
+    # Validamos que sea un campo permitido para evitar errores de inyección maliciosa
+    campos_permitidos = ['folio', '-folio', 'titulo', '-titulo', 'usuario_asignado__nombre_completo', '-usuario_asignado__nombre_completo', 'fecha_creacion', '-fecha_creacion']
+    if ordering in campos_permitidos:
+        qs = qs.order_by(ordering)
+    else:
+        qs = qs.order_by('-fecha_creacion')
+
+    tickets = qs[:100]
     
+    # 2. Lógica para calcular el "siguiente orden" que usará la plantilla al dar clic
     context = {
         'tickets': tickets,
-        'titulo_panel': titulo_panel
+        'titulo_panel': titulo_panel,
+        'current_ordering': ordering,
+        # Si el orden actual es ascendente, el siguiente será descendente (con el signo menos)
+        'next_folio': '-folio' if ordering == 'folio' else 'folio',
+        'next_titulo': '-titulo' if ordering == 'titulo' else 'titulo',
+        'next_asignado': '-usuario_asignado__nombre_completo' if ordering == 'usuario_asignado__nombre_completo' else 'usuario_asignado__nombre_completo',
     }
 
-    # 🎯 Si la petición viene de HTMX, regresamos SOLO los renglones limpios
     if request.headers.get('HX-Request'):
         return render(request, 'tickets/partials/tickets_render_search.html', context)
         
     return render(request, 'tickets/list.html', context)
+
+
 
 
 # 2. AGREGAR NUEVO EXPORTADOR EXCEL

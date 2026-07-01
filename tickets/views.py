@@ -698,7 +698,7 @@ def compat_ticket_detail(request, pk):
 @login_required
 def panel_tickets_list(request):
     """
-    🖥️ VISTA INTERNA: Mesa de trabajo con soporte total de ordenamiento multivariable.
+    🖥️ VISTA INTERNA: Soporta búsqueda, filtros de estado y ORDENAMIENTO dinámico por columnas.
     """
     filtrar = request.GET.get('filtrar', '')
     query = request.GET.get('q', '').strip()
@@ -708,11 +708,17 @@ def panel_tickets_list(request):
         'sistema', 'modulo', 'prioridad', 'estado', 'usuario_asignado'
     ).all()
 
+    # 🎯 CONFIGURACIÓN INICIAL DEL TÍTULO (Faltaba esta línea base)
+    titulo_panel = "Panel Global de Tickets"
+    
     if filtrar == 'pendientes':
         qs = qs.exclude(estado__nombre__icontains='cerrado').exclude(estado__nombre__icontains='resuelto')
+        titulo_panel = "Tickets Pendientes (Abiertos)"
     elif filtrar == 'resueltos':
         qs = qs.filter(Q(estado__nombre__icontains='cerrado') | Q(estado__nombre__icontains='resuelto'))
+        titulo_panel = "Tickets Resueltos / Cerrados"
 
+    # 🔍 Aplicamos buscador
     if query:
         qs = qs.filter(
             Q(folio__icontains=query) |
@@ -721,7 +727,7 @@ def panel_tickets_list(request):
             Q(usuario_asignado__nombre_completo__icontains=query)
         )
 
-    # 🎯 1. Expandimos la matriz de campos de ordenamiento permitidos
+    # Matrix de ordenamiento seguro
     campos_permitidos = [
         'folio', '-folio', 
         'titulo', '-titulo', 
@@ -739,10 +745,9 @@ def panel_tickets_list(request):
 
     tickets = qs[:100]
     
-    # 🎯 2. Mapeamos los siguientes estados alternantes para la cabecera HTML
     context = {
         'tickets': tickets,
-        'titulo_panel': titulo_panel,
+        'titulo_panel': titulo_panel, # 🎯 Ahora sí se mapea correctamente sin crasheos
         'current_ordering': ordering,
         'next_folio': '-folio' if ordering == 'folio' else 'folio',
         'next_titulo': '-titulo' if ordering == 'titulo' else 'titulo',

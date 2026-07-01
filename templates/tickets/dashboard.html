@@ -4,196 +4,42 @@
 
 {% block content %}
 <div class="space-y-6">
-    <!-- Encabezado con contraste optimizado -->
-    <div class="border-b border-slate-200 dark:border-slate-800 pb-4">
-        <!-- 🌟 Título principal en Amarillo -->
-        <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-amber-400">Dashboard de Reportes</h1>
-        <!-- 📝 Descripción en gris claro -->
-        <p class="text-sm text-slate-500 dark:text-slate-300">Monitoreo de incidencias, estados y desempeño de atención.</p>
-    </div>
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-slate-200 dark:border-slate-800 gap-4">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-amber-400">Dashboard de Reportes</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-300">Monitoreo de incidencias, estados y desempeño de atención.</p>
+        </div>
 
-    <!-- 📦 Bloques de Indicadores Kpi -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        
-        <a href="{% url 'panel_tickets_list' %}" class="bg-white dark:bg-darkPanel p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between hover:border-blue-500 dark:hover:border-blue-400 hover:scale-[1.02] hover:shadow-md transition duration-200">
-            <div>
-                <span class="text-xs font-semibold text-slate-400 dark:text-darkTextSub uppercase tracking-wider">Total Tickets</span>
-                <h3 class="text-2xl font-bold text-slate-900 dark:text-white mt-1">{{ total_tickets }}</h3>
+        <div class="flex items-center gap-3 bg-white dark:bg-darkPanel p-2 rounded-xl border border-slate-200 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-300 shadow-xs" id="rango-fechas-panel">
+            <div class="flex items-center gap-1.5">
+                <label for="fecha_inicio" class="text-slate-400 dark:text-darkTextSub font-semibold">Desde:</label>
+                <input type="date" id="fecha_inicio" name="fecha_inicio" value="{{ fecha_inicio }}"
+                       hx-get="{% url 'panel_dashboard' %}"
+                       hx-trigger="change"
+                       hx-target="#dashboard-contenido-dinamico"
+                       hx-swap="outerHTML"
+                       hx-include="#rango-fechas-panel input"
+                       class="bg-slate-50 dark:bg-[#13161c] border border-slate-200 dark:border-slate-800 rounded px-2 py-1 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 font-mono">
             </div>
-            <div class="h-10 w-10 bg-blue-50 dark:bg-blue-950/40 rounded-lg flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold border dark:border-blue-900/30">∑</div>
-        </a>
-
-        <a href="{% url 'panel_tickets_list' %}?filtrar=pendientes" class="bg-white dark:bg-darkPanel p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between hover:border-amber-500 dark:hover:border-amber-400 hover:scale-[1.02] hover:shadow-md transition duration-200">
-            <div>
-                <span class="text-xs font-semibold text-slate-400 dark:text-darkTextSub uppercase tracking-wider">Pendientes</span>
-                <h3 class="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">{{ pendientes }}</h3>
+            <div class="flex items-center gap-1.5">
+                <label for="fecha_fin" class="text-slate-400 dark:text-darkTextSub font-semibold">Hasta:</label>
+                <input type="date" id="fecha_fin" name="fecha_fin" value="{{ fecha_fin }}"
+                       hx-get="{% url 'panel_dashboard' %}"
+                       hx-trigger="change"
+                       hx-target="#dashboard-contenido-dinamico"
+                       hx-swap="outerHTML"
+                       hx-include="#rango-fechas-panel input"
+                       class="bg-slate-50 dark:bg-[#13161c] border border-slate-200 dark:border-slate-800 rounded px-2 py-1 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 font-mono">
             </div>
-            <div class="h-10 w-10 bg-amber-50 dark:bg-amber-950/40 rounded-lg flex items-center justify-center text-amber-600 dark:text-amber-400 font-bold border dark:border-amber-900/30">⏳</div>
-        </a>
-
-        <a href="{% url 'panel_tickets_list' %}?filtrar=resueltos" class="bg-white dark:bg-darkPanel p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between hover:border-emerald-500 dark:hover:border-emerald-400 hover:scale-[1.02] hover:shadow-md transition duration-200">
-            <div>
-                <span class="text-xs font-semibold text-slate-400 dark:text-darkTextSub uppercase tracking-wider">Resueltos / Cerrados</span>
-                <h3 class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{{ resueltos }}</h3>
-            </div>
-            <div class="h-10 w-10 bg-emerald-50 dark:bg-emerald-950/40 rounded-lg flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold border dark:border-emerald-900/30">✓</div>
-        </a>
-
-        <div class="bg-white dark:bg-darkPanel p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
-            <div>
-                <span class="text-xs font-semibold text-slate-400 dark:text-darkTextSub uppercase tracking-wider">SLA Cumplido</span>
-                <h3 class="text-2xl font-bold text-blue-600 dark:text-cyan-400 mt-1">100%</h3>
-            </div>
-            <div class="h-10 w-10 bg-blue-50 dark:bg-cyan-950/40 rounded-lg flex items-center justify-center text-blue-600 dark:text-cyan-400 font-bold border dark:border-cyan-900/30">⚡</div>
         </div>
     </div>
 
-    <!-- 📊 Grid de Gráficos Analíticos -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        <div class="bg-white dark:bg-darkPanel p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm lg:col-span-2">
-            <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-4">Tendencia de Creación de Tickets (Últimos 7 días)</h3>
-            <div class="relative h-64 w-full">
-                <canvas id="chartTendencias"></canvas>
-            </div>
-        </div>
-
-        <div class="bg-white dark:bg-darkPanel p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-4">Tickets por Estado</h3>
-            <div class="relative h-64 w-full flex items-center justify-center">
-                <canvas id="chartEstados"></canvas>
-            </div>
-        </div>
-
-        <div class="bg-white dark:bg-darkPanel p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm lg:col-span-2">
-            <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-4">Volumen de Incidencias por Sistema</h3>
-            <div class="relative h-64 w-full">
-                <canvas id="chartSistemas"></canvas>
-            </div>
-        </div>
-
-        <div class="bg-white dark:bg-darkPanel p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm支">
-            <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-4">Distribución por Prioridad</h3>
-            <div class="relative h-64 w-full">
-                <canvas id="chartPrioridades"></canvas>
-            </div>
-        </div>
-
-    </div>
+    {% include 'tickets/dashboard_partials.html' %}
 </div>
 
-<!-- Scripts de Rendimiento Gráfico -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <script>
-    // 🎛️ Configuración de Colores dinámicos para Chart.js basados en el tema actual
-    const isDark = document.documentElement.classList.contains('dark');
-    const labelColor = isDark ? '#94a3b8' : '#64748b';
-    const gridColor = isDark ? '#334155' : '#f1f5f9';
-
-    // Opciones globales heredables
-    const chartDefaults = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                labels: { color: labelColor, font: { family: 'Inter', size: 11 } }
-            }
-        },
-        scales: {
-            x: {
-                grid: { color: gridColor },
-                ticks: { color: labelColor, font: { family: 'Inter' } }
-            },
-            y: {
-                grid: { color: gridColor },
-                ticks: { color: labelColor, font: { family: 'Inter' } }
-            }
-        }
-    };
-
-    // 🎨 1. Gráfico de Tendencias (Líneas)
-    const ctxTendencias = document.getElementById('chartTendencias').getContext('2d');
-    new Chart(ctxTendencias, {
-        type: 'line',
-        data: {
-            labels: {{ tendencias_labels|safe }},
-            datasets: [{
-                label: 'Tickets Creados',
-                data: {{ tendencias_valores|safe }},
-                borderColor: '#3B82F6',
-                backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.05)',
-                fill: true,
-                tension: 0.3,
-                borderWidth: 2.5
-            }]
-        },
-        options: chartDefaults
-    });
-
-    // 🎨 2. Gráfico de Estados (Dona)
-    const ctxEstados = document.getElementById('chartEstados').getContext('2d');
-    new Chart(ctxEstados, {
-        type: 'doughnut',
-        data: {
-            labels: {{ estados_labels|safe }},
-            datasets: [{
-                data: {{ estados_valores|safe }},
-                backgroundColor: ['#3B82F6', '#F59E0B', '#10B981', '#EF4444', '#6B7280'],
-                borderWidth: isDark ? 2 : 1,
-                borderColor: isDark ? '#1e232d' : '#ffffff'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { labels: { color: labelColor, font: { family: 'Inter' } } }
-            }
-        }
-    });
-
-    // 🎨 3. Gráfico de Sistemas (Barras Verticales)
-    const ctxSistemas = document.getElementById('chartSistemas').getContext('2d');
-    new Chart(ctxSistemas, {
-        type: 'bar',
-        data: {
-            labels: {{ sistemas_labels|safe }},
-            datasets: [{
-                label: 'Cantidad',
-                data: {{ sistemas_valores|safe }},
-                backgroundColor: isDark ? '#a855f7' : '#60A5FA', // Morado analítico en oscuro, azul en claro
-                borderRadius: 6
-            }]
-        },
-        options: chartDefaults
-    });
-
-    // 🎨 4. Gráfico de Prioridades (Barras Horizontales)
-    const ctxPrioridades = document.getElementById('chartPrioridades').getContext('2d');
-    new Chart(ctxPrioridades, {
-        type: 'bar',
-        data: {
-            labels: {{ prioridades_labels|safe }},
-            datasets: [{
-                label: 'Tickets',
-                data: {{ prioridades_valores|safe }},
-                backgroundColor: ['#EF4444', '#F59E0B', '#3B82F6', '#10B981'],
-                borderRadius: 4
-            }]
-        },
-        options: {
-            indexAxis: 'y',
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { labels: { color: labelColor, font: { family: 'Inter' } } }
-            },
-            scales: {
-                x: { grid: { color: gridColor }, ticks: { color: labelColor } },
-                y: { grid: { display: false }, ticks: { color: labelColor } }
-            }
-        }
-    });
+    // Contenedor global para almacenar las instancias activas de Chart.js y poder destruirlas al cambiar de fecha
+    window.misGraficasActivas = {};
 </script>
 {% endblock %}

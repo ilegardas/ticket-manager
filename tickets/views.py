@@ -909,7 +909,6 @@ def panel_dashboard(request):
     📊 DASHBOARD DE REPORTES: Filtra métricas basadas en un rango de fechas.
     Carga por defecto el año en curso si no se especifican parámetros.
     """
-    # 🎯 CORRECCIÓN: Importación local para evitar el NameError
     from datetime import datetime, date
     
     fecha_inicio_str = request.GET.get('fecha_inicio')
@@ -920,7 +919,6 @@ def panel_dashboard(request):
     if fecha_inicio_str:
         fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
     else:
-        # 🎯 Ahora sí, 'date' está perfectamente definido aquí adentro
         fecha_inicio = date(hoy.year, 1, 1)
 
     if fecha_fin_str:
@@ -928,12 +926,12 @@ def panel_dashboard(request):
     else:
         fecha_fin = hoy
 
-    # QuerySet filtrado por el rango establecido
+    # QuerySet base filtrado por el rango establecido
     tickets_filtrados = Ticket.objects.filter(
         fecha_creacion__date__range=[fecha_inicio, fecha_fin]
     )
 
-    # Cálculos para las tarjetas superiores
+    # 📦 Cálculos para las tarjetas superiores
     total_tickets = tickets_filtrados.count()
     pendientes = tickets_filtrados.filter(~Q(estado__es_estado_cierre=True)).count()
     resueltos = tickets_filtrados.filter(estado__es_estado_cierre=True).count()
@@ -942,9 +940,53 @@ def panel_dashboard(request):
     sla_porcentaje = int((tickets_con_sla / total_tickets) * 100) if total_tickets > 0 else 100
 
     # =========================================================================
-    # 📈 AQUÍ DEBES AGREGAR TU LÓGICA DE DATOS PARA LAS GRÁFICAS EXISTENTES
-    # Ej: consultar los históricos agrupados por día o por estado para pasárselos 
-    # a Chart.js o ApexCharts en el contexto.
+    # 📈 LÓGICA DE AGREGACIÓN DE DATOS PARA LAS 4 GRÁFICAS DE CHART.JS
+    # =========================================================================
+
+    # 🎨 1. Tendencia de Creación de Tickets (Por Día)
+    tendencias_data = (
+        tickets_filtrados
+        .annotate(dia=TruncDate('fecha_creacion'))
+        .values('dia')
+        .annotate(total=Count('id'))
+        .order_by('dia')
+    )
+    tendencias_labels = [item['dia'].strftime('%Y-%m-%d') for item in tendencias_data if item['dia']]
+    tendencias_valores = [item['total'] for item in tendencias_data]
+
+    # 🎨 2. Tickets por Estado (Dona) - Buscando el campo o relación de nombre de estado
+    # (Ajusta 'estado__nombre' si tu modelo usa otro campo como 'estado__code' o similar)
+    estados_data = (
+        tickets_filtrados
+        .values('estado__nombre')
+        .annotate(total=Count('id'))
+        .order_by('-total')
+    )
+    estados_labels = [item['estado__nombre'] if item['estado__nombre'] else "Sin Estado" for item in estados_data]
+    estados_valores = [item['total'] for item in estados_data]
+
+    # 🎨 3. Volumen de Incidencias por Sistema (Barras Verticales)
+    # (Ajusta 'sistema__nombre' según cómo se llame el campo de relación en tu modelo Ticket)
+    sistemas_data = (
+        tickets_filtrados
+        .values('sistema__nombre')
+        .annotate(total=Count('id'))
+        .order_by('-total')
+    )
+    sistemas_labels = [item['sistema__nombre'] if item['sistema__nombre'] else "General" for item in sistemas_data]
+    sistemas_valores = [item['total'] for item in sistemas_data]
+
+    # 🎨 4. Distribución por Prioridad (Barras Horizontales)
+    # (Ajusta 'prioridad' o 'prioridad__nombre' según el formato de tu modelo)
+    prioridades_data = (
+        tickets_filtrados
+        .values('prioridad')
+        .annotate(total=Count('id'))
+        .order_by('-total')
+    )
+    prioridades_labels = [item['prioridad'] if item['prioridad'] else "Normal" for item in prioridades_data]
+    prioridades_valores = [item['total'] for item in prioridades_data]
+
     # =========================================================================
 
     context = {
@@ -954,6 +996,16 @@ def panel_dashboard(request):
         'sla_porcentaje': sla_porcentaje,
         'fecha_inicio': fecha_inicio.strftime('%Y-%m-%d'),
         'fecha_fin': fecha_fin.strftime('%Y-%m-%d'),
+        
+        # Nuevas listas inyectadas con seguridad al contexto
+        'tendencias_labels': tendencias_labels,
+        'tendencias_valores': tendencias_valores,
+        'estados_labels': estados_labels,
+        'estados_valores': estados_valores,
+        'sistemas_labels': sistemas_labels,
+        'sistemas_valores': sistemas_valores,
+        'prioridades_labels': prioridades_labels,
+        'prioridades_valores': prioridades_valores,
     }
 
     # Si la petición es disparada por HTMX (cambio de inputs), solo devolvemos las tarjetas y la data nueva

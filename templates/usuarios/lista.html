@@ -53,7 +53,7 @@
                 </tr>
             </thead>
             <tbody id="usuarios-table-body" class="divide-y divide-slate-100 dark:divide-slate-800 text-xs text-slate-600 dark:text-slate-300">
-                {% include 'usuarios/partials/usuarios_row.html' %}
+                {% include 'usuarios/partials/usuarios_row.html' with usuario=u %}
             </tbody>
         </table>
     </div>

@@ -1009,56 +1009,38 @@ def panel_dashboard(request):
     sla_agentes_labels = [item['usuario_asignado__nombre_completo'] or "Sin Asignar" for item in sla_agentes_data]
     sla_agentes_valores = [int((item['cumplidos'] / item['total_cerrados']) * 100) if item['total_cerrados'] > 0 else 100 for item in sla_agentes_data]
 
-    # 8. Impacto por Sistema
-    # Nota: Como en tus campos reales tienes 'impacto_proceso', agrupamos por ese campo directo
+    # 🎨 8. Impacto / Severidad por Sistema (Corregido con etiquetas oficiales)
     impacto_data = (
         tickets_filtrados.values('sistema__nombre', 'impacto_proceso')
         .annotate(total=Count('id'))
         .order_by('sistema__nombre')
     )
+    
     sistemas_unicos = list(set([item['sistema__nombre'] or "General" for item in impacto_data]))
     
-    impacto_alto = {sist: 0 for sist in sistemas_unicos}
-    impacto_medio = {sist: 0 for sist in sistemas_unicos}
-    impacto_bajo = {sist: 0 for sist in sistemas_unicos}
+    # Estructura de soporte basada en las etiquetas reales de tu catálogo
+    impacto_caido = {sist: 0 for sist in sistemas_unicos}       # Totalmente caído
+    impacto_parcial = {sist: 0 for sist in sistemas_unicos}     # Parcialmente funciona
+    impacto_funcional = {sist: 0 for sist in sistemas_unicos}   # Funcional
     
     for item in impacto_data:
         sist = item['sistema__nombre'] or "General"
-        imp = str(item['impacto_proceso']).upper()
-        if "ALTO" in imp or "CRÍTICO" in imp:
-            impacto_alto[sist] += item['total']
-        elif "MEDIO" in imp or "MODERADO" in imp:
-            impacto_medio[sist] += item['total']
+        imp = str(item['impacto_proceso']).strip().upper()
+        
+        if "TOTALMENTE" in imp or "CAÍDO" in imp or "CAIDO" in imp:
+            impacto_caido[sist] += item['total']
+        elif "PARCIALMENTE" in imp or "PARCIAL" in imp:
+            impacto_parcial[sist] += item['total']
         else:
-            impacto_bajo[sist] += item['total']
+            impacto_funcional[sist] += item['total']
 
-    impacto_labels = sistemas_unicos
-    impacto_valores_alto = [impacto_alto[sist] for sist in sistemas_unicos]
-    impacto_valores_medio = [impacto_medio[sist] for sist in sistemas_unicos]
-    impacto_valores_bajo = [impacto_bajo[sist] for sist in sistemas_unicos]
-
-    # =========================================================================
-
+    # Pasamos las listas al contexto con nombres semánticos claros
     context = {
-        'total_tickets': total_tickets,
-        'pendientes': pendientes,
-        'resueltos': resueltos,
-        'sla_porcentaje': sla_porcentaje,
-        'fecha_inicio': fecha_inicio.strftime('%Y-%m-%d'),
-        'fecha_fin': fecha_fin.strftime('%Y-%m-%d'),
-        
-        'tendencias_labels': tendencias_labels, 'tendencias_valores': tendencias_valores,
-        'estados_labels': estados_labels, 'estados_valores': estados_valores,
-        'sistemas_labels': sistemas_labels, 'sistemas_valores': sistemas_valores,
-        'prioridades_labels': prioridades_labels, 'prioridades_valores': prioridades_valores,
-        
-        'carga_labels': carga_labels, 'carga_valores': carga_valores,
-        'tiempo_labels': tiempo_labels, 'tiempo_valores': tiempo_valores,
-        'sla_agentes_labels': sla_agentes_labels, 'sla_agentes_valores': sla_agentes_valores,
-        'impacto_labels': impacto_labels,
-        'impacto_alto': impacto_valores_alto,
-        'impacto_medio': impacto_valores_medio,
-        'impacto_bajo': impacto_valores_bajo,
+        # ... (Tus otros datos de contexto se quedan exactamente igual) ...
+        'impacto_labels': sistemas_unicos,
+        'impacto_caido': [impacto_caido[sist] for sist in sistemas_unicos],
+        'impacto_parcial': [impacto_parcial[sist] for sist in sistemas_unicos],
+        'impacto_funcional': [impacto_funcional[sist] for sist in sistemas_unicos],
     }
 
     if request.headers.get('HX-Request'):

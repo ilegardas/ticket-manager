@@ -739,18 +739,18 @@ def panel_tickets_list(request):
     estado_id = request.GET.get('estado_id')
     impacto = request.GET.get('impacto')
     
-    # 📁 Leer parámetro de archivados para el filtrado dinámico
-    incluir_archivados = request.GET.get('ver_archivados', 'false') == 'true'
+    # 🎯 UNIFICADO: Por defecto 'false' (Oculta archivados en el día a día)
+    archivado_filtro = request.GET.get('archivado', 'false')
     
     qs = Ticket.objects.select_related(
         'sistema', 'modulo', 'prioridad', 'estado', 'usuario_asignado'
     )
 
-    # 📁 Si no se solicita ver el baúl histórico, ocultamos los archivados por defecto
-    if not incluir_archivados:
+    # 📁 Filtrado lógico de archivados
+    if archivado_filtro == 'true':
+        qs = qs.filter(archivado=True)
+    elif archivado_filtro == 'false':
         qs = qs.filter(archivado=False)
-    else:
-        qs = qs.all()
 
     titulo_panel = "Panel Global de Tickets"
     if filtrar == 'pendientes':
@@ -803,6 +803,7 @@ def panel_tickets_list(request):
         'estados': Estado.objects.all().order_by('orden'),
         'prioridades': Prioridad.objects.all(),
         'tecnicos': Usuario.objects.filter(rol='tecnico') or Usuario.objects.filter(is_staff=True) or Usuario.objects.all(),
+        'current_archivado': archivado_filtro, # 👈 Para recordar la selección en el HTML
     }
 
     if request.headers.get('HX-Request'):
@@ -814,8 +815,7 @@ def panel_tickets_list(request):
 @login_required
 def panel_tickets_exportar_excel(request):
     """
-    📥 EXPORTADOR INTEGRAL EXCEL: Descarga el reporte de tickets respetando 
-    estrictamente el ordenamiento, buscador y la matriz de filtros cruzados.
+    📥 EXPORTADOR EXCEL MESA DE TRABAJO: Sincronizado con el filtro de archivados.
     """
     query = request.GET.get('q', '').strip()
     ordering = request.GET.get('ordering', '-fecha_creacion')
@@ -823,6 +823,7 @@ def panel_tickets_exportar_excel(request):
     prioridad_id = request.GET.get('prioridad_id')
     estado_id = request.GET.get('estado_id')
     impacto = request.GET.get('impacto')
+    archivado_filtro = request.GET.get('archivado', 'false')
 
     qs = Ticket.objects.select_related('sistema', 'modulo', 'estado', 'prioridad', 'usuario_asignado').all()
 
@@ -842,6 +843,12 @@ def panel_tickets_exportar_excel(request):
         qs = qs.filter(estado_id=estado_id)
     if impacto:
         qs = qs.filter(impacto_proceso=impacto)
+        
+    # Sincronización del Excel
+    if archivado_filtro == 'true':
+        qs = qs.filter(archivado=True)
+    elif archivado_filtro == 'false':
+        qs = qs.filter(archivado=False)
 
     campos_permitidos = [
         'folio', '-folio', 'titulo', '-titulo', 
@@ -875,7 +882,6 @@ def panel_tickets_exportar_excel(request):
         ])
         
     return response
-
 
 @login_required
 def panel_ticket_chatter(request, pk):

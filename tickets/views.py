@@ -1260,7 +1260,6 @@ def panel_ticket_detail(request, pk):
         elif action == "view_info":
             return render(request, 'tickets/partials/view_info.html', {'ticket': ticket})
         
-        # 🎯 CORRECCIÓN: Si es un GET normal sin acción, renderiza la página completa de detalle
         context = {
             'ticket': ticket,
             'estados': Estado.objects.all().order_by('orden'),
@@ -1278,8 +1277,10 @@ def panel_ticket_detail(request, pk):
             ticket.save()
             return render(request, 'tickets/partials/view_info.html', {'ticket': ticket})
 
-        # Capturamos el estado anterior antes del guardado
+        # Capturamos estados anteriores antes del guardado
         old_est = ticket.estado
+        old_archivado = ticket.archivado
+        
         estado_id = request.POST.get("estado")
         prioridad_id = request.POST.get("prioridad")
         causa_raiz = request.POST.get("causa_raiz")
@@ -1299,8 +1300,23 @@ def panel_ticket_detail(request, pk):
             ticket.causa_raiz = causa_raiz
         if solucion_aplicada is not None: 
             ticket.solucion_aplicada = solucion_aplicada
+            
+        # 📁 LOGICA DE ARCHIVADO: Si el checkbox viene marcado en el POST se evalúa como True
+        if "archivado" in request.POST or request.headers.get('HX-Request'):
+            archivado_val = request.POST.get("archivado") == "true"
+            ticket.archivado = archivado_val
         
         ticket.save()
+
+        # Generar notas en el chatter si se archivó o desarchivó el registro
+        if old_archivado != ticket.archivado:
+            accion_txt = "archivado e inactivado de reportes generales" if ticket.archivado else "restaurado y devuelto a la lista activa"
+            ChatterEntry.objects.create(
+                ticket=ticket,
+                tipo='sistema',
+                autor=request.user,
+                contenido=f"📁 El ticket ha sido {accion_txt} por el operador."
+            )
 
         # Disparador de logs si cambió el estado o se gestionó la asignación
         if old_est != ticket.estado or "usuario_asignado" in request.POST:

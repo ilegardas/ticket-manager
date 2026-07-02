@@ -85,6 +85,21 @@
                         <option value="funcional">🟢 Funcional</option>
                     </select>
                 </div>
+
+                <div class="flex flex-col">
+                    <label class="text-[10px] font-bold text-orange-500 uppercase tracking-wider mb-1">Archivado</label>
+                    <select name="archivado" 
+                            class="w-full bg-[#11141b] border border-slate-800 text-slate-300 rounded-lg p-2 text-xs focus:ring-1 focus:ring-orange-500 outline-none transition duration-150"
+                            hx-get="{% url 'panel_tickets_list' %}"
+                            hx-target="#tickets-table-body"
+                            hx-trigger="change"
+                            hx-include="[name='q'], [name='asignado_id'], [name='prioridad_id'], [name='estado_id'], [name='impacto']">
+                        <option value="false" {% if current_archivado == 'false' %}selected{% endif %}>Solo Activos</option>
+                        <option value="true" {% if current_archivado == 'true' %}selected{% endif %}>Solo Archivados</option>
+                        <option value="todos" {% if current_archivado == 'todos' %}selected{% endif %}>Todos</option>
+                    </select>
+                </div>
+            
             </div>
         </div>
         

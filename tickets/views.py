@@ -16,6 +16,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from datetime import timedelta, datetime
 from django.core.mail import EmailMessage
+from django.db.models.functions import TruncDate
 
 import csv
 import io

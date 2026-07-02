@@ -1235,6 +1235,8 @@ def panel_ticket_detail(request, pk):
             ticket.save()
             return render(request, 'tickets/partials/view_info.html', {'ticket': ticket})
 
+        # Capturamos el estado y técnico anterior antes del guardado
+        old_est = ticket.estado
         estado_id = request.POST.get("estado")
         prioridad_id = request.POST.get("prioridad")
         causa_raiz = request.POST.get("causa_raiz")
@@ -1245,8 +1247,7 @@ def panel_ticket_detail(request, pk):
         if prioridad_id: 
             ticket.prioridad_id = prioridad_id
             
-        # 🎯 CORRECCIÓN DE SEGURIDAD: Solo se modifica el técnico si el parámetro está presente en el request
-        if "usuario_asignado" in request.POST:
+        if "usuario_assigned" in request.POST or "usuario_asignado" in request.POST:
             usuario_asignado_id = request.POST.get("usuario_asignado")
             ticket.usuario_asignado_id = usuario_asignado_id if usuario_asignado_id else None
             
@@ -1257,19 +1258,15 @@ def panel_ticket_detail(request, pk):
         
         ticket.save()
 
+        # 🎯 DISPARADOR DE LOGS: Si cambió el estado o se asignó un técnico, ejecutamos la estampa de fechas
+        if old_est != ticket.estado or "usuario_asignado" in request.POST:
+            _handle_state_change(ticket, old_est, ticket.estado, request.user)
+
         if "estado" in request.POST or "usuario_asignado" in request.POST or "prioridad" in request.POST:
             notas = ChatterEntry.objects.filter(ticket=ticket).order_by('-fecha_creacion')
             return render(request, 'tickets/partials/chatter.html', {'notas': notas})
             
         return HttpResponse(status=204)
-
-    context = {
-        'ticket': ticket,
-        'estados': Estado.objects.all().order_by('orden'),
-        'prioridades': Prioridad.objects.all(),
-        'tecnicos': Usuario.objects.filter(rol='tecnico') or Usuario.objects.filter(is_staff=True) or Usuario.objects.all(),
-    }
-    return render(request, 'tickets/detail.html', context)
 
 
 @login_required

@@ -137,6 +137,20 @@
             <label class="block text-[11px] font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1">Región / Zona</label>
             <input type="text" name="region" placeholder="Ej. Centro, Delicias" class="w-full text-xs p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none">
         </div>
+
+        <div class="flex flex-col">
+            <label class="text-[11px] font-bold text-orange-500 uppercase tracking-wider mb-1.5">📁 Condición de Archivo</label>
+            <select name="archivado" 
+                    class="w-full bg-[#11141b] border border-slate-800 text-slate-200 rounded-lg p-2.5 text-xs focus:ring-1 focus:ring-orange-500 outline-none transition duration-150"
+                    hx-get="{% url 'panel_reportes_avanzados' %}"
+                    hx-target="#reportes-dinamicos-target"
+                    hx-trigger="change">
+                <option value="false" {% if current_archivado == 'false' %}selected{% endif %}>— Solo Activos (Por defecto) —</option>
+                <option value="true" {% if current_archivado == 'true' %}selected{% endif %}>Solo Archivados</option>
+                <option value="todos" {% if current_archivado == 'todos' %}selected{% endif %}>Todos los Tickets</option>
+            </select>
+        </div>
+        
     </form>
 
     <div id="reportes-dinamicos" class="space-y-6">

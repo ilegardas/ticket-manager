@@ -1215,16 +1215,24 @@ def panel_ticket_detail(request, pk):
             return render(request, 'tickets/partials/view_info.html', {'ticket': ticket})
 
         estado_id = request.POST.get("estado")
-        usuario_asignado_id = request.POST.get("usuario_asignado")
         prioridad_id = request.POST.get("prioridad")
         causa_raiz = request.POST.get("causa_raiz")
         solucion_aplicada = request.POST.get("solucion_aplicada")
 
-        if estado_id: ticket.estado_id = estado_id
-        if prioridad_id: ticket.prioridad_id = prioridad_id
-        ticket.usuario_asignado_id = usuario_asignado_id if usuario_asignado_id else None
-        if causa_raiz is not None: ticket.causa_raiz = causa_raiz
-        if solucion_aplicada is not None: ticket.solucion_aplicada = solucion_aplicada
+        if estado_id: 
+            ticket.estado_id = estado_id
+        if prioridad_id: 
+            ticket.prioridad_id = prioridad_id
+            
+        # 🎯 CORRECCIÓN DE SEGURIDAD: Solo se modifica el técnico si el parámetro está presente en el request
+        if "usuario_asignado" in request.POST:
+            usuario_asignado_id = request.POST.get("usuario_asignado")
+            ticket.usuario_asignado_id = usuario_asignado_id if usuario_asignado_id else None
+            
+        if causa_raiz is not None: 
+            ticket.causa_raiz = causa_raiz
+        if solucion_aplicada is not None: 
+            ticket.solucion_aplicada = solucion_aplicada
         
         ticket.save()
 

@@ -182,21 +182,40 @@
                 }
             });
 
-            // ✨ 8. Impacto por Sistema (Barras Apiladas)
+            // ✨ 8. Impacto por Sistema (Barras Apiladas con Categorías de SEECH)
             limpiarYCrearChart('chartImpactoSistemas', {
                 type: 'bar',
                 data: {
                     labels: {{ impacto_labels|safe|default:"[]" }},
                     datasets: [
-                        { label: 'Alto/Crítico', data: {{ impacto_alto|safe|default:"[]" }}, backgroundColor: '#EF4444' },
-                        { label: 'Medio', data: {{ impacto_medio|safe|default:"[]" }}, backgroundColor: '#F59E0B' },
-                        { label: 'Bajo', data: {{ impacto_bajo|safe|default:"[]" }}, backgroundColor: '#3B82F6' }
+                        { 
+                            label: '❌ Totalmente caído', 
+                            data: {{ impacto_caido|safe|default:"[]" }}, 
+                            backgroundColor: '#EF4444' // Rojo 
+                        },
+                        { 
+                            label: '⚠️ Parcialmente funciona', 
+                            data: {{ impacto_parcial|safe|default:"[]" }}, 
+                            backgroundColor: '#F59E0B' // Amarillo
+                        },
+                        { 
+                            label: '✅ Funcional', 
+                            data: {{ impacto_funcional|safe|default:"[]" }}, 
+                            backgroundColor: '#10B981' // Verde esmeralda
+                        }
                     ]
                 }, options: {
-                    responsive: true, maintainAspectRatio: false,
+                    responsive: true, 
+                    maintainAspectRatio: false,
                     scales: {
-                        x: { stacked: true, ticks: { color: labelColor } },
-                        y: { stacked: true, ticks: { color: labelColor } }
+                        x: { 
+                            stacked: true, 
+                            ticks: { color: labelColor, font: { family: 'Inter', size: 10 } } 
+                        },
+                        y: { 
+                            stacked: true, 
+                            ticks: { color: labelColor, stepSize: 1 } // Fuerza incrementos enteros (1, 2, 3...)
+                        }
                     }
                 }
             });

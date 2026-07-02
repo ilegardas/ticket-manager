@@ -1225,6 +1225,15 @@ def panel_ticket_detail(request, pk):
             })
         elif action == "view_info":
             return render(request, 'tickets/partials/view_info.html', {'ticket': ticket})
+        
+        # 🎯 CORRECCIÓN: Si es un GET normal sin acción, renderiza la página completa de detalle
+        context = {
+            'ticket': ticket,
+            'estados': Estado.objects.all().order_by('orden'),
+            'prioridades': Prioridad.objects.all(),
+            'tecnicos': Usuario.objects.filter(rol='tecnico') or Usuario.objects.filter(is_staff=True) or Usuario.objects.all(),
+        }
+        return render(request, 'tickets/detail.html', context)
 
     if request.method == "POST":
         if action == "update_info":
@@ -1235,7 +1244,7 @@ def panel_ticket_detail(request, pk):
             ticket.save()
             return render(request, 'tickets/partials/view_info.html', {'ticket': ticket})
 
-        # Capturamos el estado y técnico anterior antes del guardado
+        # Capturamos el estado anterior antes del guardado
         old_est = ticket.estado
         estado_id = request.POST.get("estado")
         prioridad_id = request.POST.get("prioridad")
@@ -1247,7 +1256,8 @@ def panel_ticket_detail(request, pk):
         if prioridad_id: 
             ticket.prioridad_id = prioridad_id
             
-        if "usuario_assigned" in request.POST or "usuario_asignado" in request.POST:
+        # Solo se modifica el técnico si el parámetro está presente en el request
+        if "usuario_asignado" in request.POST:
             usuario_asignado_id = request.POST.get("usuario_asignado")
             ticket.usuario_asignado_id = usuario_asignado_id if usuario_asignado_id else None
             
@@ -1258,7 +1268,7 @@ def panel_ticket_detail(request, pk):
         
         ticket.save()
 
-        # 🎯 DISPARADOR DE LOGS: Si cambió el estado o se asignó un técnico, ejecutamos la estampa de fechas
+        # Disparador de logs si cambió el estado o se gestionó la asignación
         if old_est != ticket.estado or "usuario_asignado" in request.POST:
             _handle_state_change(ticket, old_est, ticket.estado, request.user)
 

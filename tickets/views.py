@@ -1679,6 +1679,9 @@ def panel_reportes_avanzados(request):
     modulo_id = request.GET.get('modulo')
     impacto = request.GET.get('impacto')
     region = request.GET.get('region')
+    
+    # 🎯 NUEVO: Por defecto 'false' (Oculta archivados a menos que se cambie el select)
+    archivado_filtro = request.GET.get('archivado', 'false')
 
     qs = Ticket.objects.select_related(
         'sistema', 'modulo', 'prioridad', 'estado', 'categoria', 'usuario_asignado'
@@ -1702,6 +1705,13 @@ def panel_reportes_avanzados(request):
         qs = qs.filter(impacto_proceso=impacto)
     if region:
         qs = qs.filter(usuario_reporta__region_zona__icontains=region)
+        
+    # 🎯 APLICACIÓN DEL FILTRO DE ARCHIVADO
+    if archivado_filtro == 'true':
+        qs = qs.filter(archivado=True)
+    elif archivado_filtro == 'false':
+        qs = qs.filter(archivado=False)
+    # Si viene como 'todos', no se aplica ningún filtro de exclusión lógica
 
     sistemas_data = qs.values('sistema__nombre').annotate(total=Count('id')).order_by('-total')
     sistemas_labels = [item['sistema__nombre'] or 'Sin Sistema' for item in sistemas_data]
@@ -1724,6 +1734,7 @@ def panel_reportes_avanzados(request):
         'sistemas_valores': json.dumps(sistemas_valores),
         'estados_labels': json.dumps(estados_labels),
         'estados_valores': json.dumps(estados_valores),
+        'current_archivado': archivado_filtro, # Envia el estado actual al HTML
     }
 
     if request.headers.get('HX-Request'):
@@ -1747,6 +1758,7 @@ def exportar_reporte_csv(request):
     modulo_id = request.GET.get('modulo')
     impacto = request.GET.get('impacto')
     region = request.GET.get('region')
+    archivado_filtro = request.GET.get('archivado', 'false')
 
     qs = Ticket.objects.select_related(
         'sistema', 'modulo', 'estado', 'categoria', 'usuario_asignado', 'usuario_reporta'
@@ -1770,6 +1782,12 @@ def exportar_reporte_csv(request):
         qs = qs.filter(impacto_proceso=impacto)
     if region:
         qs = qs.filter(usuario_reporta__region_zona__icontains=region)
+        
+    # Sincronización exacta con la descarga Excel/CSV
+    if archivado_filtro == 'true':
+        qs = qs.filter(archivado=True)
+    elif archivado_filtro == 'false':
+        qs = qs.filter(archivado=False)
 
     response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
     response['Content-Disposition'] = f'attachment; filename="Reporte_BI_Avanzado_{timezone.now().strftime("%Y%m%d_%H%M")}.csv"'

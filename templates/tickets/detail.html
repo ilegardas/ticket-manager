@@ -174,7 +174,7 @@
                                    value="true"
                                    class="sr-only peer"
                                    hx-post="{% url 'panel_ticket_detail' ticket.id %}"
-                                   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' <!-- 🎯 ¡El blindaje que faltaba! -->
+                                   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' 
                                    hx-trigger="change"
                                    hx-swap="none"
                                    {% if ticket.archivado %}checked{% endif %}>

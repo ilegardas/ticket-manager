@@ -44,6 +44,7 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
+        <!-- Columna Izquierda: Contenido Médico / Técnico -->
         <div class="lg:col-span-2 space-y-6">
             
             <div class="bg-white dark:bg-darkPanel rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 space-y-3">
@@ -67,9 +68,26 @@
                 </div>
             </div>
 
+            <!-- 🏷️ Etiquetas / Palabras clave en la base (Opcional) -->
+            {% if solucion.palabras_clave %}
+            <div class="pt-2 no-print">
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">🏷️ Términos e Indexación</span>
+                <div class="flex flex-wrap gap-1.5">
+                    {% for tag in solucion.palabras_clave.split %}
+                        <span class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded text-[11px] font-medium font-mono border dark:border-slate-700/50">
+                            {{ tag|replace:", " }}
+                        </span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
         </div>
 
+        <!-- Columna Derecha: Metadatos y Recursos de Apoyo Multimedia -->
         <div class="space-y-6">
+            
+            <!-- Tarjeta 1: Metadatos -->
             <div class="bg-white dark:bg-darkPanel rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-5 space-y-4 text-xs">
                 <h4 class="font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">Metadatos de Ingeniería</h4>
                 
@@ -87,6 +105,42 @@
                     </div>
                 </div>
             </div>
+
+            <!-- 🎯 Tarjeta 2: NUEVO PANEL DE MATERIAL MULTIMEDIA DE INDUCCIÓN -->
+            {% if solucion.video_url or solucion.documento_url %}
+            <div class="bg-white dark:bg-darkPanel rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-5 space-y-3 text-xs no-print">
+                <h4 class="font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">Material de Apoyo Visual</h4>
+                
+                <div class="space-y-2.5">
+                    {% if solucion.video_url %}
+                    <a href="{{ solucion.video_url }}" target="_blank" 
+                       class="flex items-center gap-3 p-2.5 rounded-lg border border-amber-200 dark:border-amber-900/40 bg-amber-50/40 dark:bg-amber-950/20 hover:scale-[1.01] transition duration-150 group">
+                        <div class="h-8 w-8 rounded bg-amber-500 flex items-center justify-center text-white text-sm shadow-sm flex-shrink-0">
+                            🎥
+                        </div>
+                        <div class="overflow-hidden">
+                            <h5 class="font-bold text-slate-800 dark:text-slate-200 group-hover:text-amber-500 transition truncate">Ver Videotutorial</h5>
+                            <p class="text-[10px] text-slate-400 truncate">Procedimiento interactivo</p>
+                        </div>
+                    </a>
+                    {% endif %}
+
+                    {% if solucion.documento_url %}
+                    <a href="{{ solucion.documento_url }}" target="_blank" 
+                       class="flex items-center gap-3 p-2.5 rounded-lg border border-blue-200 dark:border-blue-900/40 bg-blue-50/40 dark:bg-blue-950/20 hover:scale-[1.01] transition duration-150 group">
+                        <div class="h-8 w-8 rounded bg-blue-500 flex items-center justify-center text-white text-sm shadow-sm flex-shrink-0">
+                            📄
+                        </div>
+                        <div class="overflow-hidden">
+                            <h5 class="font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-400 transition truncate">Manual de Referencia</h5>
+                            <p class="text-[10px] text-slate-400 truncate">Documentación oficial</p>
+                        </div>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
         </div>
 
     </div>

@@ -732,9 +732,15 @@ def panel_tickets_list(request):
     estado_id = request.GET.get('estado_id')
     impacto = request.GET.get('impacto')
     
+   incluir_archivados = request.GET.get('ver_archivados', 'false') == 'true'
+
     qs = Ticket.objects.select_related(
         'sistema', 'modulo', 'prioridad', 'estado', 'usuario_asignado'
-    ).all()
+    )
+    
+    # 📁 Si no se solicita explícitamente, ocultamos los archivados de la vista principal
+    if not incluir_archivados:
+        qs = qs.filter(archivado=False)
 
     titulo_panel = "Panel Global de Tickets"
     if filtrar == 'pendientes':

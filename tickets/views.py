@@ -260,7 +260,14 @@ class TicketViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
+
+        # 🛡️ Blindaje para la API: por defecto oculta archivados a menos que se mande el parámetro
+        incluir_archivados = self.request.query_params.get('ver_archivados', 'false') == 'true'
+        if not incluir_archivados:
+            qs = qs.filter(archivado=False)
+            
         vista = self.request.query_params.get('vista')
+        
         if not vista or vista == 'todos': return qs
         now = timezone.now()
         if vista == 'abiertos': return qs.filter(estado__es_estado_cierre=False)

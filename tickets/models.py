@@ -353,6 +353,11 @@ class ConocimientoEntry(models.Model):
     modulo = models.ForeignKey(Modulo, on_delete=models.SET_NULL, null=True, blank=True)
     ticket_origen = models.ForeignKey(Ticket, on_delete=models.SET_NULL, null=True, blank=True)
     veces_consultado = models.IntegerField(default=0)
+    
+    video_url = models.URLField(blank=True, null=True, help_text="Enlace a videotutorial (Loom, YouTube, Drive, etc.)")
+    documento_url = models.URLField(blank=True, null=True, help_text="Enlace a manual, PDF o documentación oficial")
+    palabras_clave = models.CharField(max_width=255, blank=True, null=True, help_text="Palabras clave separadas por comas para mejorar búsquedas")
+    
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 
     class Meta:

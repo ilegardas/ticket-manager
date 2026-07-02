@@ -927,8 +927,10 @@ def panel_dashboard(request):
     else:
         fecha_fin = hoy
 
+    # 🎯 Excluye los archivados de métricas, tiempos promedio y cumplimiento de SLA por defecto
     tickets_filtrados = Ticket.objects.filter(
-        fecha_creacion__date__range=[fecha_inicio, fecha_fin]
+        fecha_creacion__date__range=[fecha_inicio, fecha_fin],
+        archivado=False
     )
 
     limite_sla_minutos = 2880 

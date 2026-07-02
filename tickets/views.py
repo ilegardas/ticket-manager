@@ -941,52 +941,106 @@ def panel_dashboard(request):
     sla_porcentaje = int((tickets_con_sla / total_tickets) * 100) if total_tickets > 0 else 100
 
     # =========================================================================
-    # 📈 LÓGICA DE AGREGACIÓN DE DATOS PARA LAS 4 GRÁFICAS DE CHART.JS
+    # 📈 LÓGICA DE AGREGACIÓN DE DATOS (4 ANTERIORES + 4 NUEVOS INDICADORES)
     # =========================================================================
+    from django.db.models import Avg, F, ExpressionWrapper, DurationField
 
-    # 🎨 1. Tendencia de Creación de Tickets (Por Día)
-    tendencias_data = (
-        tickets_filtrados
-        .annotate(dia=TruncDate('fecha_creacion'))
-        .values('dia')
-        .annotate(total=Count('id'))
-        .order_by('dia')
-    )
+    # [Existente] 1. Tendencia de Creación de Tickets (Por Día)
+    tendencias_data = tickets_filtrados.annotate(dia=TruncDate('fecha_creacion')).values('dia').annotate(total=Count('id')).order_by('dia')
     tendencias_labels = [item['dia'].strftime('%Y-%m-%d') for item in tendencias_data if item['dia']]
     tendencias_valores = [item['total'] for item in tendencias_data]
 
-    # 🎨 2. Tickets por Estado (Dona) - Buscando el campo o relación de nombre de estado
-    # (Ajusta 'estado__nombre' si tu modelo usa otro campo como 'estado__code' o similar)
-    estados_data = (
-        tickets_filtrados
-        .values('estado__nombre')
-        .annotate(total=Count('id'))
-        .order_by('-total')
-    )
+    # [Existente] 2. Tickets por Estado (Dona)
+    estados_data = tickets_filtrados.values('estado__nombre').annotate(total=Count('id')).order_by('-total')
     estados_labels = [item['estado__nombre'] if item['estado__nombre'] else "Sin Estado" for item in estados_data]
     estados_valores = [item['total'] for item in estados_data]
 
-    # 🎨 3. Volumen de Incidencias por Sistema (Barras Verticales)
-    # (Ajusta 'sistema__nombre' según cómo se llame el campo de relación en tu modelo Ticket)
-    sistemas_data = (
-        tickets_filtrados
-        .values('sistema__nombre')
-        .annotate(total=Count('id'))
-        .order_by('-total')
-    )
+    # [Existente] 3. Volumen de Incidencias por Sistema
+    sistemas_data = tickets_filtrados.values('sistema__nombre').annotate(total=Count('id')).order_by('-total')
     sistemas_labels = [item['sistema__nombre'] if item['sistema__nombre'] else "General" for item in sistemas_data]
     sistemas_valores = [item['total'] for item in sistemas_data]
 
-    # 🎨 4. Distribución por Prioridad (Barras Horizontales)
-    # (Ajusta 'prioridad' o 'prioridad__nombre' según el formato de tu modelo)
-    prioridades_data = (
-        tickets_filtrados
-        .values('prioridad')
-        .annotate(total=Count('id'))
-        .order_by('-total')
-    )
+    # [Existente] 4. Distribución por Prioridad
+    prioridades_data = tickets_filtrados.values('prioridad').annotate(total=Count('id')).order_by('-total')
     prioridades_labels = [item['prioridad'] if item['prioridad'] else "Normal" for item in prioridades_data]
     prioridades_valores = [item['total'] for item in prioridades_data]
+
+
+    # ✨ [NUEVO] 5. Top 5 Especialistas con Más Carga de Trabajo (Solo Tickets Activos)
+    carga_data = (
+        tickets_filtrados.filter(~Q(estado__es_estado_cierre=True))
+        .values('usuario_asignado__first_name', 'usuario_asignado__last_name')
+        .annotate(total=Count('id'))
+        .order_by('-total')[:5]
+    )
+    carga_labels = [f"{item['usuario_asignado__first_name']} {item['usuario_asignado__last_name']}".strip() or "Sin Asignar" for item in carga_data]
+    carga_valores = [item['total'] for item in carga_data]
+
+
+    # ✨ [NUEVO] 6. Tiempo Promedio de Resolución por Sistema (En Horas)
+    # Calculamos la diferencia entre creación y cierre para tickets que ya están resueltos
+    tiempo_data = (
+        tickets_filtrados.filter(estado__es_estado_cierre=True, fecha_cierre__isnull=False)
+        .annotate(duracion=ExpressionWrapper(F('fecha_cierre') - F('fecha_creacion'), output_field=DurationField()))
+        .values('sistema__nombre')
+        .annotate(promedio_horas=Avg('duracion'))
+    )
+    tiempo_labels = [item['sistema__nombre'] or "General" for item in tiempo_data]
+    # Extraemos el promedio transformándolo a horas legibles
+    tiempo_valores = []
+    for item in tiempo_data:
+        if item['promedio_horas']:
+            total_segundos = item['promedio_horas'].total_seconds()
+            tiempo_valores.append(round(total_segundos / 3600, 1)) # 1 decimal
+        else:
+            tiempo_valores.append(0)
+
+
+    # ✨ [NUEVO] 7. Porcentaje de Cumplimiento de SLA por Especialista
+    sla_agentes_data = (
+        tickets_filtrados.values('usuario_asignado__first_name', 'usuario_asignado__last_name')
+        .annotate(
+            total_tickets=Count('id'),
+            cumplidos=Count('id', filter=Q(sla_cumplido=True))
+        )[:5]
+    )
+    sla_agentes_labels = [f"{item['usuario_asignado__first_name']} {item['usuario_asignado__last_name']}".strip() or "Sin Asignar" for item in sla_agentes_data]
+    sla_agentes_valores = [
+        int((item['cumplidos'] / item['total_tickets']) * 100) if item['total_tickets'] > 0 else 100 
+        for item in sla_agentes_data
+    ]
+
+
+    # ✨ [NUEVO] 8. Impacto / Severidad por Sistema (Agrupado por el campo 'impacto' o 'criticidad')
+    # Nota: Si tu campo en el modelo se llama 'criticidad' o 'severidad', cámbialo aquí:
+    impacto_data = (
+        tickets_filtrados.values('sistema__nombre', 'impacto')
+        .annotate(total=Count('id'))
+        .order_by('sistema__nombre')
+    )
+    # Formateamos para un gráfico de barras apiladas (Stacked Bar Chart)
+    # Identificamos los sistemas únicos y los tipos de impactos (Bajo, Medio, Alto)
+    sistemas_unicos = list(set([item['sistema__nombre'] or "General" for item in impacto_data]))
+    
+    # Creamos diccionarios de soporte vacíos por criticidad
+    impacto_alto = {sist: 0 for sist in sistemas_unicos}
+    impacto_medio = {sist: 0 for sist in sistemas_unicos}
+    impacto_bajo = {sist: 0 for sist in sistemas_unicos}
+    
+    for item in impacto_data:
+        sist = item['sistema__nombre'] or "General"
+        imp = str(item['impacto']).upper()
+        if "ALTO" in imp or "CRÍTICO" in imp:
+            impacto_alto[sist] += item['total']
+        elif "MEDIO" in imp or "MODERADO" in imp:
+            impacto_medio[sist] += item['total']
+        else:
+            impacto_bajo[sist] += item['total']
+
+    impacto_labels = sistemas_unicos
+    impacto_valores_alto = [impacto_alto[sist] for sist in sistemas_unicos]
+    impacto_valores_medio = [impacto_medio[sist] for sist in sistemas_unicos]
+    impacto_valores_bajo = [impacto_bajo[sist] for sist in sistemas_unicos]
 
     # =========================================================================
 
@@ -998,15 +1052,20 @@ def panel_dashboard(request):
         'fecha_inicio': fecha_inicio.strftime('%Y-%m-%d'),
         'fecha_fin': fecha_fin.strftime('%Y-%m-%d'),
         
-        # Nuevas listas inyectadas con seguridad al contexto
-        'tendencias_labels': tendencias_labels,
-        'tendencias_valores': tendencias_valores,
-        'estados_labels': estados_labels,
-        'estados_valores': estados_valores,
-        'sistemas_labels': sistemas_labels,
-        'sistemas_valores': sistemas_valores,
-        'prioridades_labels': prioridades_labels,
-        'prioridades_valores': prioridades_valores,
+        # Gráficas anteriores
+        'tendencias_labels': tendencias_labels, 'tendencias_valores': tendencias_valores,
+        'estados_labels': estados_labels, 'estados_valores': estados_valores,
+        'sistemas_labels': sistemas_labels, 'sistemas_valores': sistemas_valores,
+        'prioridades_labels': prioridades_labels, 'prioridades_valores': prioridades_valores,
+        
+        # ✨ Nuevas variables integradas al contexto
+        'carga_labels': carga_labels, 'carga_valores': carga_valores,
+        'tiempo_labels': tiempo_labels, 'tiempo_valores': tiempo_valores,
+        'sla_agentes_labels': sla_agentes_labels, 'sla_agentes_valores': sla_agentes_valores,
+        'impacto_labels': impacto_labels,
+        'impacto_alto': impacto_valores_alto,
+        'impacto_medio': impacto_valores_medio,
+        'impacto_bajo': impacto_valores_bajo,
     }
 
     # Si la petición es disparada por HTMX (cambio de inputs), solo devolvemos las tarjetas y la data nueva

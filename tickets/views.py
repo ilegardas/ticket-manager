@@ -911,6 +911,7 @@ def panel_dashboard(request):
     Carga por defecto el año en curso si no se especifican parámetros.
     """
     from datetime import datetime, date
+    from django.db.models.functions import TruncDate
     
     fecha_inicio_str = request.GET.get('fecha_inicio')
     fecha_fin_str = request.GET.get('fecha_fin')
@@ -948,7 +949,7 @@ def panel_dashboard(request):
     sla_porcentaje = int((tickets_con_sla / resueltos) * 100) if resueltos > 0 else 100
 
     # =========================================================================
-    # 📈 LÓGICA DE AGREGACIÓN DE DATOS (SIN PALABRAS CLAVE INEXISTENTES)
+    # 📈 LÓGICA DE AGREGACIÓN DE DATOS (REINCORPORACIÓN DE LAS 8 GRÁFICAS)
     # =========================================================================
 
     # 1. Tendencia de Creación de Tickets (Por Día)
@@ -1009,7 +1010,7 @@ def panel_dashboard(request):
     sla_agentes_labels = [item['usuario_asignado__nombre_completo'] or "Sin Asignar" for item in sla_agentes_data]
     sla_agentes_valores = [int((item['cumplidos'] / item['total_cerrados']) * 100) if item['total_cerrados'] > 0 else 100 for item in sla_agentes_data]
 
-    # 🎨 8. Impacto / Severidad por Sistema (Corregido con etiquetas oficiales)
+    # 🎨 8. Impacto / Severidad por Sistema (Mapeo de etiquetas personalizadas apiladas)
     impacto_data = (
         tickets_filtrados.values('sistema__nombre', 'impacto_proceso')
         .annotate(total=Count('id'))
@@ -1018,7 +1019,7 @@ def panel_dashboard(request):
     
     sistemas_unicos = list(set([item['sistema__nombre'] or "General" for item in impacto_data]))
     
-    # Estructura de soporte basada en las etiquetas reales de tu catálogo
+    # Soporte semántico para tu catálogo dinámico
     impacto_caido = {sist: 0 for sist in sistemas_unicos}       # Totalmente caído
     impacto_parcial = {sist: 0 for sist in sistemas_unicos}     # Parcialmente funciona
     impacto_funcional = {sist: 0 for sist in sistemas_unicos}   # Funcional
@@ -1034,9 +1035,27 @@ def panel_dashboard(request):
         else:
             impacto_funcional[sist] += item['total']
 
-    # Pasamos las listas al contexto con nombres semánticos claros
+    # 📦 ENVIAMOS ABSOLUTAMENTE TODO AL CONTEXTO (Solución al fallo de carga)
     context = {
-        # ... (Tus otros datos de contexto se quedan exactamente igual) ...
+        'total_tickets': total_tickets,
+        'pendientes': pendientes,
+        'resueltos': resueltos,
+        'sla_porcentaje': sla_porcentaje,
+        'fecha_inicio': fecha_inicio.strftime('%Y-%m-%d'),
+        'fecha_fin': fecha_fin.strftime('%Y-%m-%d'),
+        
+        # Estructuras de las primeras 4 gráficas restauradas
+        'tendencias_labels': tendencias_labels, 'tendencias_valores': tendencias_valores,
+        'estados_labels': estados_labels, 'estados_valores': estados_valores,
+        'sistemas_labels': sistemas_labels, 'sistemas_valores': sistemas_valores,
+        'prioridades_labels': prioridades_labels, 'prioridades_valores': prioridades_valores,
+        
+        # Estructuras de las nuevas gráficas de control restauradas
+        'carga_labels': carga_labels, 'carga_valores': carga_valores,
+        'tiempo_labels': tiempo_labels, 'tiempo_valores': tiempo_valores,
+        'sla_agentes_labels': sla_agentes_labels, 'sla_agentes_valores': sla_agentes_valores,
+        
+        # Datos del indicador apilado por severidad
         'impacto_labels': sistemas_unicos,
         'impacto_caido': [impacto_caido[sist] for sist in sistemas_unicos],
         'impacto_parcial': [impacto_parcial[sist] for sist in sistemas_unicos],

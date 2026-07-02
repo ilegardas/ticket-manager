@@ -760,6 +760,56 @@ def panel_tickets_list(request):
         qs = qs.filter(Q(estado__nombre__icontains='cerrado') | Q(estado__nombre__icontains='resuelto'))
         titulo_panel = "Tickets Resueltos / Cerrados"
 
+    if query:
+        qs = qs.filter(
+            Q(folio__icontains=query) |
+            Q(titulo__icontains=query) |
+            Q(descripcion__icontains=query) |
+            Q(usuario_asignado__nombre_completo__icontains=query)
+        )
+
+    if asignado_id:
+        qs = qs.filter(usuario_asignado_id=asignado_id)
+    if prioridad_id:
+        qs = qs.filter(prioridad_id=prioridad_id)
+    if estado_id:
+        qs = qs.filter(estado_id=estado_id)
+    if impacto:
+        qs = qs.filter(impacto_proceso=impacto)
+
+    campos_permitidos = [
+        'folio', '-folio', 'titulo', '-titulo', 
+        'usuario_asignado__nombre_completo', '-usuario_asignado__nombre_completo',
+        'prioridad__orden', '-prioridad__orden', 'estado__orden', '-estado__orden',
+        'impacto_proceso', '-impacto_proceso', 'fecha_creacion', '-fecha_creacion'
+    ]
+    if ordering in campos_permitidos:
+        qs = qs.order_by(ordering)
+    else:
+        qs = qs.order_by('-fecha_creacion')
+
+    tickets = qs[:100]
+    
+    context = {
+        'tickets': tickets,
+        'titulo_panel': titulo_panel,
+        'current_ordering': ordering,
+        'next_folio': '-folio' if ordering == 'folio' else 'folio',
+        'next_titulo': '-titulo' if ordering == 'titulo' else 'titulo',
+        'next_asignado': '-usuario_asignado__nombre_completo' if ordering == 'usuario_asignado__nombre_completo' else 'usuario_asignado__nombre_completo',
+        'next_prioridad': '-prioridad__orden' if ordering == 'prioridad__orden' else 'prioridad__orden',
+        'next_estado': '-estado__orden' if ordering == 'estado__orden' else 'estado__orden',
+        'next_impacto': '-impacto_proceso' if ordering == 'impacto_proceso' else 'impacto_proceso',
+        'estados': Estado.objects.all().order_by('orden'),
+        'prioridades': Prioridad.objects.all(),
+        'tecnicos': Usuario.objects.filter(rol='tecnico') or Usuario.objects.filter(is_staff=True) or Usuario.objects.all(),
+    }
+
+    if request.headers.get('HX-Request'):
+        return render(request, 'tickets/partials/tickets_render_search.html', context)
+        
+    return render(request, 'tickets/list.html', context)
+
 
 @login_required
 def panel_tickets_exportar_excel(request):

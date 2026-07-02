@@ -21,10 +21,7 @@
         </div>
     </div>
 
-    <div class="bg-white dark:bg-darkPanel p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-        
-
-        <div class="bg-white dark:bg-darkPanel p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+    <div class="bg-white dark:bg-darkPanel p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
         <div class="relative">
             <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 dark:text-darkTextSub">🔍</span>
             <input type="text" 
@@ -37,72 +34,66 @@
                    class="w-full text-sm pl-10 pr-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-amber-500 outline-none transition">
         </div>
 
-        <div id="filtros-mesa" class="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-2 text-xs">
-                <div>
-                    <label class="block font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1 text-[10px]">Especialista</label>
-                    <select name="asignado_id" 
-                            hx-get="{% url 'panel_tickets_list' %}" hx-target="#tickets-table-body" hx-include="input[name='q'], #filtros-mesa select"
-                            class="w-full p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-700 dark:text-slate-200 outline-none">
-                        <option value="">— Todos —</option>
-                        {% for tec in tecnicos %}
-                            <option value="{{ tec.id }}">{{ tec.nombre_completo }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-    
-                <div>
-                    <label class="block font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1 text-[10px]">Prioridad</label>
-                    <select name="prioridad_id" 
-                            hx-get="{% url 'panel_tickets_list' %}" hx-target="#tickets-table-body" hx-include="input[name='q'], #filtros-mesa select"
-                            class="w-full p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-700 dark:text-slate-200 outline-none">
-                        <option value="">— Todas —</option>
-                        {% for pri in prioridades %}
-                            <option value="{{ pri.id }}">{{ pri.nombre }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-    
-                <div>
-                    <label class="block font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1 text-[10px]">Estado</label>
-                    <select name="estado_id" 
-                            hx-get="{% url 'panel_tickets_list' %}" hx-target="#tickets-table-body" hx-include="input[name='q'], #filtros-mesa select"
-                            class="w-full p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-700 dark:text-slate-200 outline-none">
-                        <option value="">— Todos —</option>
-                        {% for est in estados %}
-                            <option value="{{ est.id }}">{{ est.nombre }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-    
-                <div>
-                    <label class="block font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1 text-[10px]">Impacto en Proceso</label>
-                    <select name="impacto" 
-                            hx-get="{% url 'panel_tickets_list' %}" hx-target="#tickets-table-body" hx-include="input[name='q'], #filtros-mesa select"
-                            class="w-full p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-700 dark:text-slate-200 outline-none">
-                        <option value="">— Todos —</option>
-                        <option value="caido_total">🔴 Caído Total</option>
-                        <option value="parcial">🟡 Parcial</option>
-                        <option value="funcional">🟢 Funcional</option>
-                    </select>
-                </div>
+        <div id="filtros-mesa" class="grid grid-cols-1 sm:grid-cols-5 gap-3 pt-2 text-xs">
+            <div>
+                <label class="block font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1 text-[10px]">Especialista</label>
+                <select name="asignado_id" 
+                        class="w-full p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-700 dark:text-slate-200 outline-none"
+                        hx-get="{% url 'panel_tickets_list' %}" hx-target="#tickets-table-body" hx-include="input[name='q'], #filtros-mesa select">
+                    <option value="">— Todos —</option>
+                    {% for tec in tecnicos %}
+                        <option value="{{ tec.id }}">{{ tec.nombre_completo }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
-                <div class="flex flex-col">
-                    <label class="text-[10px] font-bold text-orange-500 uppercase tracking-wider mb-1">Archivado</label>
-                    <select name="archivado" 
-                            class="w-full bg-[#11141b] border border-slate-800 text-slate-300 rounded-lg p-2 text-xs focus:ring-1 focus:ring-orange-500 outline-none transition duration-150"
-                            hx-get="{% url 'panel_tickets_list' %}"
-                            hx-target="#tickets-table-body"
-                            hx-trigger="change"
-                            hx-include="[name='q'], [name='asignado_id'], [name='prioridad_id'], [name='estado_id'], [name='impacto']">
-                        <option value="false" {% if current_archivado == 'false' %}selected{% endif %}>Solo Activos</option>
-                        <option value="true" {% if current_archivado == 'true' %}selected{% endif %}>Solo Archivados</option>
-                        <option value="todos" {% if current_archivado == 'todos' %}selected{% endif %}>Todos</option>
-                    </select>
-                </div>
-            
+            <div>
+                <label class="block font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1 text-[10px]">Prioridad</label>
+                <select name="prioridad_id" 
+                        class="w-full p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-700 dark:text-slate-200 outline-none"
+                        hx-get="{% url 'panel_tickets_list' %}" hx-target="#tickets-table-body" hx-include="input[name='q'], #filtros-mesa select">
+                    <option value="">— Todas —</option>
+                    {% for pri in prioridades %}
+                        <option value="{{ pri.id }}">{{ pri.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1 text-[10px]">Estado</label>
+                <select name="estado_id" 
+                        class="w-full p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-700 dark:text-slate-200 outline-none"
+                        hx-get="{% url 'panel_tickets_list' %}" hx-target="#tickets-table-body" hx-include="input[name='q'], #filtros-mesa select">
+                    <option value="">— Todos —</option>
+                    {% for est in estados %}
+                        <option value="{{ est.id }}">{{ est.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1 text-[10px]">Impacto en Proceso</label>
+                <select name="impacto" 
+                        class="w-full p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-700 dark:text-slate-200 outline-none"
+                        hx-get="{% url 'panel_tickets_list' %}" hx-target="#tickets-table-body" hx-include="input[name='q'], #filtros-mesa select">
+                    <option value="">— Todos —</option>
+                    <option value="caido_total">🔴 Caído Total</option>
+                    <option value="parcial">🟡 Parcial</option>
+                    <option value="funcional">🟢 Funcional</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block font-bold text-orange-500 uppercase mb-1 text-[10px]">Archivado</label>
+                <select name="archivado" 
+                        class="w-full p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-700 dark:text-slate-200 outline-none"
+                        hx-get="{% url 'panel_tickets_list' %}" hx-target="#tickets-table-body" hx-include="input[name='q'], #filtros-mesa select" hx-trigger="change">
+                    <option value="false" {% if current_archivado == 'false' %}selected{% endif %}>Solo Activos</option>
+                    <option value="true" {% if current_archivado == 'true' %}selected{% endif %}>Solo Archivados</option>
+                    <option value="todos" {% if current_archivado == 'todos' %}selected{% endif %}>Todos</option>
+                </select>
             </div>
         </div>
-        
     </div>
 
     <div class="bg-white dark:bg-darkPanel border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
@@ -110,44 +101,43 @@
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="bg-slate-50 dark:bg-darkBg/50 border-b border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider select-none">
-                        
                         <th class="py-3 px-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-darkBg transition group"
-                            hx-get="{% url 'panel_tickets_list' %}?ordering={{ next_folio }}" hx-target="#tickets-table-body" hx-include="[name='q']">
+                            hx-get="{% url 'panel_tickets_list' %}?ordering={{ next_folio }}" hx-target="#tickets-table-body" hx-include="input[name='q'], #filtros-mesa select">
                             <div class="flex items-center gap-1">
                                 Ticket / Folio <span class="text-slate-300 dark:text-slate-600 group-hover:text-slate-400">{% if current_ordering == 'folio' %}▲{% elif current_ordering == '-folio' %}▼{% else %}↕{% endif %}</span>
                             </div>
                         </th>
                         
                         <th class="py-3 px-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-darkBg transition group"
-                            hx-get="{% url 'panel_tickets_list' %}?ordering={{ next_titulo }}" hx-target="#tickets-table-body" hx-include="[name='q']">
+                            hx-get="{% url 'panel_tickets_list' %}?ordering={{ next_titulo }}" hx-target="#tickets-table-body" hx-include="input[name='q'], #filtros-mesa select">
                             <div class="flex items-center gap-1">
                                 Incidencia / Sistema <span class="text-slate-300 dark:text-slate-600 group-hover:text-slate-400">{% if current_ordering == 'titulo' %}▲{% elif current_ordering == '-titulo' %}▼{% else %}↕{% endif %}</span>
                             </div>
                         </th>
                         
                         <th class="py-3 px-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-darkBg transition group"
-                            hx-get="{% url 'panel_tickets_list' %}?ordering={{ next_asignado }}" hx-target="#tickets-table-body" hx-include="[name='q']">
+                            hx-get="{% url 'panel_tickets_list' %}?ordering={{ next_asignado }}" hx-target="#tickets-table-body" hx-include="input[name='q'], #filtros-mesa select">
                             <div class="flex items-center gap-1">
                                 Especialista Asignado <span class="text-slate-300 dark:text-slate-600 group-hover:text-slate-400">{% if current_ordering == 'usuario_asignado__nombre_completo' %}▲{% elif current_ordering == '-usuario_asignado__nombre_completo' %}▼{% else %}↕{% endif %}</span>
                             </div>
                         </th>
                         
                         <th class="py-3 px-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-darkBg transition group text-center"
-                            hx-get="{% url 'panel_tickets_list' %}?ordering={{ next_prioridad }}" hx-target="#tickets-table-body" hx-include="[name='q']">
+                            hx-get="{% url 'panel_tickets_list' %}?ordering={{ next_prioridad }}" hx-target="#tickets-table-body" hx-include="input[name='q'], #filtros-mesa select">
                             <div class="flex items-center justify-center gap-1">
                                 Prioridad <span class="text-slate-300 dark:text-slate-600 group-hover:text-slate-400">{% if current_ordering == 'prioridad__orden' %}▲{% elif current_ordering == '-prioridad__orden' %}▼{% else %}↕{% endif %}</span>
                             </div>
                         </th>
                 
                         <th class="py-3 px-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-darkBg transition group text-center"
-                            hx-get="{% url 'panel_tickets_list' %}?ordering={{ next_estado }}" hx-target="#tickets-table-body" hx-include="[name='q']">
+                            hx-get="{% url 'panel_tickets_list' %}?ordering={{ next_estado }}" hx-target="#tickets-table-body" hx-include="input[name='q'], #filtros-mesa select">
                             <div class="flex items-center justify-center gap-1">
                                 Estado <span class="text-slate-300 dark:text-slate-600 group-hover:text-slate-400">{% if current_ordering == 'estado__orden' %}▲{% elif current_ordering == '-estado__orden' %}▼{% else %}↕{% endif %}</span>
                             </div>
                         </th>
                 
                         <th class="py-3 px-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-darkBg transition group text-center"
-                            hx-get="{% url 'panel_tickets_list' %}?ordering={{ next_impacto }}" hx-target="#tickets-table-body" hx-include="[name='q']">
+                            hx-get="{% url 'panel_tickets_list' %}?ordering={{ next_impacto }}" hx-target="#tickets-table-body" hx-include="input[name='q'], #filtros-mesa select">
                             <div class="flex items-center justify-center gap-1">
                                 Impacto <span class="text-slate-300 dark:text-slate-600 group-hover:text-slate-400">{% if current_ordering == 'impacto_proceso' %}▲{% elif current_ordering == '-impacto_proceso' %}▼{% else %}↕{% endif %}</span>
                             </div>
@@ -164,20 +154,7 @@
     </div>
 </div>
 
-<script>
-    function exportarTicketsConFiltro(event) {
-        event.preventDefault();
-        const inputBuscador = document.querySelector("input[name='q']");
-        const queryValor = inputBuscador ? inputBuscador.value.trim() : "";
-        
-        let urlDestino = "{% url 'panel_tickets_exportar_excel' %}";
-        if (queryValor) {
-            urlDestino += "?q=" + encodeURIComponent(queryValor);
-        }
-        window.location.href = urlDestino;
-    }
-</script>
-
+<!-- 📦 SCRIPT UNIFICADO SINCRO EXCEL CON FILTRO DE ARCHIVADOS -->
 <script>
     function exportarTicketsConFiltro(event) {
         event.preventDefault();
@@ -189,20 +166,20 @@
         const prioridad = document.querySelector("select[name='prioridad_id']")?.value || "";
         const estado = document.querySelector("select[name='estado_id']")?.value || "";
         const impacto = document.querySelector("select[name='impacto']")?.value || "";
+        const archivado = document.querySelector("select[name='archivado']")?.value || "false";
         
         const ordenActual = "{{ current_ordering }}";
         
-        // Construcción dinámica de la URL con parámetros GET cruzados
+        // Construcción dinámica unificada de la URL para el backend
         let urlDestino = "{% url 'panel_tickets_exportar_excel' %}?ordering=" + ordenActual;
         if (queryValor) urlDestino += "&q=" + encodeURIComponent(queryValor);
         if (asignado)   urlDestino += "&asignado_id=" + asignado;
         if (prioridad)  urlDestino += "&prioridad_id=" + prioridad;
         if (estado)     urlDestino += "&estado_id=" + estado;
         if (impacto)    urlDestino += "&impacto=" + impacto;
+        if (archivado)  urlDestino += "&archivado=" + archivado; // 👈 ¡Sincronizado!
         
         window.location.href = urlDestino;
     }
 </script>
-
-
 {% endblock %}

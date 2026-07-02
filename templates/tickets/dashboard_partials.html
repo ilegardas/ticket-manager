@@ -68,12 +68,15 @@
             <div class="h-64"><canvas id="chartTiempos"></canvas></div>
         </div>
 
-        <!-- Tarjeta Nueva: % Cumplimiento de SLA por Sistema -->
-        <div class="bg-[#1a1f2c] p-4 rounded-xl shadow-lg border border-slate-800">
-            <h3 class="text-sm font-semibold text-slate-200 mb-4">% Cumplimiento de SLA por Sistema</h3>
-            <div class="relative h-64">
-                <canvas id="chartSlaSistemas"></canvas>
-            </div>
+        <div class="bg-white dark:bg-darkPanel p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-4">% Cumplimiento de SLA por Agente</h3>
+            <div class="h-64"><canvas id="chartSlaAgentes"></canvas></div>
+        </div>
+
+        <!-- 🎯 NUEVO: Contenedor HTML para el Gráfico de SLA por Sistema -->
+        <div class="bg-white dark:bg-darkPanel p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-4">% Cumplimiento de SLA por Sistema</h3>
+            <div class="h-64"><canvas id="chartSlaSistemas"></canvas></div>
         </div>
 
         <div class="bg-white dark:bg-darkPanel p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
@@ -112,7 +115,7 @@
                 }
             }
 
-            // 1. Tendencias (Corregido: Base en 0 e incrementos enteros de 1 en 1)
+            // 1. Tendencias
             try {
                 limpiarYCrearChart('chartTendencias', {
                     type: 'line',
@@ -136,11 +139,11 @@
                             x: { grid: { color: gridColor }, ticks: { color: labelColor, font: { family: 'Inter' } } },
                             y: { 
                                 grid: { color: gridColor }, 
-                                min: 0,        // 📌 Establece el cero en el horizonte base
+                                min: 0,        
                                 ticks: { 
                                     color: labelColor, 
                                     font: { family: 'Inter' },
-                                    stepSize: 1 // 📌 Fuerza a que el siguiente nivel sea 1, luego 2, 3, etc.
+                                    stepSize: 1 
                                 } 
                             }
                         }
@@ -236,7 +239,7 @@
                 });
             } catch(e) { console.error("Error en gráfico 5:", e); }
 
-            // ✨ 6. Tiempos Promedio de Resolución (En Minutos con escala fija)
+            // 6. Tiempos Promedio de Resolución
             try {
                 limpiarYCrearChart('chartTiempos', {
                     type: 'bar',
@@ -259,11 +262,11 @@
                             x: { grid: { color: gridColor }, ticks: { color: labelColor, font: { family: 'Inter' } } },
                             y: { 
                                 grid: { color: gridColor }, 
-                                min: 0, // 🛡️ Evita que baje a números negativos
+                                min: 0,
                                 ticks: { 
                                     color: labelColor, 
                                     font: { family: 'Inter' },
-                                    stepSize: 5 // Cambia de 5 en 5 minutos para mayor legibilidad
+                                    stepSize: 5
                                 } 
                             }
                         }
@@ -271,35 +274,33 @@
                 });
             } catch(e) { console.error("Error en gráfico 6:", e); }
 
-           // 7. Cumplimiento de SLA por Especialista (Optimizado con escala de 0 a 100)
+            // 7. Cumplimiento de SLA por Agente
             try {
                 limpiarYCrearChart('chartSlaAgentes', {
                     type: 'bar',
                     data: {
                         labels: {{ sla_agentes_labels|safe|default:"[]" }},
-                        datasets: [{
-                            label: '% SLA',
-                            data: {{ sla_agentes_valores|safe|default:"[]" }},
-                            backgroundColor: '#8B5CF6',
-                            borderRadius: 4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            x: { grid: { display: false }, ticks: { color: labelColor, font: { family: 'Inter' } } },
-                            y: { 
-                                min: 0,
-                                max: 100, // 📌 Fuerza el tope superior al 100%
-                                grid: { color: gridColor }, 
-                                ticks: { color: labelColor, font: { family: 'Inter' } } 
-                            }
-                        }
+                        datasets: [{ label: '% SLA', data: {{ sla_agentes_valores|safe|default:"[]" }}, backgroundColor: '#8B5CF6', borderRadius: 4 }]
+                    }, options: {
+                        responsive: true, maintainAspectRatio: false,
+                        scales: { x: { ticks: { color: labelColor } }, y: { min: 0, max: 100, ticks: { color: labelColor } } }
                     }
                 });
             } catch(e) { console.error("Error en gráfico 7:", e); }
+
+            // 🎯 NUEVO: 9. Inicializador para el Gráfico de SLA por Sistema
+            try {
+                limpiarYCrearChart('chartSlaSistemas', {
+                    type: 'bar',
+                    data: {
+                        labels: {{ sla_sistemas_labels|safe|default:"[]" }},
+                        datasets: [{ label: '% SLA por Sistema', data: {{ sla_sistemas_valores|safe|default:"[]" }}, backgroundColor: '#06B6D4', borderRadius: 4 }]
+                    }, options: {
+                        responsive: true, maintainAspectRatio: false,
+                        scales: { x: { ticks: { color: labelColor } }, y: { min: 0, max: 100, ticks: { color: labelColor } } }
+                    }
+                });
+            } catch(e) { console.error("Error en gráfico SLA por Sistemas:", e); }
 
             // 8. Impacto por Sistema
             try {
@@ -323,37 +324,5 @@
             } catch(e) { console.error("Error en gráfico 8:", e); }
 
         })();
-
-        // 🌟 NUEVO: 9. Cumplimiento de SLA por Sistema (Matriz Cruzada)
-            try {
-                limpiarYCrearChart('chartSlaSistemas', {
-                    type: 'bar',
-                    data: {
-                        labels: {{ sla_sistemas_labels|safe|default:"[]" }},
-                        datasets: [{
-                            label: '% SLA por Sistema',
-                            data: {{ sla_sistemas_valores|safe|default:"[]" }},
-                            backgroundColor: '#10B981', // Un color esmeralda distintivo para sistemas
-                            borderRadius: 4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            x: { grid: { display: false }, ticks: { color: labelColor, font: { family: 'Inter' } } },
-                            y: { 
-                                min: 0,
-                                max: 100, // 📌 Escala uniforme del 0 al 100%
-                                grid: { color: gridColor }, 
-                                ticks: { color: labelColor, font: { family: 'Inter' } } 
-                            }
-                        }
-                    }
-                });
-            } catch(e) { console.error("Error en gráfico de SLA por Sistemas:", e); }
-
-        
     </script>
 </div>

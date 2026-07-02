@@ -996,17 +996,89 @@ def panel_dashboard(request):
     tiempo_labels = [item['sistema__nombre'] or "General" for item in tiempo_data]
     tiempo_valores = [int(item['promedio_minutos']) if item['promedio_minutos'] else 0 for item in tiempo_data]
 
-    # 7. Cumplimiento de SLA por Especialista
-    sla_agentes_data = (
-        tickets_filtrados.filter(estado__es_estado_cierre=True)
-        .values('usuario_asignado__nombre_completo')
-        .annotate(
-            total_cerrados=Count('id'),
-            cumplidos=Count('id', filter=Q(tiempo_atencion_minutos__lte=limite_sla_minutos))
-        )[:5]
-    )
-    sla_agentes_labels = [item['usuario_asignado__nombre_completo'] or "Sin Asignar" for item in sla_agentes_data]
-    sla_agentes_valores = [int((item['cumplidos'] / item['total_cerrados']) * 100) if item['total_cerrados'] > 0 else 100 for item in sla_agentes_data]
+    # 7. Cumplimiento de SLA por sistema
+    # ─────────────────────────────────────────────────────────────────
+    #  CÁLCULO DINÁMICO DE SLA SEGÚN MATRIZ DE CRITICIDAD (GLOBAL, AGENTES Y SISTEMAS)
+    # ─────────────────────────────────────────────────────────────────
+    tickets_resueltos = tickets_filtrados.filter(estado__es_estado_cierre=True)
+    resueltos_count = tickets_resueltos.count()
+    tickets_cumplieron_sla = 0
+
+    # Estructuras para acumular por Agente y por Sistema
+    # Formato: { 'Nombre': { 'total_cerrados': 0, 'cumplidos': 0 } }
+    sla_agentes_dict = {}
+    sla_sistemas_dict = {}
+
+    for tk in tickets_resueltos:
+        prioridad_nombre = str(tk.prioridad.nombre).strip().lower() if tk.prioridad else 'bajo'
+        impacto_nombre = str(tk.impacto_proceso).strip().lower() if tk.impacto_proceso else 'baja'
+        
+        # Identificar las llaves de agrupación
+        agente_name = tk.usuario_asignado.nombre_completo if tk.usuario_asignado else "Sin Asignar"
+        sistema_name = tk.sistema.nombre if tk.sistema else "General"
+        
+        # Inicializar los acumuladores si no existen
+        if agente_name not in sla_agentes_dict:
+            sla_agentes_dict[agente_name] = {'total_cerrados': 0, 'cumplidos': 0}
+        if sistema_name not in sla_sistemas_dict:
+            sla_sistemas_dict[sistema_name] = {'total_cerrados': 0, 'cumplidos': 0}
+
+        # 1. Resolver el límite según la matriz cruzada (image_961a5f.png)
+        limite_horas = 48  # Por defecto
+        
+        if 'alto' in prioridad_nombre or 'critica' in prioridad_nombre or 'crítica' in prioridad_nombre:
+            if 'alta' in impacto_nombre or 'caida' in impacto_nombre or 'caída' in impacto_nombre:
+                limite_horas = 2
+            elif 'media' in impacto_nombre or 'parcial' in impacto_nombre:
+                limite_horas = 4
+            else:
+                limite_horas = 8
+                
+        elif 'medio' in prioridad_nombre:
+            if 'alta' in impacto_nombre or 'caida' in impacto_nombre or 'caída' in impacto_nombre:
+                limite_horas = 4
+            elif 'media' in impacto_nombre or 'parcial' in impacto_nombre:
+                limite_horas = 12
+            else:
+                limite_horas = 24
+                
+        else: # Prioridad Baja
+            if 'alta' in impacto_nombre or 'caida' in impacto_nombre or 'caída' in impacto_nombre:
+                limite_horas = 8
+            elif 'media' in impacto_nombre or 'parcial' in impacto_nombre:
+                limite_horas = 24
+            else:
+                limite_horas = 48
+
+        limite_minutos_dinamico = limite_horas * 60
+        tiempo_atencion = tk.tiempo_atencion_minutos or 0
+        
+        # 2. Sumar a los contadores correspondientes
+        sla_agentes_dict[agente_name]['total_cerrados'] += 1
+        sla_sistemas_dict[sistema_name]['total_cerrados'] += 1
+        
+        if tiempo_atencion <= limite_minutos_dinamico:
+            tickets_cumplieron_sla += 1
+            sla_agentes_dict[agente_name]['cumplidos'] += 1
+            sla_sistemas_dict[sistema_name]['cumplidos'] += 1
+
+    # Cálculo Global
+    sla_porcentaje = int((tickets_cumplieron_sla / resueltos_count) * 100) if resueltos_count > 0 else 100
+
+    # 3. Preparar listas finales para las gráficas del Dashboard
+    # SLA por Agente (Top 5)
+    sla_agentes_labels = list(sla_agentes_dict.keys())[:5]
+    sla_agentes_valores = [
+        int((sla_agentes_dict[agente]['cumplidos'] / sla_agentes_dict[agente]['total_cerrados']) * 100)
+        for agente in sla_agentes_labels
+    ]
+
+    # SLA por Sistema 
+    sla_sistemas_labels = list(sla_sistemas_dict.keys())
+    sla_sistemas_valores = [
+        int((sla_sistemas_dict[sist]['cumplidos'] / sla_sistemas_dict[sist]['total_cerrados']) * 100)
+        for sist in sla_sistemas_labels
+    ]
 
     # 8. Impacto / Severidad por Sistema
     impacto_data = (
@@ -1046,6 +1118,9 @@ def panel_dashboard(request):
         'carga_labels': carga_labels, 'carga_valores': carga_valores,
         'tiempo_labels': tiempo_labels, 'tiempo_valores': tiempo_valores,
         'sla_agentes_labels': sla_agentes_labels, 'sla_agentes_valores': sla_agentes_valores,
+        # 🎯 NUEVOS CAMPOS AÑADIDOS AQUÍ:
+        'sla_sistemas_labels': sla_sistemas_labels,
+        'sla_sistemas_valores': sla_sistemas_valores,
         'impacto_labels': sistemas_unicos,
         'impacto_caido': [impacto_caido[sist] for sist in sistemas_unicos],
         'impacto_parcial': [impacto_parcial[sist] for sist in sistemas_unicos],

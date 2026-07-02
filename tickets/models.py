@@ -356,7 +356,7 @@ class ConocimientoEntry(models.Model):
     
     video_url = models.URLField(blank=True, null=True, help_text="Enlace a videotutorial (Loom, YouTube, Drive, etc.)")
     documento_url = models.URLField(blank=True, null=True, help_text="Enlace a manual, PDF o documentación oficial")
-    palabras_clave = models.CharField(max_width=255, blank=True, null=True, help_text="Palabras clave separadas por comas para mejorar búsquedas")
+    palabras_clave = models.CharField(max_length=255, blank=True, null=True, help_text="Palabras clave separadas por comas para mejorar búsquedas")
     
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 

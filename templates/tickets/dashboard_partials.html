@@ -64,7 +64,7 @@
         </div>
 
         <div class="bg-white dark:bg-darkPanel p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
-            <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-4">Tiempo Promedio de Solución (Horas)</h3>
+            <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-4">Tiempo Promedio de Solución (Minutos)</h3>
             <div class="h-64"><canvas id="chartTiempos"></canvas></div>
         </div>
 
@@ -214,14 +214,38 @@
                 });
             } catch(e) { console.error("Error en gráfico 5:", e); }
 
-            // 6. Tiempos Promedio de Resolución
+            // ✨ 6. Tiempos Promedio de Resolución (En Minutos con escala fija)
             try {
                 limpiarYCrearChart('chartTiempos', {
                     type: 'bar',
                     data: {
                         labels: {{ tiempo_labels|safe|default:"[]" }},
-                        datasets: [{ label: 'Horas Promedio', data: {{ tiempo_valores|safe|default:"[]" }}, backgroundColor: '#10B981', borderRadius: 4 }]
-                    }, options: chartDefaults
+                        datasets: [{ 
+                            label: 'Minutos Promedio', 
+                            data: {{ tiempo_valores|safe|default:"[]" }}, 
+                            backgroundColor: '#10B981', 
+                            borderRadius: 4 
+                        }]
+                    }, 
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { 
+                            legend: { labels: { color: labelColor, font: { family: 'Inter', size: 11 } } } 
+                        },
+                        scales: {
+                            x: { grid: { color: gridColor }, ticks: { color: labelColor, font: { family: 'Inter' } } },
+                            y: { 
+                                grid: { color: gridColor }, 
+                                min: 0, // 🛡️ Evita que baje a números negativos
+                                ticks: { 
+                                    color: labelColor, 
+                                    font: { family: 'Inter' },
+                                    stepSize: 5 // Cambia de 5 en 5 minutos para mayor legibilidad
+                                } 
+                            }
+                        }
+                    }
                 });
             } catch(e) { console.error("Error en gráfico 6:", e); }
 

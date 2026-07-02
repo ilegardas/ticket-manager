@@ -936,9 +936,16 @@ def panel_dashboard(request):
     total_tickets = tickets_filtrados.count()
     pendientes = tickets_filtrados.filter(~Q(estado__es_estado_cierre=True)).count()
     resueltos = tickets_filtrados.filter(estado__es_estado_cierre=True).count()
+    limite_sla_minutos = 2880
     
-    tickets_con_sla = tickets_filtrados.filter(sla_cumplido=True).count() if hasattr(Ticket, 'sla_cumplido') else total_tickets
-    sla_porcentaje = int((tickets_con_sla / total_tickets) * 100) if total_tickets > 0 else 100
+    tickets_con_sla = tickets_filtrados.filter(
+        estado__es_estado_cierre=True, 
+        tiempo_atencion_minutos__lte=limite_sla_minutos
+    ).count()
+    
+    # Total de tickets que ya fueron resueltos/cerrados en este periodo para calcular el porcentaje real
+    total_resueltos_periodo = tickets_filtrados.filter(estado__es_estado_cierre=True).count()
+    sla_porcentaje = int((tickets_con_sla / total_resueltos_periodo) * 100) if total_resueltos_periodo > 0 else 100
 
     # =========================================================================
     # 📈 LÓGICA DE AGREGACIÓN DE DATOS (4 ANTERIORES + 4 NUEVOS INDICADORES)
@@ -1014,15 +1021,16 @@ def panel_dashboard(request):
 
     # ✨ [NUEVO] 7. Porcentaje de Cumplimiento de SLA por Especialista
     sla_agentes_data = (
-        tickets_filtrados.values('usuario_asignado__first_name', 'usuario_asignado__last_name')
+        tickets_filtrados.filter(estado__es_estado_cierre=True) # Evaluamos solo sobre tickets cerrados
+        .values('usuario_asignado__nombre_completo')
         .annotate(
-            total_tickets=Count('id'),
-            cumplidos=Count('id', filter=Q(sla_cumplido=True))
+            total_cerrados=Count('id'),
+            cumplidos=Count('id', filter=Q(tiempo_atencion_minutos__lte=limite_sla_minutos))
         )[:5]
     )
-    sla_agentes_labels = [f"{item['usuario_asignado__first_name']} {item['usuario_asignado__last_name']}".strip() or "Sin Asignar" for item in sla_agentes_data]
+    sla_agentes_labels = [item['usuario_asignado__nombre_completo'] or "Sin Asignar" for item in sla_agentes_data]
     sla_agentes_valores = [
-        int((item['cumplidos'] / item['total_tickets']) * 100) if item['total_tickets'] > 0 else 100 
+        int((item['cumplidos'] / item['total_cerrados']) * 100) if item['total_cerrados'] > 0 else 100 
         for item in sla_agentes_data
     ]
 

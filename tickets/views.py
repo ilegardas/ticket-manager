@@ -974,8 +974,8 @@ def panel_dashboard(request):
     sistemas_valores = [item['total'] for item in sistemas_data]
 
     # 4. Distribución por Prioridad
-    prioridades_data = tickets_filtrados.values('prioridad').annotate(total=Count('id')).order_by('-total')
-    prioridades_labels = [item['prioridad'] if item['prioridad'] else "Normal" for item in prioridades_data]
+    prioridades_data = tickets_filtrados.values('prioridad__nombre').annotate(total=Count('id')).order_by('-total')
+    prioridades_labels = [item['prioridad__nombre'] if item['prioridad__nombre'] else "Normal" for item in prioridades_data]
     prioridades_valores = [item['total'] for item in prioridades_data]
 
     # 5. Top 5 Especialistas con Más Carga (Tickets Activos)

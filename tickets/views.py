@@ -2187,3 +2187,47 @@ def panel_usuario_crear(request):
         return HttpResponse('<script>window.location.reload();</script>')
 
     return render(request, 'usuarios/partials/modal_crear.html')
+
+
+@login_required
+def panel_conocimiento_crear_desde_ticket(request, ticket_id):
+    """
+    💡 VISTA/EMBED: Convierte una incidencia resuelta en un artículo de conocimiento formal,
+    soportando los nuevos parámetros de indexación y apoyo multimedia.
+    """
+    ticket = get_object_or_404(Ticket, pk=ticket_id)
+    
+    if request.method == "POST":
+        titulo = request.POST.get("titulo")
+        descripcion = request.POST.get("descripcion_problema")
+        solucion_txt = request.POST.get("solucion_aplicada")
+        causa = request.POST.get("causa_raiz")
+        codigo = request.POST.get("codigo_error")
+        
+        # Captura de los nuevos campos enriquecidos
+        video = request.POST.get("video_url")
+        documento = request.POST.get("documento_url")
+        tags = request.POST.get("palabras_clave")
+        
+        if titulo and descripcion and solucion_txt:
+            ConocimientoEntry.objects.create(
+                titulo=titulo,
+                descripcion_problema=descripcion,
+                solucion_aplicada=solucion_txt,
+                causa_raiz=causa or (ticket.causa_raiz if ticket.causa_raiz else None),
+                codigo_error=codigo,
+                sistema=ticket.sistema,
+                modulo=ticket.modulo,
+                ticket_origen=ticket,
+                video_url=video if video else None,
+                documento_url=documento if documento else None,
+                palabras_clave=tags if tags else None
+            )
+            # Retorna una respuesta exitosa o recarga si es un modal HTMX
+            return HttpResponse('<script>window.location.reload();</script>')
+            
+    context = {
+        'ticket': ticket,
+        'sistemas': Sistema.objects.filter(activo=True)
+    }
+    return render(request, 'conocimiento/partials/modal_convertir.html', context)

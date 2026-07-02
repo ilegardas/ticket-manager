@@ -431,7 +431,7 @@ def reporte_tickets(request):
                 'prioridad_nombre': instance.prioridad.nombre if instance.prioridad else "—",
                 'prioridad_color': instance.prioridad.color if instance.prioridad else "",
                 'estado_nombre': instance.estado.nombre if instance.estado else "—",
-                'estado_color': instance.estado.color if instance.estado else ""
+                'estado_color': instance.estado.color if instance.estado else "",
                 'categoria_nombre': instance.categoria.nombre if instance.categoria else "—",
                 'usuario_reporta_nombre': instance.usuario_reporta.nombre_completo if instance.usuario_reporta else "—",
                 'usuario_asignado_nombre': instance.usuario_asignado.nombre_completo if instance.usuario_asignado else "Sin asignar",

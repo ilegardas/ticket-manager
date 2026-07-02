@@ -80,7 +80,8 @@
 
     </div>
 
-    <!-- 🔄 RE-INICIALIZADOR UNIFICADO DE PLUGINS -->
+    
+    <!-- 🔄 RE-INICIALIZADOR UNIFICADO Y BLINDADO DE PLUGINS -->
     <script>
         (function() {
             const isDark = document.documentElement.classList.contains('dark');
@@ -109,137 +110,155 @@
             }
 
             // 1. Tendencias
-            limpiarYCrearChart('chartTendencias', {
-                type: 'line',
-                data: {
-                    labels: {{ tendencias_labels|safe|default:"[]" }},
-                    datasets: [{
-                        label: 'Tickets',
-                        data: {{ tendencias_valores|safe|default:"[]" }},
-                        borderColor: '#3B82F6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.05)',
-                        fill: true, tension: 0.3, borderWidth: 2
-                    }]
-                }, options: chartDefaults
-            });
-
-            // 2. Estados
-            limpiarYCrearChart('chartEstados', {
-                type: 'doughnut',
-                data: {
-                    labels: {{ estados_labels|safe|default:"[]" }},
-                    datasets: [{
-                        data: {{ estados_valores|safe|default:"[]" }},
-                        backgroundColor: ['#3B82F6', '#F59E0B', '#10B981', '#EF4444', '#6B7280']
-                    }]
-                }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: labelColor } } } }
-            });
-
-            // 3. Sistemas
-            limpiarYCrearChart('chartSistemas', {
-                type: 'bar',
-                data: {
-                    labels: {{ sistemas_labels|safe|default:"[]" }},
-                    datasets: [{ label: 'Cantidad', data: {{ sistemas_valores|safe|default:"[]" }}, backgroundColor: '#60A5FA', borderRadius: 4 }]
-                }, options: chartDefaults
-            });
-
-            // 🎨 4. Prioridades (Mapeo estricto: Crítica, Alta, Media, Baja)
-            (function() {
-                const labelsOriginales = {{ prioridades_labels|safe|default:"[]" }};
-                const valoresOriginales = {{ prioridades_valores|safe|default:"[]" }};
-                
-                const mapeoPrioridades = {
-                    'CRÍTICA': { valor: 0, color: '#EF4444', label: 'Crítica' }, 
-                    'ALTA':    { valor: 0, color: '#F59E0B', label: 'Alta' },    
-                    'MEDIA':   { valor: 0, color: '#EAB308', label: 'Media' },   
-                    'BAJA':    { valor: 0, color: '#3B82F6', label: 'Baja' }     
-                };
-
-                labelsOriginales.forEach((label, index) => {
-                    const key = String(label).trim().toUpperCase();
-                    if (mapeoPrioridades[key]) {
-                        mapeoPrioridades[key].valor = valoresOriginales[index];
-                    }
-                });
-
-                const ordenVisual = ['BAJA', 'MEDIA', 'ALTA', 'CRÍTICA'];
-                const labelsOrdenados = ordenVisual.map(key => mapeoPrioridades[key].label);
-                const datosOrdenados = ordenVisual.map(key => mapeoPrioridades[key].valor);
-                const coloresOrdenados = ordenVisual.map(key => mapeoPrioridades[key].color);
-
-                limpiarYCrearChart('chartPrioridades', {
-                    type: 'bar',
+            try {
+                limpiarYCrearChart('chartTendencias', {
+                    type: 'line',
                     data: {
-                        labels: labelsOrdenados,
+                        labels: {{ tendencias_labels|safe|default:"[]" }},
                         datasets: [{
                             label: 'Tickets',
-                            data: datosOrdenados,
-                            backgroundColor: coloresOrdenados,
-                            borderRadius: 4
+                            data: {{ tendencias_valores|safe|default:"[]" }},
+                            borderColor: '#3B82F6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                            fill: true, tension: 0.3, borderWidth: 2
                         }]
-                    },
-                    options: {
-                        indexAxis: 'y',
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
+                    }, options: chartDefaults
+                });
+            } catch(e) { console.error("Error en gráfico 1:", e); }
+
+            // 2. Estados
+            try {
+                limpiarYCrearChart('chartEstados', {
+                    type: 'doughnut',
+                    data: {
+                        labels: {{ estados_labels|safe|default:"[]" }},
+                        datasets: [{
+                            data: {{ estados_valores|safe|default:"[]" }},
+                            backgroundColor: ['#3B82F6', '#F59E0B', '#10B981', '#EF4444', '#6B7280']
+                        }]
+                    }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: labelColor } } } }
+                });
+            } catch(e) { console.error("Error en gráfico 2:", e); }
+
+            // 3. Sistemas
+            try {
+                limpiarYCrearChart('chartSistemas', {
+                    type: 'bar',
+                    data: {
+                        labels: {{ sistemas_labels|safe|default:"[]" }},
+                        datasets: [{ label: 'Cantidad', data: {{ sistemas_valores|safe|default:"[]" }}, backgroundColor: '#60A5FA', borderRadius: 4 }]
+                    }, options: chartDefaults
+                });
+            } catch(e) { console.error("Error en gráfico 3:", e); }
+
+            // 4. Prioridades
+            try {
+                (function() {
+                    const labelsOriginales = {{ prioridades_labels|safe|default:"[]" }};
+                    const valoresOriginales = {{ prioridades_valores|safe|default:"[]" }};
+                    
+                    const mapeoPrioridades = {
+                        'CRÍTICA': { valor: 0, color: '#EF4444', label: 'Crítica' }, 
+                        'ALTA':    { valor: 0, color: '#F59E0B', label: 'Alta' },    
+                        'MEDIA':   { valor: 0, color: '#EAB308', label: 'Media' },   
+                        'BAJA':    { valor: 0, color: '#3B82F6', label: 'Baja' }     
+                    };
+
+                    if (Array.isArray(labelsOriginales)) {
+                        labelsOriginales.forEach((label, index) => {
+                            const key = String(label).trim().toUpperCase();
+                            if (mapeoPrioridades[key]) {
+                                mapeoPrioridades[key].valor = valoresOriginales[index] || 0;
+                            }
+                        });
+                    }
+
+                    const ordenVisual = ['BAJA', 'MEDIA', 'ALTA', 'CRÍTICA'];
+                    const labelsOrdenados = ordenVisual.map(key => mapeoPrioridades[key].label);
+                    const datosOrdenados = ordenVisual.map(key => mapeoPrioridades[key].valor);
+                    const coloresOrdenados = ordenVisual.map(key => mapeoPrioridades[key].color);
+
+                    limpiarYCrearChart('chartPrioridades', {
+                        type: 'bar',
+                        data: {
+                            labels: labelsOrdenados,
+                            datasets: [{
+                                label: 'Tickets',
+                                data: datosOrdenados,
+                                backgroundColor: coloresOrdenados,
+                                borderRadius: 4
+                            }]
+                        },
+                        options: {
+                            indexAxis: 'y',
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                x: { grid: { color: gridColor }, ticks: { color: labelColor, stepSize: 1 } },
+                                y: { grid: { display: false }, ticks: { color: labelColor, font: { family: 'Inter', weight: 'bold' } } }
+                            }
+                        }
+                    });
+                })();
+            } catch(e) { console.error("Error en gráfico 4:", e); }
+
+            // 5. Carga de Especialistas
+            try {
+                limpiarYCrearChart('chartCarga', {
+                    type: 'bar',
+                    data: {
+                        labels: {{ carga_labels|safe|default:"[]" }},
+                        datasets: [{ label: 'Asignados', data: {{ carga_valores|safe|default:"[]" }}, backgroundColor: '#F59E0B', borderRadius: 4 }]
+                    }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: labelColor } } } }
+                });
+            } catch(e) { console.error("Error en gráfico 5:", e); }
+
+            // 6. Tiempos Promedio de Resolución
+            try {
+                limpiarYCrearChart('chartTiempos', {
+                    type: 'bar',
+                    data: {
+                        labels: {{ tiempo_labels|safe|default:"[]" }},
+                        datasets: [{ label: 'Horas Promedio', data: {{ tiempo_valores|safe|default:"[]" }}, backgroundColor: '#10B981', borderRadius: 4 }]
+                    }, options: chartDefaults
+                });
+            } catch(e) { console.error("Error en gráfico 6:", e); }
+
+            // 7. Cumplimiento de SLA por Agente
+            try {
+                limpiarYCrearChart('chartSlaAgentes', {
+                    type: 'bar',
+                    data: {
+                        labels: {{ sla_agentes_labels|safe|default:"[]" }},
+                        datasets: [{ label: '% SLA', data: {{ sla_agentes_valores|safe|default:"[]" }}, backgroundColor: '#8B5CF6', borderRadius: 4 }]
+                    }, options: {
+                        responsive: true, maintainAspectRatio: false,
+                        scales: { x: { ticks: { color: labelColor } }, y: { min: 0, max: 100, ticks: { color: labelColor } } }
+                    }
+                });
+            } catch(e) { console.error("Error en gráfico 7:", e); }
+
+            // 8. Impacto por Sistema
+            try {
+                limpiarYCrearChart('chartImpactoSistemas', {
+                    type: 'bar',
+                    data: {
+                        labels: {{ impacto_labels|safe|default:"[]" }},
+                        datasets: [
+                            { label: '❌ Totalmente caído', data: {{ impacto_caido|safe|default:"[]" }}, backgroundColor: '#EF4444' },
+                            { label: '⚠️ Parcialmente funciona', data: {{ impacto_parcial|safe|default:"[]" }}, backgroundColor: '#F59E0B' },
+                            { label: '✅ Funcional', data: {{ impacto_funcional|safe|default:"[]" }}, backgroundColor: '#10B981' }
+                        ]
+                    }, options: {
+                        responsive: true, maintainAspectRatio: false,
                         scales: {
-                            x: { grid: { color: gridColor }, ticks: { color: labelColor, stepSize: 1 } },
-                            y: { grid: { display: false }, ticks: { color: labelColor, font: { family: 'Inter', weight: 'bold' } } }
+                            x: { stacked: true, ticks: { color: labelColor, font: { family: 'Inter', size: 10 } } },
+                            y: { stacked: true, ticks: { color: labelColor, stepSize: 1 } }
                         }
                     }
                 });
-            })();
-
-            // 5. Carga de Especialistas
-            limpiarYCrearChart('chartCarga', {
-                type: 'bar',
-                data: {
-                    labels: {{ carga_labels|safe|default:"[]" }},
-                    datasets: [{ label: 'Asignados', data: {{ carga_valores|safe|default:"[]" }}, backgroundColor: '#F59E0B', borderRadius: 4 }]
-                }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: labelColor } } } }
-            });
-
-            // 6. Tiempos Promedio de Resolución
-            limpiarYCrearChart('chartTiempos', {
-                type: 'bar',
-                data: {
-                    labels: {{ tiempo_labels|safe|default:"[]" }},
-                    datasets: [{ label: 'Horas Promedio', data: {{ tiempo_valores|safe|default:"[]" }}, backgroundColor: '#10B981', borderRadius: 4 }]
-                }, options: chartDefaults
-            });
-
-            // 7. Cumplimiento de SLA por Agente
-            limpiarYCrearChart('chartSlaAgentes', {
-                type: 'bar',
-                data: {
-                    labels: {{ sla_agentes_labels|safe|default:"[]" }},
-                    datasets: [{ label: '% SLA', data: {{ sla_agentes_valores|safe|default:"[]" }}, backgroundColor: '#8B5CF6', borderRadius: 4 }]
-                }, options: {
-                    responsive: true, maintainAspectRatio: false,
-                    scales: { x: { ticks: { color: labelColor } }, y: { min: 0, max: 100, ticks: { color: labelColor } } }
-                }
-            });
-
-            // 8. Impacto por Sistema
-            limpiarYCrearChart('chartImpactoSistemas', {
-                type: 'bar',
-                data: {
-                    labels: {{ impacto_labels|safe|default:"[]" }},
-                    datasets: [
-                        { label: '❌ Totalmente caído', data: {{ impacto_caido|safe|default:"[]" }}, backgroundColor: '#EF4444' },
-                        { label: '⚠️ Parcialmente funciona', data: {{ impacto_parcial|safe|default:"[]" }}, backgroundColor: '#F59E0B' },
-                        { label: '✅ Funcional', data: {{ impacto_funcional|safe|default:"[]" }}, backgroundColor: '#10B981' }
-                    ]
-                }, options: {
-                    responsive: true, maintainAspectRatio: false,
-                    scales: {
-                        x: { stacked: true, ticks: { color: labelColor, font: { family: 'Inter', size: 10 } } },
-                        y: { stacked: true, ticks: { color: labelColor, stepSize: 1 } }
-                    }
-                }
-            });
+            } catch(e) { console.error("Error en gráfico 8:", e); }
 
         })();
     </script>

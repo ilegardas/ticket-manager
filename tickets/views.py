@@ -128,23 +128,39 @@ def _handle_state_change(ticket, old_estado, new_estado, user):
     if new_estado and new_estado.pausa_sla:
         TicketTimeLog.objects.create(ticket=ticket, estado_pausa=new_estado.nombre, fecha_inicio=now)
         
-    # 5. Si el nuevo estado es de cierre, calculamos el tiempo NETO real de forma segura
-    if new_estado and new_estado.es_estado_cierre:
+    # 5. 🎯 CONTROL INDEPENDIENTE DE FECHAS DE RESOLUCIÓN Y CIERRE
+    # Si pasa a un estado "Resuelto", se estampa la fecha de resolución y se calcula el tiempo neto de atención técnico
+    if new_estado and 'resuelto' in new_estado.nombre.lower():
         ticket.fecha_resolucion = now
-        ticket.fecha_cierre = now
-        update_fields.extend(['fecha_resolucion', 'fecha_cierre'])
+        update_fields.append('fecha_resolucion')
         
         if ticket.fecha_creacion:
             tiempo_bruto_minutos = int((now - ticket.fecha_creacion).total_seconds() / 60)
             pausas = ticket.tiempo_pausa_minutos or 0
             ticket.tiempo_atencion_minutos = max(0, tiempo_bruto_minutos - pausas)
             update_fields.append('tiempo_atencion_minutos')
+
+    # Si pasa a un estado "Cerrado" (visto bueno del usuario), únicamente se estampa la fecha de cierre final
+    elif new_estado and 'cerrado' in new_estado.nombre.lower():
+        ticket.fecha_cierre = now
+        update_fields.append('fecha_cierre')
+        
+    # Salvavidas general: si es cualquier otro estado marcado estructuralmente como cierre en el modelo
+    elif new_estado and new_estado.es_estado_cierre:
+        if not ticket.fecha_resolucion:
+            ticket.fecha_resolucion = now
+            update_fields.append('fecha_resolucion')
+        if not ticket.fecha_cierre:
+            ticket.fecha_cierre = now
+            update_fields.append('fecha_cierre')
             
+    # Guardamos únicamente los campos afectados
     ticket.save(update_fields=update_fields) if update_fields else ticket.save()
         
+    # Registramos el movimiento en el historial
     ChatterEntry.objects.create(
         ticket=ticket, 
-        tipo='cambio_estado', 
+        tipo='sistema', 
         autor=user, 
         estado_anterior=old_estado.nombre if old_estado else None, 
         estado_nuevo=new_estado.nombre if new_estado else None, 

@@ -1081,9 +1081,6 @@ def panel_dashboard(request):
         reverse=True
     )
     
-    sla_agentes_labels = []
-    sla_agentes_valores = []
-    
     for agente, info in sla_agentes_ordenados:
         sla_agentes_labels.append(agente)
         porcentaje_tecnico = int((info['cumplidos'] / info['total_cerrados']) * 100) if info['total_cerrados'] > 0 else 100

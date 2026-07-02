@@ -103,31 +103,54 @@ def me_view(request):
 
 def _handle_state_change(ticket, old_estado, new_estado, user):
     now = timezone.now()
+    update_fields = []
     
-    # 1. Si venía de un estado de pausa, cerramos el log de tiempo activo y acumulamos
+    # 1. Controlar Fecha de Asignación si se le pone un técnico por primera vez
+    if ticket.usuario_asignado and not ticket.fecha_asignacion:
+        ticket.fecha_asignacion = now
+        update_fields.append('fecha_asignacion')
+
+    # 2. Controlar Fecha de Primera Respuesta (Si cambia de estado inicial a cualquier otro con interacción)
+    if old_estado and not ticket.fecha_primera_respuesta:
+        ticket.fecha_primera_respuesta = now
+        update_fields.append('fecha_primera_respuesta')
+
+    # 3. Si venía de un estado de pausa, cerramos el log de tiempo activo y acumulamos
     if old_estado and old_estado.pausa_sla:
         open_log = TicketTimeLog.objects.filter(ticket=ticket, fecha_fin__isnull=True).first()
         if open_log:
             open_log.fecha_fin = now
             open_log.save()
             ticket.tiempo_pausa_minutos = sum(log.duracion_minutos for log in TicketTimeLog.objects.filter(ticket=ticket, duracion_minutos__isnull=False))
-            ticket.save(update_fields=['tiempo_pausa_minutos'])
+            update_fields.append('tiempo_pausa_minutos')
             
-    # 2. Si entra a un nuevo estado de pausa SLA, abrimos un nuevo log
+    # 4. Si entra a un nuevo estado de pausa SLA, abrimos un nuevo log
     if new_estado and new_estado.pausa_sla:
         TicketTimeLog.objects.create(ticket=ticket, estado_pausa=new_estado.nombre, fecha_inicio=now)
         
-    # 3. Si el nuevo estado es de cierre, calculamos el tiempo NETO real de forma segura
+    # 5. Si el nuevo estado es de cierre, calculamos el tiempo NETO real de forma segura
     if new_estado and new_estado.es_estado_cierre:
-        if not ticket.fecha_resolucion: ticket.fecha_resolucion = now
+        ticket.fecha_resolucion = now
         ticket.fecha_cierre = now
+        update_fields.extend(['fecha_resolucion', 'fecha_cierre'])
+        
         if ticket.fecha_creacion:
             tiempo_bruto_minutos = int((now - ticket.fecha_creacion).total_seconds() / 60)
             pausas = ticket.tiempo_pausa_minutos or 0
             ticket.tiempo_atencion_minutos = max(0, tiempo_bruto_minutos - pausas)
-        ticket.save(update_fields=['fecha_resolucion', 'fecha_cierre', 'tiempo_atencion_minutos'])
+            update_fields.append('tiempo_atencion_minutos')
+            
+    ticket.save(update_fields=update_fields) if update_fields else ticket.save()
         
-    ChatterEntry.objects.create(ticket=ticket, tipo='cambio_estado', autor=user, estado_anterior=old_estado.nombre if old_estado else None, estado_nuevo=new_estado.nombre if new_estado else None, contenido=f"Estado cambiado a '{new_estado.nombre if new_estado else '—'}'")
+    ChatterEntry.objects.create(
+        ticket=ticket, 
+        tipo='cambio_estado', 
+        autor=user, 
+        estado_anterior=old_estado.nombre if old_estado else None, 
+        estado_nuevo=new_estado.nombre if new_estado else None, 
+        contenido=f"Estado cambiado a '{new_estado.nombre if new_estado else '—'}'"
+    )
+
 
 # ─────────────────────────────────────────────
 #  FUNCIÓN REUTILIZABLE DE LIMPIEZA DE FECHAS

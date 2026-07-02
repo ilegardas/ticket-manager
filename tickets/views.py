@@ -1358,32 +1358,41 @@ def panel_conocimiento_lista(request):
 
 
 @login_required
-@require_http_methods(["POST"])
-def panel_conocimiento_crear_desde_ticket(request, ticket_id):
+def panel_conocimiento_crear(request):
     """
-    ⚡ ACCIÓN HTMX: Convierte el diagnóstico de un ticket cerrado en una solución frecuente
+    💡 VISTA / MODAL HTMX: Formulario de alta manual de soluciones frecuentes
     """
-    ticket = get_object_or_404(Ticket, pk=ticket_id)
-    
-    if not ticket.solucion_aplicada:
-        return HttpResponse("El ticket debe poseer una solución explicada para guardarse.", status=400)
+    if request.method == "POST":
+        titulo = request.POST.get("titulo")
+        descripcion = request.POST.get("descripcion_problema")
+        solucion_txt = request.POST.get("solucion_aplicada")
+        causa = request.POST.get("causa_raiz")
+        codigo = request.POST.get("codigo_error")
+        sistema_id = request.POST.get("sistema")
+        
+        # 🎥 Captura de los nuevos campos multimedia
+        video_url = request.POST.get("video_url")
+        documento_url = request.POST.get("documento_url")
+        palabras_clave = request.POST.get("palabras_clave")
+        
+        if titulo and descripcion and solucion_txt:
+            ConocimientoEntry.objects.create(
+                titulo=titulo,
+                descripcion_problema=descripcion,
+                solucion_aplicada=solucion_txt,
+                causa_raiz=causa,
+                codigo_error=codigo,
+                sistema_id=sistema_id if sistema_id else None,
+                video_url=video_url if video_url else None,
+                documento_url=documento_url if documento_url else None,
+                palabras_clave=palabras_clave if palabras_clave else None
+            )
+        return HttpResponse('<script>window.location.reload();</script>')
 
-    existe = ConocimientoEntry.objects.filter(ticket_origen=ticket).exists()
-    if not existe:
-        ConocimientoEntry.objects.create(
-            titulo=f"Solución a: {ticket.titulo}",
-            descripcion_problema=ticket.descripcion,
-            codigo_error=ticket.codigo_error,
-            solucion_aplicada=ticket.solucion_aplicada,
-            causa_raiz=ticket.causa_raiz,
-            sistema=ticket.sistema,
-            modulo=ticket.modulo,
-            ticket_origen=ticket
-        )
-    
-    response = HttpResponse(status=200)
-    response['HX-Redirect'] = '/api/panel/conocimiento/'
-    return response
+    context = {
+        'sistemas': Sistema.objects.filter(activo=True)
+    }
+    return render(request, 'conocimiento/partials/modal_crear.html', context)
 
 
 @login_required

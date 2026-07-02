@@ -1005,7 +1005,7 @@ def panel_dashboard(request):
     tickets_cumplieron_sla = 0
 
     # Estructuras para acumular por Agente y por Sistema
-    # Formato: { 'Nombre': { 'total_cerrados': 0, 'cumplidos': 0 } }
+    # Formato: { 'Nombre': { 'total_cerrados': 0, 'cumplidos': 0, 'total_minutos': 0 } }
     sla_agentes_dict = {}
     sla_sistemas_dict = {}
 
@@ -1021,11 +1021,10 @@ def panel_dashboard(request):
         if agente_name not in sla_agentes_dict:
             sla_agentes_dict[agente_name] = {'total_cerrados': 0, 'cumplidos': 0}
         if sistema_name not in sla_sistemas_dict:
-            sla_sistemas_dict[sistema_name] = {'total_cerrados': 0, 'cumplidos': 0}
+            sla_sistemas_dict[sistema_name] = {'total_cerrados': 0, 'cumplidos': 0, 'total_minutos': 0} # 👈 Añadido total_minutos
 
-        # 1. Resolver el límite según la matriz cruzada (image_961a5f.png)
-        limite_horas = 48  # Por defecto
-        
+        # 1. Resolver el límite según la matriz cruzada
+        limite_horas = 48
         if 'alto' in prioridad_nombre or 'critica' in prioridad_nombre or 'crítica' in prioridad_nombre:
             if 'alta' in impacto_nombre or 'caida' in impacto_nombre or 'caída' in impacto_nombre:
                 limite_horas = 2
@@ -1033,7 +1032,6 @@ def panel_dashboard(request):
                 limite_horas = 4
             else:
                 limite_horas = 8
-                
         elif 'medio' in prioridad_nombre:
             if 'alta' in impacto_nombre or 'caida' in impacto_nombre or 'caída' in impacto_nombre:
                 limite_horas = 4
@@ -1041,8 +1039,7 @@ def panel_dashboard(request):
                 limite_horas = 12
             else:
                 limite_horas = 24
-                
-        else: # Prioridad Baja
+        else:
             if 'alta' in impacto_nombre or 'caida' in impacto_nombre or 'caída' in impacto_nombre:
                 limite_horas = 8
             elif 'media' in impacto_nombre or 'parcial' in impacto_nombre:
@@ -1056,6 +1053,7 @@ def panel_dashboard(request):
         # 2. Sumar a los contadores correspondientes
         sla_agentes_dict[agente_name]['total_cerrados'] += 1
         sla_sistemas_dict[sistema_name]['total_cerrados'] += 1
+        sla_sistemas_dict[sistema_name]['total_minutos'] += tiempo_atencion # 👈 Acumula los minutos reales
         
         if tiempo_atencion <= limite_minutos_dinamico:
             tickets_cumplieron_sla += 1
@@ -1066,31 +1064,31 @@ def panel_dashboard(request):
     sla_porcentaje = int((tickets_cumplieron_sla / resueltos_count) * 100) if resueltos_count > 0 else 100
 
     # 3. Preparar listas finales para las gráficas del Dashboard
-    # ─────────────────────────────────────────────────────────────────
-    #  PREPARACIÓN DETALLADA DE SLA POR TÉCNICO (DESGLOSADO)
-    # ─────────────────────────────────────────────────────────────────
-    sla_agentes_labels = []
-    sla_agentes_valores = []
-
-    # Ordenamos el diccionario de agentes de mayor a menor cantidad de tickets resueltos
-    # para que la gráfica muestre primero a los técnicos más activos
-    # SLA por Agente (Top 8 Desglosado y Ordenado)
     sla_agentes_ordenados = sorted(
         sla_agentes_dict.items(), 
         key=lambda item: item[1]['total_cerrados'], 
         reverse=True
     )
     
+    sla_agentes_labels = []
+    sla_agentes_valores = []
     for agente, info in sla_agentes_ordenados:
         sla_agentes_labels.append(agente)
         porcentaje_tecnico = int((info['cumplidos'] / info['total_cerrados']) * 100) if info['total_cerrados'] > 0 else 100
         sla_agentes_valores.append(porcentaje_tecnico)
 
-    # SLA por Sistema (Completo y Sincronizado)
+    # Listas de SLA por Sistema
     sla_sistemas_labels = list(sla_sistemas_dict.keys())
     sla_sistemas_valores = [
         int((sla_sistemas_dict[sist]['cumplidos'] / sla_sistemas_dict[sist]['total_cerrados']) * 100)
         for sist in sla_sistemas_labels
+    ]
+
+    # 🎯 NUEVA LOGICA PARA REEMPLAZAR GRÁFICO 6 (Tiempo Promedio de Solución Seguro en Python)
+    tiempo_labels = list(sla_sistemas_dict.keys())
+    tiempo_valores = [
+        int(sla_sistemas_dict[sist]['total_minutos'] / sla_sistemas_dict[sist]['total_cerrados']) if sla_sistemas_dict[sist]['total_cerrados'] > 0 else 0
+        for sist in tiempo_labels
     ]
 
     # 8. Impacto / Severidad por Sistema

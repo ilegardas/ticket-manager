@@ -966,15 +966,31 @@ def panel_dashboard(request):
     prioridades_valores = [item['total'] for item in prioridades_data]
 
 
-    # ✨ [NUEVO] 5. Top 5 Especialistas con Más Carga de Trabajo (Solo Tickets Activos)
+   # ✨ [NUEVO] 5. Top 5 Especialistas con Más Carga de Trabajo (Solo Tickets Activos)
     carga_data = (
         tickets_filtrados.filter(~Q(estado__es_estado_cierre=True))
-        .values('usuario_asignado__first_name', 'usuario_asignado__last_name')
+        .values('usuario_asignado__nombre_completo')
         .annotate(total=Count('id'))
         .order_by('-total')[:5]
     )
-    carga_labels = [f"{item['usuario_asignado__first_name']} {item['usuario_asignado__last_name']}".strip() or "Sin Asignar" for item in carga_data]
+    carga_labels = [item['usuario_asignado__nombre_completo'] or "Sin Asignar" for item in carga_data]
     carga_valores = [item['total'] for item in carga_data]
+
+
+    # ✨ [NUEVO] 7. Porcentaje de Cumplimiento de SLA por Especialista
+    sla_agentes_data = (
+        tickets_filtrados.values('usuario_asignado__nombre_completo')
+        .annotate(
+            total_tickets=Count('id'),
+            cumplidos=Count('id', filter=Q(sla_cumplido=True))
+        )[:5]
+    )
+    sla_agentes_labels = [item['usuario_asignado__nombre_completo'] or "Sin Asignar" for item in sla_agentes_data]
+    sla_agentes_valores = [
+        int((item['cumplidos'] / item['total_tickets']) * 100) if item['total_tickets'] > 0 else 100 
+        for item in sla_agentes_data
+    ]
+    
 
 
     # ✨ [NUEVO] 6. Tiempo Promedio de Resolución por Sistema (En Horas)

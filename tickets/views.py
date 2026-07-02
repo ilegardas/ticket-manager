@@ -897,12 +897,59 @@ def panel_dashboard(request):
     total_tickets = tickets_filtrados.count()
     pendientes = tickets_filtrados.filter(~Q(estado__es_estado_cierre=True)).count()
     resueltos = tickets_filtrados.filter(estado__es_estado_cierre=True).count()
+
+
+
     
-    tickets_con_sla = tickets_filtrados.filter(
-        estado__es_estado_cierre=True, 
-        tiempo_atencion_minutos__lte=limite_sla_minutos
-    ).count()
-    sla_porcentaje = int((tickets_con_sla / resueltos) * 100) if resueltos > 0 else 100
+    # ─────────────────────────────────────────────────────────────────
+    #  CÁLCULO DINÁMICO DE SLA SEGÚN MATRIZ DE CRITICIDAD
+    # ─────────────────────────────────────────────────────────────────
+    tickets_resueltos = tickets_filtrados.filter(estado__es_estado_cierre=True)
+    resueltos_count = tickets_resueltos.count()
+    tickets_cumplieron_sla = 0
+
+    # Diccionario mapeador para normalizar los valores del impacto y prioridad
+    # Ajusta los strings si en tu base de datos se guardan de forma diferente
+    for tk in tickets_resueltos:
+        prioridad_nombre = str(tk.prioridad.nombre).strip().lower() if tk.prioridad else 'bajo'
+        impacto_nombre = str(tk.impacto_proceso).strip().lower() if tk.impacto_proceso else 'baja'
+        
+        # Determinar el límite en horas según la matriz de la imagen
+        limite_horas = 48  # Valor por defecto (Bajo/Baja)
+        
+        if 'alto' in prioridad_nombre or 'critica' in prioridad_nombre or 'crítica' in prioridad_nombre:
+            if 'alta' in impacto_nombre or 'caida' in impacto_nombre or 'caída' in impacto_nombre:
+                limite_horas = 2
+            elif 'media' in impacto_nombre or 'parcial' in impacto_nombre:
+                limite_horas = 4
+            else: # Baja / Funcional
+                limite_horas = 8
+                
+        elif 'medio' in prioridad_nombre:
+            if 'alta' in impacto_nombre or 'caida' in impacto_nombre or 'caída' in impacto_nombre:
+                limite_horas = 4
+            elif 'media' in impacto_nombre or 'parcial' in impacto_nombre:
+                limite_horas = 12
+            else: # Baja / Funcional
+                limite_horas = 24
+                
+        else: # Prioridad Baja
+            if 'alta' in impacto_nombre or 'caida' in impacto_nombre or 'caída' in impacto_nombre:
+                limite_horas = 8
+            elif 'media' in impacto_nombre or 'parcial' in impacto_nombre:
+                limite_horas = 24
+            else: # Baja / Funcional
+                limite_horas = 48
+
+        # Convertimos las horas de la matriz a minutos para contrastar contra el Tiempo Neto
+        limite_minutos_dinamico = limite_horas * 60
+        tiempo_atencion = tk.tiempo_atencion_minutos or 0
+        
+        if tiempo_atencion <= limite_minutos_dinamico:
+            tickets_cumplieron_sla += 1
+
+    # Porcentaje de cumplimiento final basado en la matriz dinámica
+    sla_porcentaje = int((tickets_cumplieron_sla / resueltos_count) * 100) if resueltos_count > 0 else 100
 
     # 1. Tendencia de Creación de Tickets
     tendencias_data = (

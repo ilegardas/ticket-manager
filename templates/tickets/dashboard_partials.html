@@ -1,71 +1,50 @@
 <div id="dashboard-contenido-dinamico" class="space-y-6 w-full">
     
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         
-        <a href="{% url 'panel_tickets_list' %}" class="bg-white dark:bg-darkPanel p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between hover:border-blue-500 dark:hover:border-blue-400 hover:scale-[1.02] hover:shadow-md transition duration-200">
-            <div>
-                <span class="text-xs font-semibold text-slate-400 dark:text-darkTextSub uppercase tracking-wider">Total Tickets</span>
-                <h3 class="text-2xl font-bold text-slate-990 dark:text-white mt-1">{{ total_tickets }}</h3>
-            </div>
-            <div class="h-10 w-10 bg-blue-50 dark:bg-blue-950/40 rounded-lg flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold border dark:border-blue-900/30">∑</div>
-        </a>
-
-        <a href="{% url 'panel_tickets_list' %}?filtrar=pendientes" class="bg-white dark:bg-darkPanel p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between hover:border-amber-500 dark:hover:border-amber-400 hover:scale-[1.02] hover:shadow-md transition duration-200">
-            <div>
-                <span class="text-xs font-semibold text-slate-400 dark:text-darkTextSub uppercase tracking-wider">Pendientes</span>
-                <h3 class="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">{{ pendientes }}</h3>
-            </div>
-            <div class="h-10 w-10 bg-amber-50 dark:bg-amber-950/40 rounded-lg flex items-center justify-center text-amber-600 dark:text-amber-400 font-bold border dark:border-amber-900/30">⏳</div>
-        </a>
-
-        <a href="{% url 'panel_tickets_list' %}?filtrar=resueltos" class="bg-white dark:bg-darkPanel p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between hover:border-emerald-500 dark:hover:border-emerald-400 hover:scale-[1.02] hover:shadow-md transition duration-200">
-            <div>
-                <span class="text-xs font-semibold text-slate-400 dark:text-darkTextSub uppercase tracking-wider">Resueltos / Cerrados</span>
-                <h3 class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{{ resueltos }}</h3>
-            </div>
-            <div class="h-10 w-10 bg-emerald-50 dark:bg-emerald-950/40 rounded-lg flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold border dark:border-emerald-900/30">✓</div>
-        </a>
-
-        <div class="bg-white dark:bg-darkPanel p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
-            <div>
-                <span class="text-xs font-semibold text-slate-400 dark:text-darkTextSub uppercase tracking-wider">SLA Cumplido</span>
-                <h3 class="text-2xl font-bold text-blue-600 dark:text-cyan-400 mt-1">{{ sla_porcentaje }}%</h3>
-            </div>
-            <div class="h-10 w-10 bg-blue-50 dark:bg-cyan-950/40 rounded-lg flex items-center justify-center text-blue-600 dark:text-cyan-400 font-bold border dark:border-cyan-900/30">⚡</div>
+        <div class="bg-white dark:bg-darkPanel p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-4">Tendencia de Incidencias</h3>
+            <div class="h-64"><canvas id="chartTendencias"></canvas></div>
         </div>
+
+        <div class="bg-white dark:bg-darkPanel p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-4">Distribución por Estado</h3>
+            <div class="h-64"><canvas id="chartEstados"></canvas></div>
+        </div>
+
+        <div class="bg-white dark:bg-darkPanel p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-4">Tickets por Sistema Integrado</h3>
+            <div class="h-64"><canvas id="chartSistemas"></canvas></div>
+        </div>
+
+        <div class="bg-white dark:bg-darkPanel p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-4">Criticidad y Prioridades</h3>
+            <div class="h-64"><canvas id="chartPrioridades"></canvas></div>
+        </div>
+
+        <div class="bg-white dark:bg-darkPanel p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-4">Carga de Trabajo por Especialista (Activos)</h3>
+            <div class="h-64"><canvas id="chartCarga"></canvas></div>
+        </div>
+
+        <div class="bg-white dark:bg-darkPanel p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-4">Tiempo Promedio de Solución (Horas)</h3>
+            <div class="h-64"><canvas id="chartTiempos"></canvas></div>
+        </div>
+
+        <div class="bg-white dark:bg-darkPanel p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-4">% Cumplimiento de SLA por Agente</h3>
+            <div class="h-64"><canvas id="chartSlaAgentes"></canvas></div>
+        </div>
+
+        <div class="bg-white dark:bg-darkPanel p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-4">Nivel de Impacto por Sistema</h3>
+            <div class="h-64"><canvas id="chartImpactoSistemas"></canvas></div>
+        </div>
+
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        <div class="bg-white dark:bg-darkPanel p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm lg:col-span-2">
-            <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-4">Tendencia de Creación de Tickets</h3>
-            <div class="relative h-64 w-full">
-                <canvas id="chartTendencias"></canvas>
-            </div>
-        </div>
-
-        <div class="bg-white dark:bg-darkPanel p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-4">Tickets por Estado</h3>
-            <div class="relative h-64 w-full flex items-center justify-center">
-                <canvas id="chartEstados"></canvas>
-            </div>
-        </div>
-
-        <div class="bg-white dark:bg-darkPanel p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm lg:col-span-2">
-            <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-4">Volumen de Incidencias por Sistema</h3>
-            <div class="relative h-64 w-full">
-                <canvas id="chartSistemas"></canvas>
-            </div>
-        </div>
-
-        <div class="bg-white dark:bg-darkPanel p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-4">Distribución por Prioridad</h3>
-            <div class="relative h-64 w-full">
-                <canvas id="chartPrioridades"></canvas>
-            </div>
-        </div>
-    </div>
-<script>
+    <script>
         (function() {
             const isDark = document.documentElement.classList.contains('dark');
             const labelColor = isDark ? '#94a3b8' : '#64748b';
@@ -74,16 +53,13 @@
             const chartDefaults = {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: {
-                    legend: { labels: { color: labelColor, font: { family: 'Inter', size: 11 } } }
-                },
+                plugins: { legend: { labels: { color: labelColor, font: { family: 'Inter', size: 11 } } } },
                 scales: {
                     x: { grid: { color: gridColor }, ticks: { color: labelColor, font: { family: 'Inter' } } },
                     y: { grid: { color: gridColor }, ticks: { color: labelColor, font: { family: 'Inter' } } }
                 }
             };
 
-            // 🎯 DECLARACIÓN ORDENADA: Definimos la función antes de invocarla
             function limpiarYCrearChart(chartId, config) {
                 if (window.misGraficasActivas && window.misGraficasActivas[chartId]) {
                     window.misGraficasActivas[chartId].destroy();
@@ -95,80 +71,100 @@
                 }
             }
 
-            // 🎨 1. Gráfico de Tendencias
+            // 1. Tendencias
             limpiarYCrearChart('chartTendencias', {
                 type: 'line',
                 data: {
                     labels: {{ tendencias_labels|safe|default:"[]" }},
                     datasets: [{
-                        label: 'Tickets Creados',
+                        label: 'Tickets',
                         data: {{ tendencias_valores|safe|default:"[]" }},
                         borderColor: '#3B82F6',
-                        backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.05)',
-                        fill: true,
-                        tension: 0.3,
-                        borderWidth: 2.5
+                        backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                        fill: true, tension: 0.3, borderWidth: 2
                     }]
-                },
-                options: chartDefaults
+                }, options: chartDefaults
             });
 
-            // 🎨 2. Gráfico de Estados
+            // 2. Estados
             limpiarYCrearChart('chartEstados', {
                 type: 'doughnut',
                 data: {
                     labels: {{ estados_labels|safe|default:"[]" }},
                     datasets: [{
                         data: {{ estados_valores|safe|default:"[]" }},
-                        backgroundColor: ['#3B82F6', '#F59E0B', '#10B981', '#EF4444', '#6B7280'],
-                        borderWidth: isDark ? 2 : 1,
-                        borderColor: isDark ? '#1e232d' : '#ffffff'
+                        backgroundColor: ['#3B82F6', '#F59E0B', '#10B981', '#EF4444', '#6B7280']
                     }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { labels: { color: labelColor, font: { family: 'Inter' } } } }
-                }
+                }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: labelColor } } } }
             });
 
-            // 🎨 3. Gráfico de Sistemas
+            // 3. Sistemas
             limpiarYCrearChart('chartSistemas', {
                 type: 'bar',
                 data: {
                     labels: {{ sistemas_labels|safe|default:"[]" }},
-                    datasets: [{
-                        label: 'Cantidad',
-                        data: {{ sistemas_valores|safe|default:"[]" }},
-                        backgroundColor: isDark ? '#a855f7' : '#60A5FA',
-                        borderRadius: 6
-                    }]
-                },
-                options: chartDefaults
+                    datasets: [{ label: 'Cantidad', data: {{ sistemas_valores|safe|default:"[]" }}, backgroundColor: '#60A5FA', borderRadius: 4 }]
+                }, options: chartDefaults
             });
 
-            // 🎨 4. Gráfico de Prioridades
+            // 4. Prioridades
             limpiarYCrearChart('chartPrioridades', {
                 type: 'bar',
                 data: {
                     labels: {{ prioridades_labels|safe|default:"[]" }},
-                    datasets: [{
-                        label: 'Tickets',
-                        data: {{ prioridades_valores|safe|default:"[]" }},
-                        backgroundColor: ['#EF4444', '#F59E0B', '#3B82F6', '#10B981'],
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { labels: { color: labelColor, font: { family: 'Inter' } } } },
+                    datasets: [{ label: 'Tickets', data: {{ prioridades_valores|safe|default:"[]" }}, backgroundColor: ['#EF4444', '#F59E0B', '#3B82F6', '#10B981'], borderRadius: 4 }]
+                }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: labelColor } } } }
+            });
+
+            // ✨ 5. Gráfico de Carga de Especialistas
+            limpiarYCrearChart('chartCarga', {
+                type: 'bar',
+                data: {
+                    labels: {{ carga_labels|safe|default:"[]" }},
+                    datasets: [{ label: 'Asignados', data: {{ carga_valores|safe|default:"[]" }}, backgroundColor: '#F59E0B', borderRadius: 4 }]
+                }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: labelColor } } } }
+            });
+
+            // ✨ 6. Tiempos Promedio de Resolución
+            limpiarYCrearChart('chartTiempos', {
+                type: 'bar',
+                data: {
+                    labels: {{ tiempo_labels|safe|default:"[]" }},
+                    datasets: [{ label: 'Horas Promedio', data: {{ tiempo_valores|safe|default:"[]" }}, backgroundColor: '#10B981', borderRadius: 4 }]
+                }, options: chartDefaults
+            });
+
+            // ✨ 7. Cumplimiento de SLA por Agente
+            limpiarYCrearChart('chartSlaAgentes', {
+                type: 'bar',
+                data: {
+                    labels: {{ sla_agentes_labels|safe|default:"[]" }},
+                    datasets: [{ label: '% SLA', data: {{ sla_agentes_valores|safe|default:"[]" }}, backgroundColor: '#8B5CF6', borderRadius: 4 }]
+                }, options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { x: { ticks: { color: labelColor } }, y: { min: 0, max: 100, ticks: { color: labelColor } } }
+                }
+            });
+
+            // ✨ 8. Impacto por Sistema (Barras Apiladas)
+            limpiarYCrearChart('chartImpactoSistemas', {
+                type: 'bar',
+                data: {
+                    labels: {{ impacto_labels|safe|default:"[]" }},
+                    datasets: [
+                        { label: 'Alto/Crítico', data: {{ impacto_alto|safe|default:"[]" }}, backgroundColor: '#EF4444' },
+                        { label: 'Medio', data: {{ impacto_medio|safe|default:"[]" }}, backgroundColor: '#F59E0B' },
+                        { label: 'Bajo', data: {{ impacto_bajo|safe|default:"[]" }}, backgroundColor: '#3B82F6' }
+                    ]
+                }, options: {
+                    responsive: true, maintainAspectRatio: false,
                     scales: {
-                        x: { grid: { color: gridColor }, ticks: { color: labelColor } },
-                        y: { grid: { display: false }, ticks: { color: labelColor } }
+                        x: { stacked: true, ticks: { color: labelColor } },
+                        y: { stacked: true, ticks: { color: labelColor } }
                     }
                 }
             });
+
         })();
     </script>
+</div>

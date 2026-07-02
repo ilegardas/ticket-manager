@@ -1066,12 +1066,32 @@ def panel_dashboard(request):
     sla_porcentaje = int((tickets_cumplieron_sla / resueltos_count) * 100) if resueltos_count > 0 else 100
 
     # 3. Preparar listas finales para las gráficas del Dashboard
-    # SLA por Agente (Top 5)
-    sla_agentes_labels = list(sla_agentes_dict.keys())[:5]
-    sla_agentes_valores = [
-        int((sla_agentes_dict[agente]['cumplidos'] / sla_agentes_dict[agente]['total_cerrados']) * 100)
-        for agente in sla_agentes_labels
-    ]
+    # ─────────────────────────────────────────────────────────────────
+    #  PREPARACIÓN DETALLADA DE SLA POR TÉCNICO (DESGLOSADO)
+    # ─────────────────────────────────────────────────────────────────
+    sla_agentes_labels = []
+    sla_agentes_valores = []
+
+    # Ordenamos el diccionario de agentes de mayor a menor cantidad de tickets resueltos
+    # para que la gráfica muestre primero a los técnicos más activos
+    sla_agentes_ordenados = sorted(
+        sla_agentes_dict.items(), 
+        key=lambda item: item[1]['total_cerrados'], 
+        reverse=True
+    )
+
+    for agente, info in sla_agentes_ordenados:
+        # Si prefieres omitir los acumulados que se resolvieron sin especialista asignado
+        # de la gráfica de técnicos, descomenta la siguiente línea:
+        # if agente == "Sin Asignar": continue
+
+        sla_agentes_labels.append(agente)
+        porcentaje_tecnico = int((info['cumplidos'] / info['total_cerrados']) * 100) if info['total_cerrados'] > 0 else 100
+        sla_agentes_valores.append(porcentaje_tecnico)
+
+    # Limitamos a los top 8 técnicos para mantener la legibilidad de las barras en el frontend
+    sla_agentes_labels = sla_agentes_labels[:8]
+    sla_agentes_valores = sla_agentes_valores[:8]
 
     # SLA por Sistema 
     sla_sistemas_labels = list(sla_sistemas_dict.keys())

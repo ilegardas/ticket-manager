@@ -834,7 +834,7 @@ def panel_ticket_chatter(request, pk):
         if contenido:
             ChatterEntry.objects.create(
                 ticket=ticket,
-                type='comentario',
+                tipo='comentario',  # 🎯 ¡Corregido a español!
                 contenido=contenido,
                 autor=request.user
             )

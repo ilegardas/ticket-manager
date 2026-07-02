@@ -231,6 +231,9 @@ class Ticket(models.Model):
     ticket_reabierto = models.BooleanField(default=False)
     veces_reabierto = models.IntegerField(default=0)
 
+    # 📁 Control de Historial / Archivado
+    archivado = models.BooleanField(default=False, db_index=True)
+
     class Meta:
         verbose_name = 'Ticket'
         verbose_name_plural = 'Tickets'

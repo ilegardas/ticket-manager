@@ -68,12 +68,13 @@
             <div class="h-64"><canvas id="chartTiempos"></canvas></div>
         </div>
 
+        <!-- 🎯 RECUPERADO: Tarjeta de % Cumplimiento de SLA por Agente -->
         <div class="bg-white dark:bg-darkPanel p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
             <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-4">% Cumplimiento de SLA por Agente</h3>
             <div class="h-64"><canvas id="chartSlaAgentes"></canvas></div>
         </div>
 
-        <!-- 🎯 NUEVO: Contenedor HTML para el Gráfico de SLA por Sistema -->
+        <!-- Tarjeta: % Cumplimiento de SLA por Sistema -->
         <div class="bg-white dark:bg-darkPanel p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
             <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-4">% Cumplimiento de SLA por Sistema</h3>
             <div class="h-64"><canvas id="chartSlaSistemas"></canvas></div>
@@ -139,11 +140,11 @@
                             x: { grid: { color: gridColor }, ticks: { color: labelColor, font: { family: 'Inter' } } },
                             y: { 
                                 grid: { color: gridColor }, 
-                                min: 0,        
+                                min: 0,
                                 ticks: { 
                                     color: labelColor, 
                                     font: { family: 'Inter' },
-                                    stepSize: 1 
+                                    stepSize: 1
                                 } 
                             }
                         }
@@ -274,33 +275,35 @@
                 });
             } catch(e) { console.error("Error en gráfico 6:", e); }
 
-            // 7. Cumplimiento de SLA por Agente
+            // 7. Cumplimiento de SLA por Especialista
             try {
                 limpiarYCrearChart('chartSlaAgentes', {
                     type: 'bar',
                     data: {
                         labels: {{ sla_agentes_labels|safe|default:"[]" }},
-                        datasets: [{ label: '% SLA', data: {{ sla_agentes_valores|safe|default:"[]" }}, backgroundColor: '#8B5CF6', borderRadius: 4 }]
-                    }, options: {
-                        responsive: true, maintainAspectRatio: false,
-                        scales: { x: { ticks: { color: labelColor } }, y: { min: 0, max: 100, ticks: { color: labelColor } } }
+                        datasets: [{
+                            label: '% SLA',
+                            data: {{ sla_agentes_valores|safe|default:"[]" }},
+                            backgroundColor: '#8B5CF6',
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { grid: { display: false }, ticks: { color: labelColor, font: { family: 'Inter' } } },
+                            y: { 
+                                min: 0,
+                                max: 100,
+                                grid: { color: gridColor }, 
+                                ticks: { color: labelColor, font: { family: 'Inter' } } 
+                            }
+                        }
                     }
                 });
             } catch(e) { console.error("Error en gráfico 7:", e); }
-
-            // 🎯 NUEVO: 9. Inicializador para el Gráfico de SLA por Sistema
-            try {
-                limpiarYCrearChart('chartSlaSistemas', {
-                    type: 'bar',
-                    data: {
-                        labels: {{ sla_sistemas_labels|safe|default:"[]" }},
-                        datasets: [{ label: '% SLA por Sistema', data: {{ sla_sistemas_valores|safe|default:"[]" }}, backgroundColor: '#06B6D4', borderRadius: 4 }]
-                    }, options: {
-                        responsive: true, maintainAspectRatio: false,
-                        scales: { x: { ticks: { color: labelColor } }, y: { min: 0, max: 100, ticks: { color: labelColor } } }
-                    }
-                });
-            } catch(e) { console.error("Error en gráfico SLA por Sistemas:", e); }
 
             // 8. Impacto por Sistema
             try {
@@ -323,6 +326,36 @@
                 });
             } catch(e) { console.error("Error en gráfico 8:", e); }
 
-        })();
+            // 🎯 ADENTRO: 9. Cumplimiento de SLA por Sistema (Mapeado dentro del alcance privado)
+            try {
+                limpiarYCrearChart('chartSlaSistemas', {
+                    type: 'bar',
+                    data: {
+                        labels: {{ sla_sistemas_labels|safe|default:"[]" }},
+                        datasets: [{
+                            label: '% SLA por Sistema',
+                            data: {{ sla_sistemas_valores|safe|default:"[]" }},
+                            backgroundColor: '#06B6D4', 
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { grid: { display: false }, ticks: { color: labelColor, font: { family: 'Inter' } } },
+                            y: { 
+                                min: 0,
+                                max: 100, 
+                                grid: { color: gridColor }, 
+                                ticks: { color: labelColor, font: { family: 'Inter' } } 
+                            }
+                        }
+                    }
+                });
+            } catch(e) { console.error("Error en gráfico de SLA por Sistemas:", e); }
+
+        })(); // Cierre de la función autoejecutable
     </script>
 </div>

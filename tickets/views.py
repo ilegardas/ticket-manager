@@ -988,15 +988,15 @@ def panel_dashboard(request):
     carga_labels = [item['usuario_asignado__nombre_completo'] or "Sin Asignar" for item in carga_data]
     carga_valores = [item['total'] for item in carga_data]
 
-    # 6. Tiempo Promedio de Resolución por Sistema (En Horas)
+    # 6. Tiempo Promedio de Resolución por Sistema (En Minutos - Corregido)
     tiempo_data = (
-        tickets_filtrados.filter(estado__es_estado_cierre=True, fecha_cierre__isnull=False)
-        .annotate(duracion=ExpressionWrapper(F('fecha_cierre') - F('fecha_creacion'), output_field=DurationField()))
+        tickets_filtrados.filter(estado__es_estado_cierre=True, tiempo_atencion_minutos__isnull=False)
         .values('sistema__nombre')
-        .annotate(promedio_horas=Avg('duracion'))
+        .annotate(promedio_minutos=Avg('tiempo_atencion_minutos'))
     )
     tiempo_labels = [item['sistema__nombre'] or "General" for item in tiempo_data]
-    tiempo_valores = [round(item['promedio_horas'].total_seconds() / 3600, 1) if item['promedio_horas'] else 0 for item in tiempo_data]
+    # Redondeamos a enteros para que queden minutos limpios
+    tiempo_valores = [int(item['promedio_minutos']) if item['promedio_minutos'] else 0 for item in tiempo_data]
 
     # 7. Cumplimiento de SLA por Especialista (Usando tiempo_atencion_minutos)
     sla_agentes_data = (

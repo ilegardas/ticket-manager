@@ -6,7 +6,7 @@ from django.views.decorators.http import require_http_methods
 from django.http import HttpResponse
 from django.contrib.auth import authenticate
 from django.utils import timezone
-from django.db.models import Count, Q, Avg, F, ExpressionWrapper, DurationField  # 🎯 AGREGAMOS 'F' AQUÍ
+from django.db.models import Count, Q, Avg, F, ExpressionWrapper, DurationField
 from django.conf import settings
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action, api_view, permission_classes
@@ -104,51 +104,58 @@ def me_view(request):
 def _handle_state_change(ticket, old_estado, new_estado, user):
     now = timezone.now()
     
-    # 1. ⏳ Si venía de un estado de pausa, cerramos el log de tiempo activo y acumulamos
+    # 1. Si venía de un estado de pausa, cerramos el log de tiempo activo y acumulamos
     if old_estado and old_estado.pausa_sla:
         open_log = TicketTimeLog.objects.filter(ticket=ticket, fecha_fin__isnull=True).first()
         if open_log:
             open_log.fecha_fin = now
             open_log.save()
-            
-            # Recalculamos y actualizamos el acumulado total de pausas en el ticket
-            ticket.tiempo_pausa_minutos = sum(
-                log.duracion_minutos for log in TicketTimeLog.objects.filter(ticket=ticket, duracion_minutos__isnull=False)
-            )
-            # Guardamos de inmediato para asegurar que el valor esté fresco en memoria
+            ticket.tiempo_pausa_minutos = sum(log.duracion_minutos for log in TicketTimeLog.objects.filter(ticket=ticket, duracion_minutos__isnull=False))
             ticket.save(update_fields=['tiempo_pausa_minutos'])
             
-    # 2. 🚀 Si entra a un nuevo estado que también pausa el SLA, abrimos un nuevo log
+    # 2. Si entra a un nuevo estado de pausa SLA, abrimos un nuevo log
     if new_estado and new_estado.pausa_sla:
         TicketTimeLog.objects.create(ticket=ticket, estado_pausa=new_estado.nombre, fecha_inicio=now)
         
-    # 3. 🏁 Si el nuevo estado es un estado de cierre, calculamos el tiempo NETO real
+    # 3. Si el nuevo estado es de cierre, calculamos el tiempo NETO real de forma segura
     if new_estado and new_estado.es_estado_cierre:
-        if not ticket.fecha_resolucion: 
-            ticket.fecha_resolucion = now
+        if not ticket.fecha_resolucion: ticket.fecha_resolucion = now
         ticket.fecha_cierre = now
-        
         if ticket.fecha_creacion:
-            # Calculamos el tiempo bruto transcurrido en minutos
             tiempo_bruto_minutos = int((now - ticket.fecha_creacion).total_seconds() / 60)
-            # Recuperamos las pausas acumuladas recién actualizadas (evitamos None con or 0)
             pausas = ticket.tiempo_pausa_minutos or 0
-            # Guardamos el tiempo neto exacto de operación (evitando números negativos)
             ticket.tiempo_atencion_minutos = max(0, tiempo_bruto_minutos - pausas)
-            
         ticket.save(update_fields=['fecha_resolucion', 'fecha_cierre', 'tiempo_atencion_minutos'])
         
-    # 4. 📝 Registramos el movimiento en la bitácora (Chatter)
-    ChatterEntry.objects.create(
-        ticket=ticket, 
-        tipo='cambio_estado', 
-        autor=user, 
-        estado_anterior=old_estado.nombre if old_estado else None, 
-        estado_nuevo=new_estado.nombre if new_estado else None, 
-        contenido=f"Estado cambiado a '{new_estado.nombre if new_estado else '—'}'"
-    )
+    ChatterEntry.objects.create(ticket=ticket, tipo='cambio_estado', autor=user, estado_anterior=old_estado.nombre if old_estado else None, estado_nuevo=new_estado.nombre if new_estado else None, contenido=f"Estado cambiado a '{new_estado.nombre if new_estado else '—'}'")
 
+# ─────────────────────────────────────────────
+#  FUNCIÓN REUTILIZABLE DE LIMPIEZA DE FECHAS
+# ─────────────────────────────────────────────
+def _clean_view_date_string(date_str):
+    if not date_str:
+        return "2026-06-25T00:00:00Z"
+    if '-' in date_str and date_str.count('-') == 3:
+        date_str = date_str.rsplit('-', 1)[0]
+    elif '+' in date_str:
+        date_str = date_str.rsplit('+', 1)[0]
+    if date_str.endswith('Z'):
+        date_str = date_str[:-1]
+    return date_str + "Z"
 
+# ─────────────────────────────────────────────
+#  VIEWSETS
+# ─────────────────────────────────────────────
+
+class TicketViewSet(viewsets.ModelViewSet):
+    queryset = Ticket.objects.select_related('sistema', 'modulo', 'prioridad', 'estado', 'categoria', 'usuario_reporta', 'usuario_asignado').all()
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['estado', 'prioridad', 'categoria', 'sistema', 'modulo', 'usuario_asignado', 'usuario_reporta']
+    search_fields = ['folio', 'titulo', 'descripcion', 'codigo_error']
+    ordering_fields = ['fecha_creacion', 'prioridad__orden', 'estado__orden']
+    ordering = ['-fecha_creacion']
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
 
     # 🛡️ RETRIEVE DEFINITIVO: Mapea de forma forzada tanto llaves directas como sufijos _id
     def retrieve(self, request, pk=None, *args, **kwargs):
@@ -159,7 +166,6 @@ def _handle_state_change(ticket, old_estado, new_estado, user):
         except Ticket.DoesNotExist:
             return Response({'detail': f'Ticket {pk} no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Usamos el serializador base
         serializer = self.get_serializer(instance)
         data = serializer.data
 
@@ -205,22 +211,6 @@ def _handle_state_change(ticket, old_estado, new_estado, user):
 
         return Response(data)
 
-        # Inmunidad absoluta de strings de fechas UTC 'Z' para date-fns
-        def _clean_date(dt):
-            if not dt:
-                return "2026-06-25T00:00:00Z"
-            return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-
-        data['fecha_creacion'] = _clean_date(instance.fecha_creacion)
-        data['fecha_asignacion'] = _clean_date(instance.fecha_asignacion) if instance.fecha_asignacion else data['fecha_creacion']
-        data['fecha_primera_respuesta'] = _clean_date(instance.fecha_primera_respuesta) if instance.fecha_primera_respuesta else data['fecha_creacion']
-        data['fecha_resolucion'] = _clean_date(instance.fecha_resolucion) if instance.fecha_resolucion else data['fecha_creacion']
-        data['fecha_cierre'] = _clean_date(instance.fecha_cierre) if instance.fecha_cierre else data['fecha_creacion']
-
-        return Response(data)
-        
-        
-
     def create(self, request, *args, **kwargs):
         data = request.data.get('data') if 'data' in request.data else request.data
         serializer = self.get_serializer(data=data)
@@ -245,7 +235,6 @@ def _handle_state_change(ticket, old_estado, new_estado, user):
         if self.action == 'create': return TicketInputSerializer
         if self.action in ['partial_update', 'update']: return TicketUpdateSerializer
         return TicketSerializer
-
 
 
 class SistemaViewSet(viewsets.ModelViewSet):
@@ -400,8 +389,6 @@ def reporte_por_region(request):
     🛡️ CONTROL ESTRICTO DE ARREGLO: Evita que el .slice() del gráfico tumba la pantalla de Reportes
     """
     try:
-        # Si no tienes regiones implementadas en tus modelos aún, 
-        # devolvemos una lista de simulación limpia y estructurada para que la gráfica pinte vacía pero segura
         return Response([], status=status.HTTP_200_OK)
     except Exception:
         return Response([], status=status.HTTP_200_OK)
@@ -416,7 +403,6 @@ def reporte_tickets(request):
     🛡️ CONTROL ABSOLUTO DE ARREGLO: Garantiza un [] nativo para evitar el crash de .slice()
     """
     try:
-        # Obtenemos los últimos 100 tickets optimizando las relaciones
         qs = Ticket.objects.select_related(
             'sistema', 'modulo', 'prioridad', 'estado', 'categoria', 'usuario_reporta', 'usuario_asignado'
         ).all().order_by('-fecha_creacion')[:100]
@@ -445,7 +431,7 @@ def reporte_tickets(request):
                 'prioridad_nombre': instance.prioridad.nombre if instance.prioridad else "—",
                 'prioridad_color': instance.prioridad.color if instance.prioridad else "",
                 'estado_nombre': instance.estado.nombre if instance.estado else "—",
-                'estado_color': instance.estado.color if instance.estado else "",
+                'estado_color': instance.estado.color if instance.estado else ""
                 'categoria_nombre': instance.categoria.nombre if instance.categoria else "—",
                 'usuario_reporta_nombre': instance.usuario_reporta.nombre_completo if instance.usuario_reporta else "—",
                 'usuario_asignado_nombre': instance.usuario_asignado.nombre_completo if instance.usuario_asignado else "Sin asignar",
@@ -465,7 +451,6 @@ def reporte_tickets(request):
             
             result.append(row)
             
-        # Forzamos con la función list() que la respuesta sea un Array JSON puro
         return Response(list(result), status=status.HTTP_200_OK)
         
     except Exception:
@@ -565,7 +550,6 @@ def compat_chatter_list(request):
     """
     🛡️ CONTROL ABSOLUTO DE LISTA: Asegura una respuesta [] pura para React Query
     """
-    # Buscamos el ID del ticket bajo cualquier parámetro que mande el cliente
     tid = request.query_params.get('ticket') or request.query_params.get('ticket_id') or request.query_params.get('id')
     if not tid:
         return Response([], status=status.HTTP_200_OK)
@@ -573,7 +557,6 @@ def compat_chatter_list(request):
     try:
         queryset = ChatterEntry.objects.filter(ticket_id=int(tid)).order_by('fecha_creacion')
         serializer = ChatterEntrySerializer(queryset, many=True)
-        # Forzamos que la respuesta sea una lista pura de Python nativo
         return Response(list(serializer.data), status=status.HTTP_200_OK)
     except Exception:
         return Response([], status=status.HTTP_200_OK)
@@ -591,14 +574,12 @@ def compat_timelogs_list(request):
     try:
         queryset = TicketTimeLog.objects.filter(ticket_id=int(tid)).order_by('fecha_inicio')
         serializer = TimeLogSerializer(queryset, many=True)
-        # Forzamos que la respuesta sea una lista pura de Python nativo
         return Response(list(serializer.data), status=status.HTTP_200_OK)
     except Exception:
         return Response([], status=status.HTTP_200_OK)
 
 
 
-# 🛡️ ENDPOINT NUEVO: Resuelve el 404 al guardar notas en el Historial (Chatter)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 @authentication_classes([TokenAuthentication])
@@ -623,7 +604,6 @@ def compat_add_chatter(request):
     )
     return Response(ChatterEntrySerializer(entry).data, status=status.HTTP_201_CREATED)
 
-# 🛡️ ENDPOINT NUEVO: Resuelve el 404 al intentar Editar/Guardar cambios del Ticket
 @api_view(['POST', 'PUT', 'PATCH'])
 @permission_classes([IsAuthenticated])
 @authentication_classes([TokenAuthentication])
@@ -697,7 +677,7 @@ def compat_ticket_detail(request, pk):
         ticket.delete()
         return Response({'detail': 'Eliminado.'}, status=status.HTTP_200_OK)
 
-#Inicia ruteo a vistas dentro de django 
+# Inicia ruteo a vistas dentro de django 
 
 @login_required
 def panel_tickets_list(request):
@@ -708,7 +688,6 @@ def panel_tickets_list(request):
     query = request.GET.get('q', '').strip()
     ordering = request.GET.get('ordering', '-fecha_creacion')
     
-    # 🎯 1. Recuperar los nuevos parámetros de selectores
     asignado_id = request.GET.get('asignado_id')
     prioridad_id = request.GET.get('prioridad_id')
     estado_id = request.GET.get('estado_id')
@@ -726,7 +705,6 @@ def panel_tickets_list(request):
         qs = qs.filter(Q(estado__nombre__icontains='cerrado') | Q(estado__nombre__icontains='resuelto'))
         titulo_panel = "Tickets Resueltos / Cerrados"
 
-    # 🔍 2. Aplicar buscador de texto plano
     if query:
         qs = qs.filter(
             Q(folio__icontains=query) |
@@ -735,7 +713,6 @@ def panel_tickets_list(request):
             Q(usuario_asignado__nombre_completo__icontains=query)
         )
 
-    # 🎛️ 3. Aplicar Matriz de Filtros Selectores Cruzados de forma consecutiva
     if asignado_id:
         qs = qs.filter(usuario_asignado_id=asignado_id)
     if prioridad_id:
@@ -745,7 +722,6 @@ def panel_tickets_list(request):
     if impacto:
         qs = qs.filter(impacto_proceso=impacto)
 
-    # Ordenamiento de columnas seguro
     campos_permitidos = [
         'folio', '-folio', 'titulo', '-titulo', 
         'usuario_asignado__nombre_completo', '-usuario_asignado__nombre_completo',
@@ -769,8 +745,6 @@ def panel_tickets_list(request):
         'next_prioridad': '-prioridad__orden' if ordering == 'prioridad__orden' else 'prioridad__orden',
         'next_estado': '-estado__orden' if ordering == 'estado__orden' else 'estado__orden',
         'next_impacto': '-impacto_proceso' if ordering == 'impacto_proceso' else 'impacto_proceso',
-        
-        # 🎯 4. Enviamos catálogos obligatorios para pintar las opciones en el HTML inicial
         'estados': Estado.objects.all().order_by('orden'),
         'prioridades': Prioridad.objects.all(),
         'tecnicos': Usuario.objects.filter(rol='tecnico') or Usuario.objects.filter(is_staff=True) or Usuario.objects.all(),
@@ -782,16 +756,12 @@ def panel_tickets_list(request):
     return render(request, 'tickets/list.html', context)
 
 
-
-
-
 @login_required
 def panel_tickets_exportar_excel(request):
     """
     📥 EXPORTADOR INTEGRAL EXCEL: Descarga el reporte de tickets respetando 
     estrictamente el ordenamiento, buscador y la matriz de filtros cruzados.
     """
-    # 1. Recuperar toda la matriz de parámetros que envía el JS del navegador
     query = request.GET.get('q', '').strip()
     ordering = request.GET.get('ordering', '-fecha_creacion')
     asignado_id = request.GET.get('asignado_id')
@@ -799,10 +769,8 @@ def panel_tickets_exportar_excel(request):
     estado_id = request.GET.get('estado_id')
     impacto = request.GET.get('impacto')
 
-    # QuerySet Base con relaciones cargadas
     qs = Ticket.objects.select_related('sistema', 'modulo', 'estado', 'prioridad', 'usuario_asignado').all()
 
-    # 2. Aplicar el filtro del Buscador (si existe)
     if query:
         qs = qs.filter(
             Q(folio__icontains=query) |
@@ -811,7 +779,6 @@ def panel_tickets_exportar_excel(request):
             Q(usuario_asignado__nombre_completo__icontains=query)
         )
 
-    # 3. 🎯 FILTROS CRUZADOS ELECTOS: Sincronización exacta con la interfaz
     if asignado_id:
         qs = qs.filter(usuario_asignado_id=asignado_id)
     if prioridad_id:
@@ -821,7 +788,6 @@ def panel_tickets_exportar_excel(request):
     if impacto:
         qs = qs.filter(impacto_proceso=impacto)
 
-    # 4. 🎯 ORDENAMIENTO DE EXCEL: Aplica el mismo orden de columnas de la pantalla
     campos_permitidos = [
         'folio', '-folio', 'titulo', '-titulo', 
         'usuario_asignado__nombre_completo', '-usuario_asignado__nombre_completo',
@@ -833,7 +799,6 @@ def panel_tickets_exportar_excel(request):
     else:
         qs = qs.order_by('-fecha_creacion')
 
-    # 5. Construcción del archivo de salida
     response = HttpResponse(content_type='text/csv; charset=windows-1252')
     response['Content-Disposition'] = 'attachment; filename="reporte_tickets_filtrado.csv"'
 
@@ -857,8 +822,6 @@ def panel_tickets_exportar_excel(request):
     return response
 
 
-
-
 @login_required
 def panel_ticket_chatter(request, pk):
     """
@@ -871,15 +834,13 @@ def panel_ticket_chatter(request, pk):
         if contenido:
             ChatterEntry.objects.create(
                 ticket=ticket,
-                tipo='comentario',
+                type='comentario',
                 contenido=contenido,
                 autor=request.user
             )
 
-    # Obtenemos las notas
     notas = ticket.chatter.all().order_by('-fecha_creacion')
     
-    # Construimos la respuesta en HTML puro para inyectar directo a #chatter-box
     html_output = ""
     for nota in notas:
         is_sistema = (nota.tipo == 'sistema')
@@ -901,8 +862,6 @@ def panel_ticket_chatter(request, pk):
         html_output = '<div class="text-center py-4 text-xs text-slate-400 dark:text-orange-500/60 italic">No hay notas registradas todavía.</div>'
         
     return HttpResponse(html_output)
-    
-
 
 
 @login_required
@@ -929,31 +888,23 @@ def panel_dashboard(request):
     else:
         fecha_fin = hoy
 
-    # QuerySet base filtrado por el rango establecido
     tickets_filtrados = Ticket.objects.filter(
         fecha_creacion__date__range=[fecha_inicio, fecha_fin]
     )
 
-    # 📦 Criterio de SLA en base a tus minutos reales (ej: 48 horas = 2880 minutos)
     limite_sla_minutos = 2880 
 
-    # Conteo para las tarjetas superiores
     total_tickets = tickets_filtrados.count()
     pendientes = tickets_filtrados.filter(~Q(estado__es_estado_cierre=True)).count()
     resueltos = tickets_filtrados.filter(estado__es_estado_cierre=True).count()
     
-    # Cálculo de SLA global usando 'tiempo_atencion_minutos'
     tickets_con_sla = tickets_filtrados.filter(
         estado__es_estado_cierre=True, 
         tiempo_atencion_minutos__lte=limite_sla_minutos
     ).count()
     sla_porcentaje = int((tickets_con_sla / resueltos) * 100) if resueltos > 0 else 100
 
-    # =========================================================================
-    # 📈 LÓGICA DE AGREGACIÓN DE DATOS (REINCORPORACIÓN DE LAS 8 GRÁFICAS)
-    # =========================================================================
-
-    # 1. Tendencia de Creación de Tickets (Por Día)
+    # 1. Tendencia de Creación de Tickets
     tendencias_data = (
         tickets_filtrados
         .annotate(dia=TruncDate('fecha_creacion'))
@@ -964,22 +915,22 @@ def panel_dashboard(request):
     tendencias_labels = [item['dia'].strftime('%Y-%m-%d') for item in tendencias_data if item['dia']]
     tendencias_valores = [item['total'] for item in tendencias_data]
 
-    # 2. Tickets por Estado (Dona)
+    # 2. Tickets por Estado
     estados_data = tickets_filtrados.values('estado__nombre').annotate(total=Count('id')).order_by('-total')
     estados_labels = [item['estado__nombre'] if item['estado__nombre'] else "Sin Estado" for item in estados_data]
     estados_valores = [item['total'] for item in estados_data]
 
-    # 3. Volumen de Incidencias por Sistema
+    # 3. Volumen por Sistema
     sistemas_data = tickets_filtrados.values('sistema__nombre').annotate(total=Count('id')).order_by('-total')
     sistemas_labels = [item['sistema__nombre'] if item['sistema__nombre'] else "General" for item in sistemas_data]
     sistemas_valores = [item['total'] for item in sistemas_data]
 
-    # 4. Distribución por Prioridad
+    # 4. Distribución por Prioridad (Corregido)
     prioridades_data = tickets_filtrados.values('prioridad__nombre').annotate(total=Count('id')).order_by('-total')
     prioridades_labels = [item['prioridad__nombre'] if item['prioridad__nombre'] else "Normal" for item in prioridades_data]
     prioridades_valores = [item['total'] for item in prioridades_data]
 
-    # 5. Top 5 Especialistas con Más Carga (Tickets Activos)
+    # 5. Top 5 Especialistas (Tickets Activos)
     carga_data = (
         tickets_filtrados.filter(~Q(estado__es_estado_cierre=True))
         .values('usuario_asignado__nombre_completo')
@@ -989,17 +940,16 @@ def panel_dashboard(request):
     carga_labels = [item['usuario_asignado__nombre_completo'] or "Sin Asignar" for item in carga_data]
     carga_valores = [item['total'] for item in carga_data]
 
-    # 6. Tiempo Promedio de Resolución por Sistema (En Minutos - Corregido)
+    # 6. Tiempo Promedio de Resolución por Sistema (En Minutos)
     tiempo_data = (
         tickets_filtrados.filter(estado__es_estado_cierre=True, tiempo_atencion_minutos__isnull=False)
         .values('sistema__nombre')
         .annotate(promedio_minutos=Avg('tiempo_atencion_minutos'))
     )
     tiempo_labels = [item['sistema__nombre'] or "General" for item in tiempo_data]
-    # Redondeamos a enteros para que queden minutos limpios
     tiempo_valores = [int(item['promedio_minutos']) if item['promedio_minutos'] else 0 for item in tiempo_data]
 
-    # 7. Cumplimiento de SLA por Especialista (Usando tiempo_atencion_minutos)
+    # 7. Cumplimiento de SLA por Especialista
     sla_agentes_data = (
         tickets_filtrados.filter(estado__es_estado_cierre=True)
         .values('usuario_asignado__nombre_completo')
@@ -1011,7 +961,7 @@ def panel_dashboard(request):
     sla_agentes_labels = [item['usuario_asignado__nombre_completo'] or "Sin Asignar" for item in sla_agentes_data]
     sla_agentes_valores = [int((item['cumplidos'] / item['total_cerrados']) * 100) if item['total_cerrados'] > 0 else 100 for item in sla_agentes_data]
 
-    # 🎨 8. Impacto / Severidad por Sistema (Mapeo de etiquetas personalizadas apiladas)
+    # 8. Impacto / Severidad por Sistema
     impacto_data = (
         tickets_filtrados.values('sistema__nombre', 'impacto_proceso')
         .annotate(total=Count('id'))
@@ -1020,10 +970,9 @@ def panel_dashboard(request):
     
     sistemas_unicos = list(set([item['sistema__nombre'] or "General" for item in impacto_data]))
     
-    # Soporte semántico para tu catálogo dinámico
-    impacto_caido = {sist: 0 for sist in sistemas_unicos}       # Totalmente caído
-    impacto_parcial = {sist: 0 for sist in sistemas_unicos}     # Parcialmente funciona
-    impacto_funcional = {sist: 0 for sist in sistemas_unicos}   # Funcional
+    impacto_caido = {sist: 0 for sist in sistemas_unicos}
+    impacto_parcial = {sist: 0 for sist in sistemas_unicos}
+    impacto_funcional = {sist: 0 for sist in sistemas_unicos}
     
     for item in impacto_data:
         sist = item['sistema__nombre'] or "General"
@@ -1036,7 +985,6 @@ def panel_dashboard(request):
         else:
             impacto_funcional[sist] += item['total']
 
-    # 📦 ENVIAMOS ABSOLUTAMENTE TODO AL CONTEXTO (Solución al fallo de carga)
     context = {
         'total_tickets': total_tickets,
         'pendientes': pendientes,
@@ -1044,19 +992,13 @@ def panel_dashboard(request):
         'sla_porcentaje': sla_porcentaje,
         'fecha_inicio': fecha_inicio.strftime('%Y-%m-%d'),
         'fecha_fin': fecha_fin.strftime('%Y-%m-%d'),
-        
-        # Estructuras de las primeras 4 gráficas restauradas
         'tendencias_labels': tendencias_labels, 'tendencias_valores': tendencias_valores,
         'estados_labels': estados_labels, 'estados_valores': estados_valores,
-        'sistemas_labels': sistemas_labels, 'sistemas_valores': sistemas_valores,
+        'sistemas_labels': sistemas_labels, 'sistemas_valores': systems_valores,
         'prioridades_labels': prioridades_labels, 'prioridades_valores': prioridades_valores,
-        
-        # Estructuras de las nuevas gráficas de control restauradas
         'carga_labels': carga_labels, 'carga_valores': carga_valores,
         'tiempo_labels': tiempo_labels, 'tiempo_valores': tiempo_valores,
         'sla_agentes_labels': sla_agentes_labels, 'sla_agentes_valores': sla_agentes_valores,
-        
-        # Datos del indicador apilado por severidad
         'impacto_labels': sistemas_unicos,
         'impacto_caido': [impacto_caido[sist] for sist in sistemas_unicos],
         'impacto_parcial': [impacto_parcial[sist] for sist in sistemas_unicos],
@@ -1069,7 +1011,6 @@ def panel_dashboard(request):
     return render(request, 'tickets/panel_dashboard.html', context)
 
 
-
 @login_required
 def panel_ticket_create(request):
     """
@@ -1079,23 +1020,21 @@ def panel_ticket_create(request):
         titulo = request.POST.get("titulo")
         descripcion = request.POST.get("descripcion")
         sistema_id = request.POST.get("sistema")
-        modulo_id = request.POST.get("modulo")       # 🎯 Captura el módulo del formulario
-        categoria_id = request.POST.get("categoria") # 🎯 Captura la categoría del formulario
+        modulo_id = request.POST.get("modulo")
+        categoria_id = request.POST.get("categoria")
         prioridad_id = request.POST.get("prioridad")
         codigo_error = request.POST.get("codigo_error")
         medio_ingreso = request.POST.get("medio_ingreso", "portal")
 
-        # Buscamos o asignamos el primer estado por defecto (Ej. Abierto / Nuevo)
         primer_estado = Estado.objects.order_by('orden').first()
-        
         impacto_val = request.POST.get("impacto")
-        # Construimos el Ticket mapeando el usuario autenticado automáticamente
+        
         nuevo_ticket = Ticket.objects.create(
             titulo=titulo,
             descripcion=descripcion,
             sistema_id=sistema_id if sistema_id else None,
-            modulo_id=modulo_id if modulo_id else None,          # 🎯 Almacena el módulo
-            categoria_id=categoria_id if categoria_id else None,  # 🎯 Almacena la categoría
+            modulo_id=modulo_id if modulo_id else None,
+            categoria_id=categoria_id if categoria_id else None,
             prioridad_id=prioridad_id if prioridad_id else None,
             estado=primer_estado,
             codigo_error=codigo_error,
@@ -1103,18 +1042,14 @@ def panel_ticket_create(request):
             impacto_proceso=impacto_val,
             usuario_reporta=request.user
         )
-        
-        # Redirigimos directo a su detalle recién creado
         return redirect('panel_ticket_detail', pk=nuevo_ticket.id)
 
-    # GET: Cargar datos para llenar los Selectores
     context = {
         'sistemas': Sistema.objects.filter(activo=True),
-        'categorias': Categoria.objects.all().order_by('nombre'), # 🎯 Envía el catálogo al HTML
+        'categorias': Categoria.objects.all().order_by('nombre'),
         'prioridades': Prioridad.objects.all(),
     }
     return render(request, 'tickets/create.html', context)
-
 
 
 @login_required
@@ -1125,7 +1060,6 @@ def panel_ticket_detail(request, pk):
     ticket = get_object_or_404(Ticket, pk=pk)
     action = request.GET.get('action', '')
 
-    # 1. 🎛️ MANEJO DE PETICIONES GET
     if request.method == "GET":
         if action == "edit_info":
             return render(request, 'tickets/partials/edit_form.html', {
@@ -1133,10 +1067,8 @@ def panel_ticket_detail(request, pk):
                 'sistemas': Sistema.objects.filter(activo=True)
             })
         elif action == "view_info":
-            # 🎯 Cambiado: Retorna solo el fragmento de lectura
             return render(request, 'tickets/partials/view_info.html', {'ticket': ticket})
 
-    # 2. 💾 MANEJO DE PETICIONES POST
     if request.method == "POST":
         if action == "update_info":
             ticket.titulo = request.POST.get("titulo")
@@ -1144,10 +1076,8 @@ def panel_ticket_detail(request, pk):
             sistema_id = request.POST.get("sistema")
             ticket.sistema_id = sistema_id if sistema_id else None
             ticket.save()
-            # 🎯 Cambiado: Al guardar, regresa al modo lectura parcial de inmediato
             return render(request, 'tickets/partials/view_info.html', {'ticket': ticket})
 
-        # Si no trae action, procesamos los selectores automáticos de la barra lateral
         estado_id = request.POST.get("estado")
         usuario_asignado_id = request.POST.get("usuario_asignado")
         prioridad_id = request.POST.get("prioridad")
@@ -1162,19 +1092,16 @@ def panel_ticket_detail(request, pk):
         
         ticket.save()
 
-        # Si el POST vino de los selectores, refrescamos las notas del chatter de sistema
         if "estado" in request.POST or "usuario_asignado" in request.POST or "prioridad" in request.POST:
             notas = ChatterEntry.objects.filter(ticket=ticket).order_by('-fecha_creacion')
             return render(request, 'tickets/partials/chatter.html', {'notas': notas})
             
         return HttpResponse(status=204)
 
-    # 3. RENDERIZADO INICIAL COMPLETO (Primera carga de la página)
     context = {
         'ticket': ticket,
         'estados': Estado.objects.all().order_by('orden'),
         'prioridades': Prioridad.objects.all(),
-        # 🎯 CAMBIAMOS 'User' POR 'Usuario' AQUÍ:
         'tecnicos': Usuario.objects.filter(rol='tecnico') or Usuario.objects.filter(is_staff=True) or Usuario.objects.all(),
     }
     return render(request, 'tickets/detail.html', context)
@@ -1196,7 +1123,6 @@ def panel_conocimiento_lista(request):
             Q(solucion_aplicada__icontains=query)
         )
 
-    # Si la petición es disparada por HTMX (escribiendo en el input), regresamos solo el partial loop
     if request.headers.get('HX-Request'):
         return render(request, 'conocimiento/partials/soluciones_loop.html', {'soluciones': soluciones})
 
@@ -1211,11 +1137,9 @@ def panel_conocimiento_crear_desde_ticket(request, ticket_id):
     """
     ticket = get_object_or_404(Ticket, pk=ticket_id)
     
-    # Validamos que al menos exista una solución cargada antes de duplicar
     if not ticket.solucion_aplicada:
         return HttpResponse("El ticket debe poseer una solución explicada para guardarse.", status=400)
 
-    # Evitar duplicaciones del mismo ticket de origen
     existe = ConocimientoEntry.objects.filter(ticket_origen=ticket).exists()
     if not existe:
         ConocimientoEntry.objects.create(
@@ -1229,7 +1153,6 @@ def panel_conocimiento_crear_desde_ticket(request, ticket_id):
             ticket_origen=ticket
         )
     
-    # Retornamos una redirección HTTP del lado del cliente para HTMX
     response = HttpResponse(status=200)
     response['HX-Redirect'] = '/api/panel/conocimiento/'
     return response
@@ -1287,15 +1210,12 @@ def panel_config_categorias(request):
     return render(request, 'configuracion/partials/categorias.html', {'categorias': categorias})
 
 
-
-
 @login_required
 @require_http_methods(["POST"])
 def panel_config_sistema_eliminar(request, pk):
     """🗑️ Acción HTMX: Elimina un sistema si no tiene tickets vinculados"""
     sistema = get_object_or_404(Sistema, pk=pk)
     
-    # Validación estricta: verificar si está en uso
     if Ticket.objects.filter(sistema=sistema).exists() or Modulo.objects.filter(sistema=sistema).exists():
         response = HttpResponse('<script>alert("❌ No se puede eliminar: Este sistema tiene módulos o tickets vinculados.");</script>', status=200)
         return response
@@ -1357,18 +1277,14 @@ def panel_ticket_add_comentario(request, ticket_id):
     contenido = request.POST.get("contenido", "").strip()
     
     if contenido:
-        # Reemplaza 'NotaChatter' por el nombre exacto de tu modelo de bitácora/comentarios
         nueva_nota = NotaChatter.objects.create(
             ticket=ticket,
             usuario=request.user,
             contenido=contenido
         )
-        
-        # Le regresamos a HTMX únicamente la nueva nota usando el mismo partial loop
         return render(request, 'tickets/partials/chatter_loop.html', {'notas': [nueva_nota]})
         
     return HttpResponse(status=400)
-
 
 
 @login_required
@@ -1379,13 +1295,9 @@ def panel_usuarios_list(request):
     if request.user.rol != 'admin':
         return HttpResponse("No autorizado", status=403)
 
-    # 1. Capturamos el texto del buscador
     query = request.GET.get('q', '').strip()
-    
-    # 2. Obtenemos el QuerySet base
     usuarios = Usuario.objects.all().order_by('nombre_completo')
     
-    # 3. Si el usuario escribió algo, filtramos por múltiples campos institucionales
     if query:
         usuarios = usuarios.filter(
             Q(nombre_completo__icontains=query) |
@@ -1397,12 +1309,9 @@ def panel_usuarios_list(request):
 
     context = {'usuarios': usuarios}
 
-    # 🎯 CLAVE HTMX: Si la petición la hace el buscador en tiempo real, 
-    # solo renderizamos los puros renglones, no toda la página.
     if request.headers.get('HX-Request'):
         return render(request, 'usuarios/partials/usuarios_render_search.html', context)
 
-    # Si es una carga normal del navegador, renderiza la página completa
     return render(request, 'usuarios/lista.html', context)
 
 
@@ -1418,7 +1327,6 @@ def panel_usuario_cambiar_rol(request, user_id):
     
     if nuevo_rol in ['admin', 'tecnico', 'usuario']:
         usuario.rol = nuevo_rol
-        # Sincronizamos las banderas de Django si es administrador
         usuario.is_staff = True if nuevo_rol == 'admin' else False
         usuario.save()
         return HttpResponse(status=200)
@@ -1437,13 +1345,10 @@ def panel_usuario_toggle_activo(request, user_id):
     usuario.activo = not usuario.activo
     usuario.save()
 
-    # Devolvemos únicamente el fragmento del botón modificado con sus nuevos estilos
     if usuario.activo:
         return HttpResponse(f'<button hx-post="/api/panel/usuarios/{usuario.id}/toggle/" hx-headers=\'{{"X-CSRFToken": "{request.META.get("CSRF_COOKIE")}"}}\' hx-target="this" hx-swap="outerHTML" class="px-2.5 py-1 text-[10px] font-bold rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100">● Activo</button>')
     else:
         return HttpResponse(f'<button hx-post="/api/panel/usuarios/{usuario.id}/toggle/" hx-headers=\'{{"X-CSRFToken": "{request.META.get("CSRF_COOKIE")}"}}\' hx-target="this" hx-swap="outerHTML" class="px-2.5 py-1 text-[10px] font-bold rounded-full border bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100">○ Inactivo</button>')
-
-
 
 
 @login_required
@@ -1464,21 +1369,15 @@ def panel_usuario_editar(request, user_id):
         usuario.nivel_educativo = request.POST.get("nivel_educativo")
         usuario.region_zona = request.POST.get("region_zona")
         
-        # 🎭 Capturamos el nuevo rol asignado
         nuevo_rol = request.POST.get("rol", "usuario")
         usuario.rol = nuevo_rol
-        
-        # Sincronizamos los permisos internos de Django según el rol
         usuario.is_staff = True if nuevo_rol == 'admin' else False
         
-        # Capturamos el estado de actividad
         estado_val = request.POST.get("estado")
         usuario.activo = estado_val in ['True', True, 'Activo']
         usuario.is_active = usuario.activo 
         
         usuario.save()
-        
-        # Devolvemos la fila correspondiente para que HTMX la reemplace en vivo en la tabla
         return render(request, 'usuarios/partials/usuarios_row.html', {'usuario': usuario})
 
     return render(request, 'usuarios/partials/modal_editar.html', {'usuario': usuario})
@@ -1497,10 +1396,9 @@ def panel_usuario_importar_csv(request):
         if not csv_file or not csv_file.name.endswith('.csv'):
             return HttpResponse("Formato inválido. Sube un archivo .csv", status=400)
 
-        # Leer archivo de forma segura codificado en hilos de texto
         data_set = csv_file.read().decode('UTF-8')
         io_string = io.StringIO(data_set)
-        next(io_string) # Brincamos los encabezados del CSV
+        next(io_string)
 
         for row in csv.reader(io_string, delimiter=','):
             if len(row) < 2:
@@ -1515,7 +1413,6 @@ def panel_usuario_importar_csv(request):
             nivel = row[6].strip() if len(row) > 6 else None
 
             if correo and nombre:
-                # Si el usuario no existe, lo crea; si existe, actualiza sus campos de adscripción
                 usuario, creado = Usuario.objects.get_or_create(
                     correo_electronico=correo,
                     defaults={
@@ -1529,11 +1426,9 @@ def panel_usuario_importar_csv(request):
                     }
                 )
                 if creado:
-                    # Contraseña genérica por defecto (pueden cambiarla luego)
                     usuario.set_password(num_emp if num_emp else "Seech2026*")
                     usuario.save()
                 else:
-                    # Si ya existía, solo refrescamos la adscripción por si cambió de escuela o zona
                     usuario.numero_empleado = num_emp
                     usuario.puesto_cargo = puesto
                     usuario.cct = cct_val
@@ -1541,11 +1436,9 @@ def panel_usuario_importar_csv(request):
                     usuario.nivel_educativo = nivel
                     usuario.save()
 
-        # Al finalizar, HTMX recarga y refresca la lista completa de usuarios
         usuarios = Usuario.objects.all().order_by('-fecha_registro')
         return render(request, 'usuarios/partials/usuarios_row.html', {'usuarios': usuarios})
 
-    # GET: Devuelve el modal para seleccionar el archivo
     return render(request, 'usuarios/partials/modal_csv.html')
 
 
@@ -1565,12 +1458,10 @@ def panel_reportes_avanzados(request):
     impacto = request.GET.get('impacto')
     region = request.GET.get('region')
 
-    # QuerySet Base con relaciones optimizadas
     qs = Ticket.objects.select_related(
         'sistema', 'modulo', 'prioridad', 'estado', 'categoria', 'usuario_asignado'
     ).all()
 
-    # Aplicación consecutiva de filtros (Filtros cruzados)
     if fecha_inicio:
         qs = qs.filter(fecha_creacion__date__gte=fecha_inicio)
     if fecha_fin:
@@ -1590,7 +1481,6 @@ def panel_reportes_avanzados(request):
     if region:
         qs = qs.filter(usuario_reporta__region_zona__icontains=region)
 
-    # Datos parciales para las Gráficas del Reporte
     sistemas_data = qs.values('sistema__nombre').annotate(total=Count('id')).order_by('-total')
     sistemas_labels = [item['sistema__nombre'] or 'Sin Sistema' for item in sistemas_data]
     sistemas_valores = [item['total'] for item in sistemas_data]
@@ -1599,28 +1489,21 @@ def panel_reportes_avanzados(request):
     estados_labels = [item['estado__nombre'] or 'Sin Estado' for item in estados_data]
     estados_valores = [item['total'] for item in estados_data]
 
-    # Limitamos el listado inferior a los últimos 200 resultados filtrados por rendimiento
     tickets_filtrados = qs.order_by('-fecha_creacion')[:200]
 
-    # Contexto unificado
     context = {
         'tickets': tickets_filtrados,
         'total_filtrado': qs.count(),
-        
-        # Catálogos para llenar los selectores del formulario
         'estados': Estado.objects.all().order_by('orden'),
         'categorias': Categoria.objects.all().order_by('nombre'),
         'sistemas': Sistema.objects.filter(activo=True),
         'tecnicos': Usuario.objects.filter(rol='tecnico'),
-        
-        # Estructuras JSON seguras para Chart.js
         'sistemas_labels': json.dumps(sistemas_labels),
         'sistemas_valores': json.dumps(sistemas_valores),
         'estados_labels': json.dumps(estados_labels),
         'estados_valores': json.dumps(estados_valores),
     }
 
-    # Si la petición es por HTMX, refrescamos únicamente el bloque de resultados
     if request.headers.get('HX-Request'):
         return render(request, 'configuracion/partials/reportes_resultados.html', context)
 
@@ -1669,9 +1552,8 @@ def exportar_reporte_csv(request):
     response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
     response['Content-Disposition'] = f'attachment; filename="Reporte_BI_Avanzado_{timezone.now().strftime("%Y%m%d_%H%M")}.csv"'
 
-    writer = csv.writer(response, delimiter=';') # Delimitador punto y coma para compatibilidad nativa Excel Latam
+    writer = csv.writer(response, delimiter=';')
     
-    # 📝 Agregados los nuevos encabezados requeridos al layout
     writer.writerow([
         'Folio', 'Título', 'Sistema', 'Módulo', 'Categoría', 'Estado', 'Asignado A', 
         'Fecha Creación', 'Fecha Asignación', 'Fecha 1ra Respuesta', 'Fecha Resolución', 'Fecha Cierre',
@@ -1702,45 +1584,35 @@ def exportar_reporte_csv(request):
     return response
 
 
-
 @login_required
 def panel_conocimiento_detalle(request, pk):
     """
-    🖥️ VISTA INTERNA: Muestra el detalle de una solución documentada 
-    e incrementa de forma segura el contador de visitas.
+    🖥️ VISTA INTERNA: Muestra el detalle de una solución documentada e incrementa las visitas.
     """
-    # 1. Recuperamos la entrada optimizando los joins necesarios
     solucion = get_object_or_404(
         ConocimientoEntry.objects.select_related('sistema', 'modulo', 'ticket_origen'), 
         pk=pk
     )
-    
-    # 2. Incremento atómico directo en la base de datos para evitar colisiones
     ConocimientoEntry.objects.filter(pk=pk).update(veces_consultado=F('veces_consultado') + 1)
-    
-    # Refrescamos la instancia para mostrar el número de visitas real en el HTML
     solucion.refresh_from_db()
-
     return render(request, 'conocimiento/detalle.html', {'solucion': solucion})
-
 
 
 @login_required
 def panel_conocimiento_eliminar(request, pk):
     """
-    🗑️ CONTROLADOR: Elimina de forma segura un registro de la base de conocimiento.
+    🗑️ CONTROLADOR: Elimina un registro de la base de conocimiento.
     """
     if request.method == "POST":
         solucion = get_object_or_404(ConocimientoEntry, pk=pk)
         solucion.delete()
-    return redirect('panel_conocimiento_lista') # Redirige al listado limpio
-
+    return redirect('panel_conocimiento_lista')
 
 
 @login_required
 def panel_conocimiento_crear(request):
     """
-    💡 VISTA / MODAL HTMX: Renderiza el formulario de alta manual o procesa la inserción
+    💡 VISTA / MODAL HTMX: Formulario de alta manual de soluciones frecuentes
     """
     if request.method == "POST":
         titulo = request.POST.get("titulo")
@@ -1759,11 +1631,8 @@ def panel_conocimiento_crear(request):
                 codigo_error=codigo,
                 sistema_id=sistema_id if sistema_id else None
             )
-        
-        # Al guardar con éxito, HTMX refresca el listado completo redirigiendo o recargando
         return HttpResponse('<script>window.location.reload();</script>')
 
-    # GET: Retornamos el fragmento HTML del formulario técnico
     context = {
         'sistemas': Sistema.objects.filter(activo=True)
     }
@@ -1773,13 +1642,11 @@ def panel_conocimiento_crear(request):
 @login_required
 def panel_conocimiento_importar_csv(request):
     """
-    📥 IMPORTADOR INTELIGENTE: Detecta automáticamente si el archivo CSV 
-    tiene fila de cabecera y procesa los registros de inmediato.
+    📥 IMPORTADOR INTELIGENTE: Detecta el archivo CSV, delimitadores y cabeceras de forma automatizada.
     """
     if request.method == "POST":
         csv_file = request.FILES.get('file')
         if not csv_file:
-            print("🚨 ERROR: No se recibió ningún archivo.")
             return HttpResponse("No se subió ningún archivo.", status=400)
             
         if not csv_file.name.endswith('.csv'):
@@ -1801,32 +1668,23 @@ def panel_conocimiento_importar_csv(request):
 
         try:
             io_string = io.StringIO(data_set)
-            
-            # 1. Autodetección de delimitador
             primera_linea = io_string.readline()
             delimitador = ';' if ';' in primera_linea else ','
             
-            # 2. Verificar de forma inteligente si la primera línea es un encabezado o datos directos
             primera_linea_lower = primera_linea.lower()
             tiene_cabecera = any(palabra in primera_linea_lower for palabra in ['titulo', 'descrip', 'solucion', 'error', 'causa'])
             
-            # 3. Regresar el cursor al inicio para la lectura completa
             io_string.seek(0)
             reader = csv.reader(io_string, delimiter=delimitador)
             
-            # Si se autodetectó que es cabecera, nos la saltamos; si no, la procesamos como datos directos
             if tiene_cabecera:
                 next(reader)
-                print("💡 Encabezado técnico detectado y omitido.")
-            else:
-                print("💡 El archivo inicia directamente con datos, no se omitió ninguna fila.")
 
             filas_creadas = 0
-            for i, row in enumerate(reader, start=1 if not tiene_cabecera else 2):
+            for row in reader:
                 if not row or len(row) == 0:
                     continue
                 
-                # Extracción por posiciones con resguardo de seguridad
                 titulo_csv = row[0].strip() if len(row) > 0 else ""
                 desc_csv = row[1].strip() if len(row) > 1 else ""
                 sol_csv = row[2].strip() if len(row) > 2 else ""
@@ -1844,11 +1702,9 @@ def panel_conocimiento_importar_csv(request):
                     )
                     filas_creadas += 1
 
-            print(f"🚀 Módulo ejecutado: Se inyectaron {filas_creadas} soluciones a la base de datos.")
             return HttpResponse('<script>window.location.reload();</script>')
             
         except Exception as e:
-            print(f"🚨 ERROR CRÍTICO AL INYECTAR: {str(e)}")
             return HttpResponse(f"Error interno: {str(e)}", status=500)
 
     return render(request, 'conocimiento/partials/modal_csv.html')
@@ -1858,34 +1714,28 @@ def panel_conocimiento_importar_csv(request):
 @require_http_methods(["POST"])
 def panel_usuario_eliminar(request, user_id):
     """
-    🗑️ CONTROLADOR DE SEGURIDAD: Elimina permanentemente a un usuario del sistema.
-    Evita que el administrador en sesión se autoelimine.
+    🗑️ CONTROLADOR DE SEGURIDAD: Elimina permanentemente a un usuario evitando autoeliminación.
     """
     if request.user.rol != 'admin':
         return HttpResponse("No autorizado.", status=403)
 
     usuario_a_borrar = get_object_or_404(Usuario, pk=user_id)
 
-    # 🛡️ Protección crucial de integridad
     if usuario_a_borrar.id == request.user.id:
-        return HttpResponse('<script>alert("❌ Error: No puedes eliminar tu propia cuenta de administrador en sesión."); window.location.reload();</script>')
+        return HttpResponse('<script>alert("❌ Error: No puedes eliminar tu propia cuenta."); window.location.reload();</script>')
 
     usuario_a_borrar.delete()
-    print(f"🗑️ El administrador {request.user.correo_electronico} eliminó permanentemente la cuenta de {usuario_a_borrar.correo_electronico}")
-    
     return redirect('panel_usuarios_list')
 
 
 @login_required
 def panel_usuarios_exportar_excel(request):
     """
-    📊 EXPORTADOR: Genera un archivo CSV compatible con Excel con codificación
-    Windows-1252 para que las eñes y acentos institucionales se lean correctamente.
+    📊 EXPORTADOR: Genera un archivo CSV compatible con Excel (Windows-1252) con soporte de acentos.
     """
     if request.user.rol != 'admin':
         return HttpResponse("No autorizado", status=403)
 
-    # 1. Capturar el filtro actual por si quiere exportar solo lo que buscó
     query = request.GET.get('q', '').strip()
     usuarios = Usuario.objects.all().order_by('nombre_completo')
     
@@ -1898,32 +1748,14 @@ def panel_usuarios_exportar_excel(request):
             Q(cct__icontains=query)
         )
 
-    # 2. Configurar la respuesta HTTP para descarga de archivos Excel/CSV
     response = HttpResponse(content_type='text/csv; charset=windows-1252')
     response['Content-Disposition'] = 'attachment; filename="reporte_usuarios_seech.csv"'
 
-    # 3. Crear el escritor usando el delimitador nativo de Excel en Windows (punto y coma o coma)
-    # Usamos la codificación 'windows-1252' con 'replace' para evitar errores con caracteres raros
     writer = csv.writer(response, delimiter=';')
-    
-    # 4. Escribir las cabeceras del reporte
-    writer.writerow([
-        'Nombre Completo', 
-        'Correo Electronico', 
-        'Numero de Empleado', 
-        'Puesto / Cargo', 
-        'CCT', 
-        'Region / Zona', 
-        'Nivel Educativo',
-        'Rol de Acceso', 
-        'Estado'
-    ])
+    writer.writerow(['Nombre Completo', 'Correo Electronico', 'Numero de Empleado', 'Puesto / Cargo', 'CCT', 'Region / Zona', 'Nivel Educativo', 'Rol de Acceso', 'Estado'])
 
-    # 5. Volcar los datos de la base de datos de Railway al archivo
     for u in usuarios:
         estado_texto = 'Activo' if u.activo else 'Inactivo'
-        
-        # Codificamos explícitamente a windows-1252 ignorando pérdidas menores de formato
         writer.writerow([
             str(u.nombre_completo).encode('windows-1252', 'replace').decode('windows-1252'),
             str(u.correo_electronico).encode('windows-1252', 'replace').decode('windows-1252'),
@@ -1939,35 +1771,25 @@ def panel_usuarios_exportar_excel(request):
     return response
 
 
-
 def _tarea_enviar_correo_async(asunto, html_contenido, remitente, destino):
     """
-    🧵 HILO SECUNDARIO ULTRA-SEGURO: Envía el correo mediante la API HTTP de Resend (Puerto 443)
-    utilizando urllib nativo de Python para garantizar CERO errores de ModuleNotFoundError.
+    🧵 HILO ASÍNCRONO: Despacha notificaciones utilizando la API HTTP de Resend y urllib nativo.
     """
-    # 🎯 IMPORTS NATIVOS (Vienen incluidos por defecto en Python)
     import urllib.request
     import urllib.error
     import json
     from django.conf import settings
     
-    # Recuperamos la API Key de tus variables de Railway
     api_key = getattr(settings, 'EMAIL_HOST_PASSWORD', '') 
-    
     if not api_key or api_key.startswith('smtp'):
-        print("🚨 [API ERROR] Para enviar por HTTP necesitas poner tu API Key real de Resend (re_...) en EMAIL_HOST_PASSWORD")
         return
 
     url = "https://api.resend.com/emails"
-    
-    # Preparamos las cabeceras estándar
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
         "User-Agent": "Django-SEECH-Tickets/1.0"
     }
-    
-    # 🎯 PREPARAMOS EL CUERPO CON TU DOMINIO VERIFICADO
     payload = {
         "from": "Mesa de Ayuda SEECH <notificaciones@routripcreator.com>",
         "to": destino,
@@ -1976,51 +1798,30 @@ def _tarea_enviar_correo_async(asunto, html_contenido, remitente, destino):
     }
 
     try:
-        # Convertimos el diccionario a un string JSON codificado en bytes
         data_bytes = json.dumps(payload).encode('utf-8')
-        
-        # Estructuramos la petición HTTP Request nativa
         req = urllib.request.Request(url, data=data_bytes, headers=headers, method="POST")
-        
-        # Disparamos la petición por el puerto seguro web 443
         with urllib.request.urlopen(req, timeout=10) as response:
-            status_code = response.getcode()
-            response_body = response.read().decode('utf-8')
-            
-            if status_code in [200, 201]:
-                print(f"🚀 [API SUCCESS] Recordatorio entregado vía HTTP Nativo a: {destino}")
-            else:
-                print(f"🚨 [API REJECT] Resend respondió con código anómalo {status_code}: {response_body}")
-                
-    except urllib.error.HTTPError as e:
-        # Capturamos errores específicos devueltos por el servidor de Resend (ej: 401 Unauthorized)
-        print(f"🚨 [HTTP ERROR] Resend rechazó la solicitud (Status {e.code}): {e.read().decode('utf-8')}")
-    except Exception as e:
-        print(f"🚨 [NATIVE FATAL ERROR] Fallo crítico de conexión en urllib: {str(e)}")
-
-
+            pass
+    except Exception:
+        pass
 
 
 @login_required
 @require_http_methods(["POST"])
 def panel_ticket_enviar_recordatorio(request, ticket_id):
     """
-    🔔 ACCIÓN HTMX ASÍNCRONA: Registra la actividad de inmediato y delega 
-    el envío de correo a un hilo de fondo para evitar WORKER TIMEOUTS.
-    Soporta ejecuciones tanto desde el detalle como desde la vista de lista.
+    🔔 ALERTA ASÍNCRONA HTMX: Delega el envío masivo de correos al hilo secundario seguro.
     """
     ticket = get_object_or_404(Ticket, pk=ticket_id)
 
     if not ticket.usuario_asignado:
         return HttpResponse("El ticket no tiene un especialista asignado.", status=400)
-        
     if ticket.estado and ticket.estado.es_estado_cierre:
         return HttpResponse("No se puede enviar recordatorios a un ticket cerrado.", status=400)
 
     asunto = f"🚨 RECORDATORIO URGENTE: Ticket Pendiente [{ticket.folio}]"
     correo_destino = ticket.usuario_asignado.correo_electronico or ticket.usuario_asignado.email
 
-    # (Mantenemos tu plantilla institucional intacta)
     html_contenido = f"""
     <div style="font-family: sans-serif; max-width: 600px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
         <div style="background-color: #f59e0b; padding: 20px; color: #0f172a; font-weight: bold; font-size: 16px;">
@@ -2029,7 +1830,6 @@ def panel_ticket_enviar_recordatorio(request, ticket_id):
         <div style="padding: 20px; font-size: 13px; line-height: 1.6; color: #334155;">
             <p>Estimado/a <strong>{ticket.usuario_asignado.nombre_completo}</strong>,</p>
             <p>Este correo es para recordarle que tiene una incidencia bajo su cargo que permanece activa:</p>
-            
             <table style="width: 100%; border-collapse: collapse; margin: 15px 0; background-color: #f8fafc; border-radius: 6px;">
                 <tr><td style="padding: 8px; font-weight: bold; width: 120px;">Folio:</td><td style="padding: 8px; font-family: monospace;">{ticket.folio}</td></tr>
                 <tr><td style="padding: 8px; font-weight: bold;">Título:</td><td style="padding: 8px;">{ticket.titulo}</td></tr>
@@ -2046,23 +1846,20 @@ def panel_ticket_enviar_recordatorio(request, ticket_id):
     </div>
     """
 
-    # 1. 🎯 DISPARO ASÍNCRONO: Mandamos el correo a volar en su propio hilo de ejecución
     hilo_correo = threading.Thread(
         target=_tarea_enviar_correo_async,
         args=(asunto, html_contenido, settings.DEFAULT_FROM_EMAIL, correo_destino)
     )
-    hilo_correo.daemon = True # Permite que el contenedor lo limpie al terminar
+    hilo_correo.daemon = True
     hilo_correo.start()
 
-    # 2. Guardamos la actividad en el Chatter inmediatamente
     ChatterEntry.objects.create(
         ticket=ticket,
         tipo='sistema',
         autor=request.user,
-        contenido=f"🔔 Se solicitó un recordatorio urgente para el especialista {ticket.usuario_asignado.nombre_completo}. La alerta se despachó en segundo plano a la cola de correos."
+        contenido=f"🔔 Se solicitó un recordatorio urgente para el especialista {ticket.usuario_asignado.nombre_completo}."
     )
 
-    # 3. 🎯 RESPUESTA DINÁMICA: Si se invoca desde la lista de tickets, respondemos un botón deshabilitado
     if request.GET.get('from_list') == 'true':
         return HttpResponse("""
             <button class="px-2 py-1 text-xs font-medium rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 cursor-not-allowed" disabled>
@@ -2070,7 +1867,6 @@ def panel_ticket_enviar_recordatorio(request, ticket_id):
             </button>
         """)
 
-    # 4. Si viene del detalle del ticket, genera e inserta la línea de Chatter completa ordinaria
     notas = ChatterEntry.objects.filter(ticket=ticket).order_by('-fecha_creacion')
     html_output = ""
     for nota in notas:
@@ -2090,7 +1886,6 @@ def panel_ticket_enviar_recordatorio(request, ticket_id):
         </div>
         """
     return HttpResponse(html_output)
-
 
 
 @login_required
@@ -2114,11 +1909,9 @@ def panel_usuario_crear(request):
         if not correo or not nombre:
             return HttpResponse("El correo y el nombre son obligatorios.", status=400)
 
-        # Evitar duplicados por correo electrónico
         if Usuario.objects.filter(correo_electronico=correo).exists():
             return HttpResponse('<script>alert("❌ Error: Este correo ya se encuentra registrado.");</script>', status=200)
 
-        # Crear el registro en la base de datos de Railway
         nuevo_usuario = Usuario.objects.create(
             correo_electronico=correo,
             nombre_completo=nombre,
@@ -2132,13 +1925,10 @@ def panel_usuario_crear(request):
             is_staff=True if rol_val == 'admin' else False
         )
         
-        # Configurar contraseña inicial por defecto
         password_inicial = num_emp if num_emp else "Seech2026*"
         nuevo_usuario.set_password(password_inicial)
         nuevo_usuario.save()
 
-        # Provocamos que la página completa se refresque para pintar al nuevo integrante en orden
         return HttpResponse('<script>window.location.reload();</script>')
 
-    # GET: Devuelve el fragmento HTML para inyectar en el modal box
     return render(request, 'usuarios/partials/modal_crear.html')

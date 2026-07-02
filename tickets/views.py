@@ -103,49 +103,50 @@ def me_view(request):
 
 def _handle_state_change(ticket, old_estado, new_estado, user):
     now = timezone.now()
+    
+    # 1. ⏳ Si venía de un estado de pausa, cerramos el log de tiempo activo y acumulamos
     if old_estado and old_estado.pausa_sla:
         open_log = TicketTimeLog.objects.filter(ticket=ticket, fecha_fin__isnull=True).first()
         if open_log:
             open_log.fecha_fin = now
             open_log.save()
-            ticket.tiempo_pausa_minutos = sum(log.duracion_minutos for log in TicketTimeLog.objects.filter(ticket=ticket, duracion_minutos__isnull=False))
+            
+            # Recalculamos y actualizamos el acumulado total de pausas en el ticket
+            ticket.tiempo_pausa_minutos = sum(
+                log.duracion_minutos for log in TicketTimeLog.objects.filter(ticket=ticket, duracion_minutos__isnull=False)
+            )
+            # Guardamos de inmediato para asegurar que el valor esté fresco en memoria
             ticket.save(update_fields=['tiempo_pausa_minutos'])
+            
+    # 2. 🚀 Si entra a un nuevo estado que también pausa el SLA, abrimos un nuevo log
     if new_estado and new_estado.pausa_sla:
         TicketTimeLog.objects.create(ticket=ticket, estado_pausa=new_estado.nombre, fecha_inicio=now)
+        
+    # 3. 🏁 Si el nuevo estado es un estado de cierre, calculamos el tiempo NETO real
     if new_estado and new_estado.es_estado_cierre:
-        if not ticket.fecha_resolucion: ticket.fecha_resolucion = now
+        if not ticket.fecha_resolucion: 
+            ticket.fecha_resolucion = now
         ticket.fecha_cierre = now
-        if ticket.fecha_creacion: ticket.tiempo_atencion_minutos = int((now - ticket.fecha_creacion).total_seconds() / 60)
+        
+        if ticket.fecha_creacion:
+            # Calculamos el tiempo bruto transcurrido en minutos
+            tiempo_bruto_minutos = int((now - ticket.fecha_creacion).total_seconds() / 60)
+            # Recuperamos las pausas acumuladas recién actualizadas (evitamos None con or 0)
+            pausas = ticket.tiempo_pausa_minutos or 0
+            # Guardamos el tiempo neto exacto de operación (evitando números negativos)
+            ticket.tiempo_atencion_minutos = max(0, tiempo_bruto_minutos - pausas)
+            
         ticket.save(update_fields=['fecha_resolucion', 'fecha_cierre', 'tiempo_atencion_minutos'])
-    ChatterEntry.objects.create(ticket=ticket, tipo='cambio_estado', autor=user, estado_anterior=old_estado.nombre if old_estado else None, estado_nuevo=new_estado.nombre if new_estado else None, contenido=f"Estado cambiado a '{new_estado.nombre if new_estado else '—'}'")
-
-# ─────────────────────────────────────────────
-#  FUNCIÓN REUTILIZABLE DE LIMPIEZA DE FECHAS
-# ─────────────────────────────────────────────
-def _clean_view_date_string(date_str):
-    if not date_str:
-        return "2026-06-25T00:00:00Z"
-    if '-' in date_str and date_str.count('-') == 3:
-        date_str = date_str.rsplit('-', 1)[0]
-    elif '+' in date_str:
-        date_str = date_str.rsplit('+', 1)[0]
-    if date_str.endswith('Z'):
-        date_str = date_str[:-1]
-    return date_str + "Z"
-
-# ─────────────────────────────────────────────
-#  VIEWSETS
-# ─────────────────────────────────────────────
-
-class TicketViewSet(viewsets.ModelViewSet):
-    queryset = Ticket.objects.select_related('sistema', 'modulo', 'prioridad', 'estado', 'categoria', 'usuario_reporta', 'usuario_asignado').all()
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['estado', 'prioridad', 'categoria', 'sistema', 'modulo', 'usuario_asignado', 'usuario_reporta']
-    search_fields = ['folio', 'titulo', 'descripcion', 'codigo_error']
-    ordering_fields = ['fecha_creacion', 'prioridad__orden', 'estado__orden']
-    ordering = ['-fecha_creacion']
-    authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated]
+        
+    # 4. 📝 Registramos el movimiento en la bitácora (Chatter)
+    ChatterEntry.objects.create(
+        ticket=ticket, 
+        tipo='cambio_estado', 
+        autor=user, 
+        estado_anterior=old_estado.nombre if old_estado else None, 
+        estado_nuevo=new_estado.nombre if new_estado else None, 
+        contenido=f"Estado cambiado a '{new_estado.nombre if new_estado else '—'}'"
+    )
 
 
 

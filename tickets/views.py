@@ -1074,26 +1074,22 @@ def panel_dashboard(request):
 
     # Ordenamos el diccionario de agentes de mayor a menor cantidad de tickets resueltos
     # para que la gráfica muestre primero a los técnicos más activos
+    # SLA por Agente (Top 8 Desglosado y Ordenado)
     sla_agentes_ordenados = sorted(
         sla_agentes_dict.items(), 
         key=lambda item: item[1]['total_cerrados'], 
         reverse=True
     )
-
+    
+    sla_agentes_labels = []
+    sla_agentes_valores = []
+    
     for agente, info in sla_agentes_ordenados:
-        # Si prefieres omitir los acumulados que se resolvieron sin especialista asignado
-        # de la gráfica de técnicos, descomenta la siguiente línea:
-        # if agente == "Sin Asignar": continue
-
         sla_agentes_labels.append(agente)
         porcentaje_tecnico = int((info['cumplidos'] / info['total_cerrados']) * 100) if info['total_cerrados'] > 0 else 100
         sla_agentes_valores.append(porcentaje_tecnico)
 
-    # Limitamos a los top 8 técnicos para mantener la legibilidad de las barras en el frontend
-    sla_agentes_labels = sla_agentes_labels[:8]
-    sla_agentes_valores = sla_agentes_valores[:8]
-
-    # SLA por Sistema 
+    # SLA por Sistema (Completo y Sincronizado)
     sla_sistemas_labels = list(sla_sistemas_dict.keys())
     sla_sistemas_valores = [
         int((sla_sistemas_dict[sist]['cumplidos'] / sla_sistemas_dict[sist]['total_cerrados']) * 100)
@@ -1137,7 +1133,8 @@ def panel_dashboard(request):
         'prioridades_labels': prioridades_labels, 'prioridades_valores': prioridades_valores,
         'carga_labels': carga_labels, 'carga_valores': carga_valores,
         'tiempo_labels': tiempo_labels, 'tiempo_valores': tiempo_valores,
-        'sla_agentes_labels': sla_agentes_labels, 'sla_agentes_valores': sla_agentes_valores,
+        'sla_agentes_labels': sla_agentes_labels, 
+        'sla_agentes_valores': sla_agentes_valores,
         # 🎯 NUEVOS CAMPOS AÑADIDOS AQUÍ:
         'sla_sistemas_labels': sla_sistemas_labels,
         'sla_sistemas_valores': sla_sistemas_valores,

@@ -1554,7 +1554,6 @@ def panel_reportes_avanzados(request):
     📊 CENTRO DE REPORTES AVANZADOS: Filtrado dinámico multivariable, 
     gráficas en tiempo real y preparación de datos para exportación.
     """
-    # 1. Recuperamos los parámetros de filtrado desde el request
     fecha_inicio = request.GET.get('fecha_inicio')
     fecha_fin = request.GET.get('fecha_fin')
     estado_id = request.GET.get('estado')
@@ -1570,11 +1569,11 @@ def panel_reportes_avanzados(request):
         'sistema', 'modulo', 'prioridad', 'estado', 'categoria', 'usuario_asignado'
     ).all()
 
-    # 2. Aplicación consecutiva de filtros (Filtros cruzados)
+    # Aplicación consecutiva de filtros (Filtros cruzados)
     if fecha_inicio:
         qs = qs.filter(fecha_creacion__date__gte=fecha_inicio)
     if fecha_fin:
-        qs = qs.filter(fecha_creacion__date__lte=fecha_fin)  # 🎯 CAMBIADO de __gte a __lte
+        qs = qs.filter(fecha_creacion__date__lte=fecha_fin)
     if estado_id:
         qs = qs.filter(estado_id=estado_id)
     if asignado_id:
@@ -1590,7 +1589,7 @@ def panel_reportes_avanzados(request):
     if region:
         qs = qs.filter(usuario_reporta__region_zona__icontains=region)
 
-    # 3. Datos parciales para las Gráficas del Reporte
+    # Datos parciales para las Gráficas del Reporte
     sistemas_data = qs.values('sistema__nombre').annotate(total=Count('id')).order_by('-total')
     sistemas_labels = [item['sistema__nombre'] or 'Sin Sistema' for item in sistemas_data]
     sistemas_valores = [item['total'] for item in sistemas_data]
@@ -1620,7 +1619,7 @@ def panel_reportes_avanzados(request):
         'estados_valores': json.dumps(estados_valores),
     }
 
-    # Si la petición es por HTMX, refrescamos únicamente el bloque de resultados (gráficas + tabla)
+    # Si la petición es por HTMX, refrescamos únicamente el bloque de resultados
     if request.headers.get('HX-Request'):
         return render(request, 'configuracion/partials/reportes_resultados.html', context)
 
@@ -1631,9 +1630,8 @@ def panel_reportes_avanzados(request):
 def exportar_reporte_csv(request):
     """
     📥 EXPORTADOR AVANZADO: Genera y descarga un archivo CSV/Excel aplicando
-    exactamente los mismos filtros cruzados activos en la pantalla principal.
+    los mismos filtros y añadiendo los campos detallados de control de SLA / Tiempos.
     """
-    # 1. Recuperamos absolutamente todos los parámetros del request
     fecha_inicio = request.GET.get('fecha_inicio')
     fecha_fin = request.GET.get('fecha_fin')
     estado_id = request.GET.get('estado')
@@ -1644,12 +1642,10 @@ def exportar_reporte_csv(request):
     impacto = request.GET.get('impacto')
     region = request.GET.get('region')
 
-    # QuerySet Base con relaciones optimizadas
     qs = Ticket.objects.select_related(
         'sistema', 'modulo', 'estado', 'categoria', 'usuario_asignado', 'usuario_reporta'
-    ).all()
+    ).all().order_by('-fecha_creacion')
 
-    # 2. Aplicación exacta de la matriz de filtros cruzados
     if fecha_inicio:
         qs = qs.filter(fecha_creacion__date__gte=fecha_inicio)
     if fecha_fin:
@@ -1669,23 +1665,22 @@ def exportar_reporte_csv(request):
     if region:
         qs = qs.filter(usuario_reporta__region_zona__icontains=region)
 
-    # Ordenamos de más reciente a más antiguo
-    qs = qs.order_by('-fecha_creacion')
-
-    # 3. Construcción del archivo de descarga con codificación Excel para caracteres en español (ñ, acentos)
     response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
-    response['Content-Disposition'] = f'attachment; filename="Reporte_Tickets_Filtrado_{timezone.now().strftime("%Y%m%d_%H%M")}.csv"'
+    response['Content-Disposition'] = f'attachment; filename="Reporte_BI_Avanzado_{timezone.now().strftime("%Y%m%d_%H%M")}.csv"'
 
-    writer = csv.writer(response, delimiter=',')
+    writer = csv.writer(response, delimiter=';') # Delimitador punto y coma para compatibilidad nativa Excel Latam
     
-    # Encabezados del Reporte Corporativo
+    # 📝 Agregados los nuevos encabezados requeridos al layout
     writer.writerow([
-        'Folio', 'Título', 'Sistema', 'Módulo', 'Categoría', 
-        'Estado', 'Asignado A', 'Reporta', 'Región/Zona', 'Impacto', 'Fecha Creación'
+        'Folio', 'Título', 'Sistema', 'Módulo', 'Categoría', 'Estado', 'Asignado A', 
+        'Fecha Creación', 'Fecha Asignación', 'Fecha 1ra Respuesta', 'Fecha Resolución', 'Fecha Cierre',
+        'Tiempo Atención (Min)', 'Tiempo Pausa (Min)'
     ])
     
-    # Inyección de las filas que pasaron el filtro cruzado
     for tk in qs:
+        def _fmt_dt(dt):
+            return dt.strftime('%d/%m/%Y %H:%M') if dt else '—'
+
         writer.writerow([
             tk.folio, 
             tk.titulo, 
@@ -1693,11 +1688,14 @@ def exportar_reporte_csv(request):
             tk.modulo.nombre if tk.modulo else '—', 
             tk.categoria.nombre if tk.categoria else '—', 
             tk.estado.nombre if tk.estado else '—', 
-            tk.usuario_asignado.nombre_completo if tk.usuario_asignado else 'Sin Asignar', 
-            tk.usuario_reporta.nombre_completo if tk.usuario_reporta else '—', 
-            tk.usuario_reporta.region_zona if (tk.usuario_reporta and hasattr(tk.usuario_reporta, 'region_zona')) else '—',
-            tk.get_impacto_proceso_display() if tk.impacto_proceso else '—',
-            tk.fecha_creacion.strftime('%d/%m/%Y %H:%M')
+            tk.usuario_asignado.nombre_completo if tk.usuario_asignado else 'Sin Asignar',
+            _fmt_dt(tk.fecha_creacion),
+            _fmt_dt(tk.fecha_asignacion),
+            _fmt_dt(tk.fecha_primera_respuesta),
+            _fmt_dt(tk.fecha_resolucion),
+            _fmt_dt(tk.fecha_cierre),
+            tk.tiempo_atencion_minutos or 0,
+            tk.tiempo_pausa_minutos or 0
         ])
         
     return response

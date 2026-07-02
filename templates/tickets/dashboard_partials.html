@@ -54,7 +54,7 @@
         </div>
 
         <div class="bg-white dark:bg-darkPanel p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
-            <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-4">Criticidad y Prioridades</h3>
+            <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-4">Prioridad</h3>
             <div class="h-64"><canvas id="chartPrioridades"></canvas></div>
         </div>
 
@@ -143,14 +143,66 @@
                 }, options: chartDefaults
             });
 
-            // 4. Prioridades
-            limpiarYCrearChart('chartPrioridades', {
-                type: 'bar',
-                data: {
-                    labels: {{ prioridades_labels|safe|default:"[]" }},
-                    datasets: [{ label: 'Tickets', data: {{ prioridades_valores|safe|default:"[]" }}, backgroundColor: ['#EF4444', '#F59E0B', '#3B82F6', '#10B981'], borderRadius: 4 }]
-                }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: labelColor } } } }
-            });
+            // 🎨 4. Prioridades (Mapeo estricto: Crítica, Alta, Media, Baja)
+            (function() {
+                // Recuperamos lo que viene de Django
+                const labelsOriginales = {{ prioridades_labels|safe|default:"[]" }};
+                const valoresOriginales = {{ prioridades_valores|safe|default:"[]" }};
+                
+                // Mapeamos los datos para asegurar que se agrupen y pinten en el orden correcto
+                const mapeoPrioridades = {
+                    'CRÍTICA': { valor: 0, color: '#EF4444', label: 'Crítica' }, // Rojo
+                    'ALTA':    { valor: 0, color: '#F59E0B', label: 'Alta' },    // Naranja
+                    'MEDIA':   { valor: 0, color: '#EAB308', label: 'Media' },   // Amarillo (Amber/Yellow fuerte)
+                    'BAJA':    { valor: 0, color: '#3B82F6', label: 'Baja' }     // Azul
+                };
+
+                // Llenamos el mapa con los valores reales del periodo
+                labelsOriginales.forEach((label, index) => {
+                    const key = String(label).trim().toUpperCase();
+                    if (mapeoPrioridades[key]) {
+                        mapeoPrioridades[key].valor = valoresOriginales[index];
+                    }
+                });
+
+                // Orden definitivo para la gráfica de barras horizontales (Baja abajo, Crítica arriba)
+                const ordenVisual = ['BAJA', 'MEDIA', 'ALTA', 'CRÍTICA'];
+                
+                const labelsOrdenados = ordenVisual.map(key => mapeoPrioridades[key].label);
+                const datosOrdenados = ordenVisual.map(key => mapeoPrioridades[key].valor);
+                const coloresOrdenados = ordenVisual.map(key => mapeoPrioridades[key].color);
+
+                limpiarYCrearChart('chartPrioridades', {
+                    type: 'bar',
+                    data: {
+                        labels: labelsOrdenados,
+                        datasets: [{
+                            label: 'Tickets',
+                            data: datosOrdenados,
+                            backgroundColor: coloresOrdenados,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false } // Ocultamos la leyenda superior porque cada barra ya tiene su nombre a la izquierda
+                        },
+                        scales: {
+                            x: { 
+                                grid: { color: gridColor }, 
+                                ticks: { color: labelColor, stepSize: 1 } 
+                            },
+                            y: { 
+                                grid: { display: false }, 
+                                ticks: { color: labelColor, font: { family: 'Inter', weight: 'bold' } } 
+                            }
+                        }
+                    }
+                });
+            })();
 
             // ✨ 5. Gráfico de Carga de Especialistas
             limpiarYCrearChart('chartCarga', {

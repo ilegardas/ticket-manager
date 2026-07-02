@@ -994,7 +994,7 @@ def panel_dashboard(request):
         'fecha_fin': fecha_fin.strftime('%Y-%m-%d'),
         'tendencias_labels': tendencias_labels, 'tendencias_valores': tendencias_valores,
         'estados_labels': estados_labels, 'estados_valores': estados_valores,
-        'sistemas_labels': sistemas_labels, 'sistemas_valores': systems_valores,
+        'sistemas_labels': sistemas_labels, 'sistemas_valores': sistemas_valores,
         'prioridades_labels': prioridades_labels, 'prioridades_valores': prioridades_valores,
         'carga_labels': carga_labels, 'carga_valores': carga_valores,
         'tiempo_labels': tiempo_labels, 'tiempo_valores': tiempo_valores,

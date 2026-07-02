@@ -109,7 +109,7 @@
                 }
             }
 
-            // 1. Tendencias
+            // 1. Tendencias (Corregido: Base en 0 e incrementos enteros de 1 en 1)
             try {
                 limpiarYCrearChart('chartTendencias', {
                     type: 'line',
@@ -122,7 +122,26 @@
                             backgroundColor: 'rgba(59, 130, 246, 0.05)',
                             fill: true, tension: 0.3, borderWidth: 2
                         }]
-                    }, options: chartDefaults
+                    }, 
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { 
+                            legend: { labels: { color: labelColor, font: { family: 'Inter', size: 11 } } } 
+                        },
+                        scales: {
+                            x: { grid: { color: gridColor }, ticks: { color: labelColor, font: { family: 'Inter' } } },
+                            y: { 
+                                grid: { color: gridColor }, 
+                                min: 0,        // 📌 Establece el cero en el horizonte base
+                                ticks: { 
+                                    color: labelColor, 
+                                    font: { family: 'Inter' },
+                                    stepSize: 1 // 📌 Fuerza a que el siguiente nivel sea 1, luego 2, 3, etc.
+                                } 
+                            }
+                        }
+                    }
                 });
             } catch(e) { console.error("Error en gráfico 1:", e); }
 

@@ -43,5 +43,31 @@
             <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-100 dark:bg-darkBg text-slate-600 dark:text-slate-300 rounded-lg font-semibold">Cancelar</button>
             <button type="submit" class="px-4 py-2 bg-blue-600 dark:bg-amber-500 text-white dark:text-slate-950 rounded-lg font-bold">Documentar Solución</button>
         </div>
+
+        <!-- 🎥 NUEVA SECCIÓN: RECURSOS DIGITALES Y MULTIMEDIA -->
+        <div class="border-t border-slate-200 dark:border-slate-800 pt-3 space-y-3">
+            <h4 class="text-[11px] font-bold text-amber-500 uppercase tracking-wider">📦 Recursos Digitales y Soporte</h4>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1 text-[10px]">Enlace a Videotutorial (Loom / Drive / YT)</label>
+                    <input type="url" name="video_url" placeholder="https://loom.com/share/..."
+                           class="w-full text-xs p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-200 outline-none focus:ring-1 focus:ring-amber-500">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1 text-[10px]">Enlace a Manual o PDF Oficial</label>
+                    <input type="url" name="documento_url" placeholder="https://drive.google.com/..."
+                           class="w-full text-xs p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-200 outline-none focus:ring-1 focus:ring-amber-500">
+                </div>
+            </div>
+            
+            <div>
+                <label class="block font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1 text-[10px]">Palabras Clave / Tags de Búsqueda</label>
+                <input type="text" name="palabras_clave" placeholder="ej. borrar, carpetas, permisos, windows"
+                       class="w-full text-xs p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-200 outline-none focus:ring-1 focus:ring-amber-500">
+            </div>
+        </div>
+
+        
     </form>
 </div>

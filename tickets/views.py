@@ -2231,3 +2231,33 @@ def panel_conocimiento_crear_desde_ticket(request, ticket_id):
         'sistemas': Sistema.objects.filter(activo=True)
     }
     return render(request, 'conocimiento/partials/modal_convertir.html', context)
+
+@login_required
+def panel_conocimiento_editar(request, entrada_id):
+    """
+    ✏️ MODAL / CONTROLADOR HTMX: Carga y procesa la edición integral de 
+    una entrada existente de conocimiento, incluyendo soporte multimedia.
+    """
+    solucion = get_object_or_404(ConocimientoEntry, pk=entrada_id)
+    
+    if request.method == "POST":
+        solucion.titulo = request.POST.get("titulo")
+        solucion.descripcion_problema = request.POST.get("descripcion_problema")
+        solucion.solucion_aplicada = request.POST.get("solucion_aplicada")
+        solucion.causa_raiz = request.POST.get("causa_raiz")
+        solucion.codigo_error = request.POST.get("codigo_error")
+        solucion.sistema_id = request.POST.get("sistema") or None
+        
+        # Actualización de nuevos campos multimedia
+        solucion.video_url = request.POST.get("video_url") or None
+        solucion.documento_url = request.POST.get("documento_url") or None
+        solucion.palabras_clave = request.POST.get("palabras_clave") or None
+        
+        solucion.save()
+        return HttpResponse('<script>window.location.reload();</script>')
+        
+    context = {
+        'solucion': solucion,
+        'sistemas': Sistema.objects.filter(activo=True)
+    }
+    return render(request, 'conocimiento/partials/modal_editar.html', context)

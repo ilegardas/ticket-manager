@@ -4,23 +4,26 @@
 
 {% block content %}
 <div class="max-w-4xl mx-auto space-y-6">
-    <div class="flex items-center gap-2 no-print">
-        <!-- ✏️ BOTÓN DE EDICIÓN MEJORADO (Se quitó el onclick que fallaba) -->
-        <button hx-get="{% url 'panel_conocimiento_editar' solucion.id %}" 
-                hx-target="#modal-conocimiento-container" 
-                hx-swap="innerHTML"
-                class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs py-1.5 px-3 rounded-lg shadow-sm transition">
-            ✏️ Editar Información
-        </button>
-    
-        <button onclick="window.print()" class="bg-slate-100 hover:bg-slate-200 dark:bg-darkPanel dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border dark:border-slate-700 font-bold text-xs py-1.5 px-3 rounded-lg shadow-sm transition">
-            🖨️ Imprimir Solución
-        </button>
+    <!-- Barra Superior de Navegación y Acciones -->
+    <div class="flex items-center justify-between no-print">
+        <a href="{% url 'panel_conocimiento_lista' %}" class="inline-flex items-center text-xs font-semibold text-slate-500 dark:text-darkTextSub hover:text-slate-900 dark:hover:text-amber-400 transition">
+            ← Volver a la base de conocimiento
+        </a>
+        <div class="flex items-center gap-2">
+            <!-- ✏️ Botón Disparador de Edición con HTMX sin conflictos -->
+            <button hx-get="{% url 'panel_conocimiento_editar' solucion.id %}" 
+                    hx-target="#modal-conocimiento-container" 
+                    hx-swap="innerHTML"
+                    class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs py-1.5 px-3 rounded-lg shadow-sm transition">
+                ✏️ Editar Información
+            </button>
+            <button onclick="window.print()" class="bg-slate-100 hover:bg-slate-200 dark:bg-darkPanel dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border dark:border-slate-700 font-bold text-xs py-1.5 px-3 rounded-lg shadow-sm transition">
+                🖨️ Imprimir Solución
+            </button>
+        </div>
     </div>
 
-<!-- 📦 CONTENEDOR LOCAL PARA EL MODAL (Garantiza que el ID sí exista en la página) -->
-<div id="modal-conocimiento-container"></div>
-
+    <!-- Encabezado Principal -->
     <div class="border-b border-slate-200 dark:border-slate-800 pb-5">
         <div class="flex items-center gap-2 mb-2">
             <span class="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-cyan-400">
@@ -50,9 +53,10 @@
         </div>
     </div>
 
+    <!-- Rejilla Principal de Información -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        <!-- Columna Izquierda: Contenido Médico / Técnico -->
+        <!-- 💻 COLUMNA IZQUIERDA: Bloques de Diagnóstico y Reparación -->
         <div class="lg:col-span-2 space-y-6">
             
             <div class="bg-white dark:bg-darkPanel rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 space-y-3">
@@ -76,21 +80,21 @@
                 </div>
             </div>
 
-           <!-- 🏷️ Etiquetas / Palabras clave en la base -->
+            <!-- 🏷️ NUEVO: Sección de Palabras Clave / Indexación -->
             {% if solucion.palabras_clave %}
-                <div class="pt-2 no-print">
-                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">🏷️ Términos e Indexación</span>
-                    <div class="flex flex-wrap gap-1.5">
-                        <span class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded text-[11px] font-medium font-mono border dark:border-slate-700/50">
-                            {{ solucion.palabras_clave }}
-                        </span>
-                    </div>
+            <div class="pt-2 no-print">
+                <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-2">🏷️ Términos de Indexación</span>
+                <div class="flex flex-wrap gap-1.5">
+                    <span class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-md text-xs font-medium font-mono border dark:border-slate-700/60 shadow-sm">
+                        {{ solucion.palabras_clave }}
+                    </span>
                 </div>
+            </div>
             {% endif %}
 
         </div>
 
-        <!-- Columna Derecha: Metadatos y Recursos de Apoyo Multimedia -->
+        <!-- 📊 COLUMNA DERECHA: Metadatos y Recursos de Soporte Digital -->
         <div class="space-y-6">
             
             <!-- Tarjeta 1: Metadatos -->
@@ -112,7 +116,7 @@
                 </div>
             </div>
 
-            <!-- 🎯 Tarjeta 2: NUEVO PANEL DE MATERIAL MULTIMEDIA DE INDUCCIÓN -->
+            <!-- 🎯 Tarjeta 2: NUEVOS CAMPOS MULTIMEDIA DE APOYO -->
             {% if solucion.video_url or solucion.documento_url %}
             <div class="bg-white dark:bg-darkPanel rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-5 space-y-3 text-xs no-print">
                 <h4 class="font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">Material de Apoyo Visual</h4>
@@ -126,7 +130,7 @@
                         </div>
                         <div class="overflow-hidden">
                             <h5 class="font-bold text-slate-800 dark:text-slate-200 group-hover:text-amber-500 transition truncate">Ver Videotutorial</h5>
-                            <p class="text-[10px] text-slate-400 truncate">Procedimiento interactivo</p>
+                            <p class="text-[10px] text-slate-400 truncate">Procedimiento en pantalla</p>
                         </div>
                     </a>
                     {% endif %}
@@ -139,7 +143,7 @@
                         </div>
                         <div class="overflow-hidden">
                             <h5 class="font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-400 transition truncate">Manual de Referencia</h5>
-                            <p class="text-[10px] text-slate-400 truncate">Documentación oficial</p>
+                            <p class="text-[10px] text-slate-400 truncate">Documentación o PDF oficial</p>
                         </div>
                     </a>
                     {% endif %}
@@ -151,6 +155,9 @@
 
     </div>
 </div>
+
+<!-- 📦 Contenedor Dinámico para renderizar el modal flotante de edición -->
+<div id="modal-conocimiento-container" class="no-print"></div>
 
 <style>
     @media print {

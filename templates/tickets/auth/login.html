@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-[#0f1319]">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión - Ticket Manager</title>
+    <!-- Importamos Tailwind CSS desde CDN para garantizar que los estilos levanten de inmediato -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="h-full flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-[#181d26] border border-slate-800 rounded-2xl shadow-2xl overflow-hidden p-6 space-y-6">
+        
+        <!-- Encabezado / Logo institucional -->
+        <div class="text-center space-y-1.5">
+            <div class="text-3xl justify-center flex">🎫</div>
+            <h1 class="text-xl font-bold text-amber-400 tracking-tight">SOLES Ticket Manager</h1>
+            <p class="text-xs text-slate-400">Repositorio técnico e infraestructura de TI</p>
+        </div>
+
+        <!-- Alerta de Errores (Si las credenciales fallan) -->
+        {% if error %}
+        <div class="p-3 bg-red-950/40 border border-red-900/50 text-red-400 rounded-lg text-xs font-medium text-center">
+            ⚠️ {{ error }}
+        </div>
+        {% endif %}
+
+        <!-- Formulario de Acceso Estándar -->
+        <form method="POST" action="{% url 'login' %}" class="space-y-4 text-xs">
+            {% csrf_token %}
+            
+            <div>
+                <label for="username" class="block font-bold text-slate-400 uppercase mb-1 tracking-wider">Usuario / Cuenta</label>
+                <input type="text" id="username" name="username" required autofocus placeholder="ej. ivan.legarda"
+                       class="w-full p-3 border border-slate-700 rounded-xl bg-[#0f1319] text-slate-100 placeholder-slate-600 outline-none focus:ring-1 focus:ring-amber-500 transition text-sm">
+            </div>
+
+            <div>
+                <label for="password" class="block font-bold text-slate-400 uppercase mb-1 tracking-wider">Contraseña</label>
+                <input type="password" id="password" name="password" required placeholder="••••••••"
+                       class="w-full p-3 border border-slate-700 rounded-xl bg-[#0f1319] text-slate-100 placeholder-slate-600 outline-none focus:ring-1 focus:ring-amber-500 transition text-sm">
+            </div>
+
+            <div class="pt-2">
+                <button type="submit" 
+                        class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-sm py-3 px-4 rounded-xl shadow-lg transition duration-150 transform active:scale-[0.99]">
+                    Ingresar al Sistema
+                </button>
+            </div>
+        </form>
+
+        <!-- Pie de página informativo -->
+        <div class="text-center border-t border-slate-800/60 pt-4">
+            <span class="text-[10px] text-slate-500 font-mono">Control de Soporte Interno &copy; 2026</span>
+        </div>
+    </div>
+</body>
+</html>

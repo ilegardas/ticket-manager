@@ -172,7 +172,7 @@
 
 <div id="modal-conocimiento-container" class="no-print"></div>
 
-<!-- 🎬 SCRIPT INTELIGENTE DE DETECCIÓN Y CONVERSIÓN EMBED -->
+<!-- 🎬 SCRIPT BLINDADO DE DETECCIÓN Y CONVERSIÓN EMBED -->
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         const urlVideo = "{{ solucion.video_url }}";
@@ -187,17 +187,23 @@
         }
     });
 
+    function obtenerYouTubeId(url) {
+        // Regex robusto para capturar el ID de YouTube en cualquier variante (v=, shorts/, youtu.be/, embed/)
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|shorts\/)([^#\&\?]*).*/;
+        const match = url.match(regExp);
+        return (match && match[2].length === 11) ? match[2] : null;
+    }
+
     function interceptarVideo(event, url) {
         let embedUrl = "";
         
-        // 1. Convertir links ordinarios de YouTube a URL de Embed compatible
-        if (url.includes("youtube.com/watch")) {
-            const urlParams = new URLSearchParams(new URL(url).search);
-            const videoId = urlParams.get('v');
-            if (videoId) embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
-        } else if (url.includes("youtu.be/")) {
-            const videoId = url.split("youtu.be/")[1]?.split("?")[0];
-            if (videoId) embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+        // 1. Procesamiento blindado para YouTube
+        if (url.includes("youtube.com") || url.includes("youtu.be")) {
+            const videoId = obtenerYouTubeId(url);
+            if (videoId) {
+                // Añadimos rel=0 para evitar videos sugeridos ajenos y habilitamos JavaScript API
+                embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&enablejsapi=1`;
+            }
         }
         // 2. Convertir links de Drive compartidos (/view) a URL de Embed (/preview)
         else if (url.includes("drive.google.com/file/d/")) {

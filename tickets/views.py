@@ -1520,16 +1520,64 @@ def ajax_cargar_modulos(request):
 def panel_ticket_add_comentario(request, ticket_id):
     """
     ⚡ ACCIÓN HTMX: Inserta un nuevo comentario en el chatter en tiempo real
+    y notifica por correo al usuario, al asignado y a la lista de seguimiento.
     """
     ticket = get_object_or_404(Ticket, pk=ticket_id)
     contenido = request.POST.get("contenido", "").strip()
     
     if contenido:
+        # 1. Persistencia del nuevo comentario en el chatter
         nueva_nota = NotaChatter.objects.create(
             ticket=ticket,
             usuario=request.user,
             contenido=contenido
         )
+        
+        # 🚀 LÓGICA DE NOTIFICACIÓN POR CORREO
+        lista_correos = []
+
+        # Correo del creador o usuario del ticket
+        if ticket.usuario and hasattr(ticket.usuario, 'correo_electronico') and ticket.usuario.correo_electronico:
+            lista_correos.append(ticket.usuario.correo_electronico)
+            
+        # Correo del especialista asignado
+        if ticket.asignado_a and hasattr(ticket.asignado_a, 'correo_electronico') and ticket.asignado_a.correo_electronico:
+            lista_correos.append(ticket.asignado_a.correo_electronico)
+
+        # Correos adicionales desde el nuevo campo de seguimiento
+        if ticket.correos_seguimiento:
+            # Limpiamos espacios y separamos por comas de forma segura
+            adicionales = [c.strip() for c in ticket.correos_seguimiento.split(',') if c.strip()]
+            lista_correos.extend(adicionales)
+
+        # Eliminamos correos duplicados por si acaso
+        lista_correos = list(set(lista_correos))
+
+        # Disparamos el correo si hay destinatarios válidos
+        if lista_correos:
+            folio_ticket = getattr(ticket, 'folio', ticket.id)
+            titulo_ticket = getattr(ticket, 'titulo', 'Soporte Técnico')
+            nombre_remitente = getattr(request.user, 'nombre_completo', request.user.username)
+            
+            asunto = f"🔔 Actualización en Ticket #{folio_ticket} - {titulo_ticket}"
+            mensaje_texto = (
+                f"El usuario {nombre_remitente} ha agregado una nueva actualización al Historial de Notas:\n\n"
+                f"\"{contenido}\"\n\n"
+                f"Puedes revisar el estatus completo y dar seguimiento desde la plataforma institucional."
+            )
+            
+            try:
+                send_mail(
+                    subject=asunto,
+                    message=mensaje_texto,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=lista_correos,
+                    fail_silently=True  # Evita que tire un error 500 en la app si falla el servidor SMTP
+                )
+            except Exception:
+                pass  # Manejo silencioso para no interrumpir la experiencia web del usuario
+
+        # 2. Respuesta ágil para que HTMX actualice el feed visual del chatter
         return render(request, 'tickets/partials/chatter_loop.html', {'notas': [nueva_nota]})
         
     return HttpResponse(status=400)

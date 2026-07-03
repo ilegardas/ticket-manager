@@ -123,15 +123,18 @@
                         </select>
                     </div>
 
-                    <div class="space-y-1">
+                    <div class="space-y-1" id="contenedor-seguimiento">
                         <label class="block font-bold text-slate-400 uppercase tracking-wider text-[11px]">Correos de Seguimiento CC:</label>
+                        
+                        
+                        {% csrf_token %}
                         <input type="text" 
                                name="correos_seguimiento" 
                                value="{{ ticket.correos_seguimiento|default:'' }}"
                                placeholder="ejemplo1@soles.com, ejemplo2@seech.gob.mx"
                                hx-post="{% url 'compat_update_ticket' %}"
                                hx-trigger="change"
-                               hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' 
+                               hx-include="#contenedor-seguimiento [name='csrfmiddlewaretoken']" 
                                class="w-full p-2 border border-slate-700 rounded-lg bg-[#0f1319] text-slate-200 outline-none focus:ring-1 focus:ring-amber-500 text-xs">
                         
                         <input type="hidden" name="ticket_id" value="{{ ticket.id }}">

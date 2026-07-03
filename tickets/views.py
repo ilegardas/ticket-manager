@@ -938,7 +938,7 @@ def panel_ticket_chatter(request, pk):
                 
                 folio_ticket = getattr(ticket, 'folio', ticket.id)
                 titulo_ticket = getattr(ticket, 'titulo', 'Soporte Técnico')
-                nombre_remitente = getattr(request.user, 'nombre_completo', request.user.username)
+                nombre_remitente = getattr(request.user, 'nombre_completo', None) or getattr(request.user, 'correo_electronico', 'Soporte')
                 
                 asunto = f"🔔 Actualización en Ticket #{folio_ticket} - {titulo_ticket}"
                 mensaje_texto = (

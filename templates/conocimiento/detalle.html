@@ -5,10 +5,10 @@
 {% block content %}
 <div class="max-w-4xl mx-auto space-y-6">
     <div class="flex items-center gap-2 no-print">
-        <!-- ✏️ BOTÓN DISPARADOR DE EDICIÓN CON HTMX -->
+        <!-- ✏️ BOTÓN DE EDICIÓN MEJORADO (Se quitó el onclick que fallaba) -->
         <button hx-get="{% url 'panel_conocimiento_editar' solucion.id %}" 
-                hx-target="#global-modal-content" 
-                onclick="abrirModal()"
+                hx-target="#modal-conocimiento-container" 
+                hx-swap="innerHTML"
                 class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs py-1.5 px-3 rounded-lg shadow-sm transition">
             ✏️ Editar Información
         </button>
@@ -17,6 +17,9 @@
             🖨️ Imprimir Solución
         </button>
     </div>
+
+<!-- 📦 CONTENEDOR LOCAL PARA EL MODAL (Garantiza que el ID sí exista en la página) -->
+<div id="modal-conocimiento-container"></div>
 
     <div class="border-b border-slate-200 dark:border-slate-800 pb-5">
         <div class="flex items-center gap-2 mb-2">

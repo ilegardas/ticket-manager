@@ -91,7 +91,6 @@ urlpatterns = [
     path('ajax/cargar-modulos/', views.ajax_cargar_modulos, name='ajax_cargar_modulos'),
 
     
-    # 🔌 6. ENTRADA DE ROUTER HÍBRIDA (CORREGIDA SIN EL COMODÍN DOLLAR PARA EVITAR EL WARNING W001)
-    re_path(r'^(?P<url>.*)/', include(router.urls)),
-    path('', include(router.urls)),
+    # 🚀 SOLUCIÓN: El router se monta con un prefijo o se incluye limpiamente sin duplicados
+    path('api-root/', include(router.urls)),
 ]

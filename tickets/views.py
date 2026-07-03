@@ -1,5 +1,4 @@
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required, get_user_model, logout as django_logout
 import threading
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.decorators.http import require_http_methods

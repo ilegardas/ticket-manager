@@ -80,10 +80,10 @@ def login_view(request):
         
         if 'application/json' in request.META.get('HTTP_ACCEPT', ''):
             return JsonResponse({'error': 'Credenciales inválidas'}, status=400)
-        return render(request, 'auth/login.html', {'error': 'Credenciales inválidas'})
+        return render(request, 'tickets/auth/login.html', {'error': 'Credenciales inválidas'})
 
     # 🚀 Si entran desde el navegador (GET), pintamos la ventana de Login interactiva
-    return render(request, 'auth/login.html')
+    return render(request, 'tickets/auth/login.html')
 
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])

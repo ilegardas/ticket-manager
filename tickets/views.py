@@ -4,7 +4,7 @@ import threading
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.decorators.http import require_http_methods
 from django.http import HttpResponse
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, login as auth_login
 from django.utils import timezone
 from django.db.models import Count, Q, Avg, F, ExpressionWrapper, DurationField
 from django.conf import settings

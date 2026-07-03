@@ -160,11 +160,12 @@
         </div>
         <div class="relative pb-[56.25%] h-0 bg-black">
             <iframe id="video-lightbox-iframe" 
-                    class="absolute top-0 left-0 w-full h-full" 
-                    src="" 
-                    frameborder="0" 
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                    allowfullscreen>
+                class="absolute top-0 left-0 w-full h-full" 
+                src="" 
+                frameborder="0" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+                allowfullscreen
+                referrerpolicy="strict-origin-when-cross-origin">
             </iframe>
         </div>
     </div>
@@ -195,29 +196,29 @@
     }
 
     function interceptarVideo(event, url) {
-        let embedUrl = "";
-        
-        // 1. Procesamiento blindado para YouTube
-        if (url.includes("youtube.com") || url.includes("youtu.be")) {
-            const videoId = obtenerYouTubeId(url);
-            if (videoId) {
-                // Añadimos rel=0 para evitar videos sugeridos ajenos y habilitamos JavaScript API
-                embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&enablejsapi=1`;
-            }
-        }
-        // 2. Convertir links de Drive compartidos (/view) a URL de Embed (/preview)
-        else if (url.includes("drive.google.com/file/d/")) {
-            const fileId = url.split("/file/d/")[1]?.split("/")[0];
-            if (fileId) embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
-        }
-
-        // Si se mapeó un Embed compatible, abrimos la ventana emergente local
-        if (embedUrl) {
-            event.preventDefault();
-            document.getElementById("video-lightbox-iframe").src = embedUrl;
-            document.getElementById("video-lightbox-modal").classList.remove("hidden");
+    let embedUrl = "";
+    
+    // 1. Procesamiento ultra-limpio para YouTube
+    if (url.includes("youtube.com") || url.includes("youtu.be")) {
+        const videoId = obtenerYouTubeId(url);
+        if (videoId) {
+            // Mandamos el embed más básico posible para saltar bloqueos de origen
+            embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
         }
     }
+    // 2. Procesamiento para Google Drive
+    else if (url.includes("drive.google.com/file/d/")) {
+        const fileId = url.split("/file/d/")[1]?.split("/")[0];
+        if (fileId) embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+    }
+
+    if (embedUrl) {
+        event.preventDefault();
+        document.getElementById("video-lightbox-iframe").src = embedUrl;
+        document.getElementById("video-lightbox-modal").classList.remove("hidden");
+    }
+}
+    
 
     function cerrarLightboxVideo() {
         document.getElementById("video-lightbox-modal").classList.add("hidden");

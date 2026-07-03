@@ -89,7 +89,7 @@
                 <div class="truncate max-w-[140px]">
                     <p class="font-semibold text-slate-200 dark:text-white truncate">{{ request.user.nombre_completo|default:request.user.correo_electronico }}</p>
                 </div>
-                <a href="/admin/logout/" class="hover:text-red-400 dark:text-darkTextSub dark:hover:text-red-400 font-medium transition">Salir</a>
+                <a href="{% url 'logout' %}" class="hover:text-red-400 dark:text-red-500 font-semibold transition">Salir</a>
             </div>
         </div>
     </aside>

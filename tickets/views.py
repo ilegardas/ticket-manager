@@ -63,26 +63,27 @@ class TokenAuthentication(BaseAuthentication):
 #  AUTH
 # ─────────────────────────────────────────────
 
-@api_view(['POST'])
-@authentication_classes([])  
+@api_view(['GET', 'POST']) # 🎯 Permitimos GET para pintar el formulario HTML
 @permission_classes([AllowAny])
 def login_view(request):
-    payload = request.data.get('data') if 'data' in request.data else request.data
-    if payload is None: payload = {}
-    correo = payload.get('correo_electronico') or payload.get('email') or payload.get('username')
-    password = payload.get('password')
-    if not correo or not password:
-        return Response({'detail': 'Faltan credenciales.'}, status=status.HTTP_400_BAD_REQUEST)
-    try:
-        user = Usuario.objects.get(correo_electronico=correo)
-        if not user.check_password(password):
-            return Response({'detail': 'Credenciales inválidas.'}, status=status.HTTP_401_UNAUTHORIZED)
-    except Usuario.DoesNotExist:
-        return Response({'detail': 'Credenciales inválidas.'}, status=status.HTTP_401_UNAUTHORIZED)
-    if not user.activo:
-        return Response({'detail': 'Usuario inactivo.'}, status=status.HTTP_403_FORBIDDEN)
-    token, _ = Token.objects.get_or_create(usuario=user)
-    return Response({'id': user.id, 'correo_electronico': user.correo_electronico, 'nombre_completo': user.nombre_completo, 'rol': user.rol, 'token': token.key})
+    if request.method == 'POST':
+        # Tu lógica actual de procesamiento de autenticación para la API / JSON
+        username = request.data.get('username') or request.POST.get('username')
+        password = request.data.get('password') or request.POST.get('password')
+        
+        user = authenticate(username=username, password=password)
+        if user is not None:
+            login(request, user)
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in request.META.get('HTTP_ACCEPT', ''):
+                return JsonResponse({'success': True, 'redirect': '/api/panel/dashboard/'})
+            return redirect('panel_dashboard')
+        
+        if 'application/json' in request.META.get('HTTP_ACCEPT', ''):
+            return JsonResponse({'error': 'Credenciales inválidas'}, status=400)
+        return render(request, 'auth/login.html', {'error': 'Credenciales inválidas'})
+
+    # 🚀 Si entran desde el navegador (GET), pintamos la ventana de Login interactiva
+    return render(request, 'auth/login.html')
 
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])

@@ -73,7 +73,7 @@ def login_view(request):
         
         user = authenticate(username=username, password=password)
         if user is not None:
-            login(request, user)
+            auth_login(request, user)
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in request.META.get('HTTP_ACCEPT', ''):
                 return JsonResponse({'success': True, 'redirect': '/api/panel/dashboard/'})
             return redirect('panel_dashboard')

@@ -85,12 +85,22 @@ def login_view(request):
     # 🚀 Si entran desde el navegador (GET), pintamos la ventana de Login interactiva
     return render(request, 'tickets/auth/login.html')
 
-@api_view(['POST'])
-@authentication_classes([TokenAuthentication])
-@permission_classes([IsAuthenticated])
+@api_view(['GET', 'POST']) # 🎯 Permitimos GET para el botón web "Salir"
+@permission_classes([AllowAny]) # 🎯 Permitimos que cualquiera intente desloguearse
 def logout_view(request):
-    Token.objects.filter(usuario=request.user).delete()
-    return Response(status=status.HTTP_204_NO_CONTENT)
+    # 📱 CASO A: Si el usuario está autenticado por Token (Petición API / Móvil / AJAX)
+    if request.user.is_authenticated and hasattr(request.user, 'auth_token'):
+        Token.objects.filter(user=request.user).delete()
+    
+    # 💻 CASO B: Limpieza de la sesión web del Navegador (Cookies)
+    django_logout(request)
+    
+    # 🔄 Si la petición viene del navegador (por HTML tradicional con GET)
+    if request.method == 'GET' or 'text/html' in request.META.get('HTTP_ACCEPT', ''):
+        return redirect('login') # Redirige directo a tu pantalla oscura de login
+        
+    # Response estándar para clientes de API pura (Móvil / Postman)
+    return Response({"success": "Sesión cerrada correctamente"}, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
 @authentication_classes([TokenAuthentication])

@@ -947,16 +947,38 @@ def panel_ticket_chatter(request, pk):
                     f"Puedes revisar el estatus completo ingresando a la plataforma."
                 )
                 
-                try:
-                    send_mail(
-                        subject=asunto,
-                        message=mensaje_texto,
-                        from_email=settings.DEFAULT_FROM_EMAIL,
-                        recipient_list=lista_correos,
-                        fail_silently=True  # Evita romper la app si el servidor SMTP/Resend no responde
-                    )
-                except Exception:
-                    pass  # Manejo silencioso
+                # Disparamos el correo usando el hilo asíncrono seguro del sistema
+            if lista_correos:
+                folio_ticket = getattr(ticket, 'folio', ticket.id)
+                titulo_ticket = getattr(ticket, 'titulo', 'Soporte Técnico')
+                nombre_remitente = getattr(request.user, 'nombre_completo', None) or getattr(request.user, 'correo_electronico', 'Soporte')
+                
+                asunto = f"🔔 Actualización en Ticket #{folio_ticket} - {titulo_ticket}"
+                
+                # Armamos un HTML limpio para reutilizar tu función _tarea_enviar_correo_async
+                html_contenido = f"""
+                <div style="font-family: sans-serif; max-width: 600px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+                    <div style="background-color: #0f172a; padding: 20px; color: #fbbf24; font-weight: bold; font-size: 16px;">
+                        🔔 Nueva Nota en Ticket #{folio_ticket}
+                    </div>
+                    <div style="padding: 20px; font-size: 13px; line-height: 1.6; color: #334155;">
+                        <p>El usuario <strong>{nombre_remitente}</strong> ha agregado una nueva actualización al Historial de Notas:</p>
+                        <blockquote style="margin: 15px 0; padding: 10px 15px; border-left: 4px solid #fbbf24; background-color: #f8fafc; font-style: italic;">
+                            "{contenido}"
+                        </blockquote>
+                        <p>Puedes revisar el estatus completo ingresando a la plataforma institucional.</p>
+                    </div>
+                </div>
+                """
+                
+                # 🚀 DELEGACIÓN ASÍNCRONA: Gunicorn ya no se congelará jamás
+                import threading
+                hilo_correo = threading.Thread(
+                    target=_tarea_enviar_correo_async,
+                    args=(asunto, html_contenido, settings.DEFAULT_FROM_EMAIL, lista_correos)
+                )
+                hilo_correo.daemon = True
+                hilo_correo.start()
 
     # 2. Tu renderizado actual del ciclo de notas (Se queda exactamente igual)
     notas = ticket.chatter.all().order_by('-fecha_creacion')

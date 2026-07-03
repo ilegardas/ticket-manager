@@ -1269,6 +1269,7 @@ def panel_ticket_detail(request, pk):
     action = request.GET.get('action', '')
 
     if request.method == "GET":
+        # ... se queda exactamente igual tu bloque GET ...
         if action == "edit_info":
             return render(request, 'tickets/partials/edit_form.html', {
                 'ticket': ticket,
@@ -1302,6 +1303,10 @@ def panel_ticket_detail(request, pk):
         prioridad_id = request.POST.get("prioridad")
         causa_raiz = request.POST.get("causa_raiz")
         solucion_aplicada = request.POST.get("solucion_aplicada")
+
+        # 🚀 JUGADA CLAVE: Capturar y guardar el campo de correos de seguimiento si viene en la petición
+        if "correos_seguimiento" in request.POST:
+            ticket.correos_seguimiento = request.POST.get("correos_seguimiento", "").strip()
 
         if estado_id: 
             ticket.estado_id = estado_id

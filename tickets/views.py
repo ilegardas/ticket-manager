@@ -177,6 +177,59 @@ def _handle_state_change(ticket, old_estado, new_estado, user):
         estado_nuevo=new_estado.nombre if new_estado else None, 
         contenido=f"Estado cambiado a '{new_estado.nombre if new_estado else '—'}'"
     )
+    
+    # 🚀 LÓGICA ASÍNCRONA DE NOTIFICACIÓN PARA MENSAJES DE SISTEMA
+    lista_correos = []
+
+    # Correo del creador o usuario del ticket
+    if ticket.usuario_reporta and getattr(ticket.usuario_reporta, 'correo_electronico', None):
+        lista_correos.append(ticket.usuario_reporta.correo_electronico)
+        
+    # Correo del especialista asignado
+    if ticket.usuario_asignado and getattr(ticket.usuario_asignado, 'correo_electronico', None):
+        lista_correos.append(ticket.usuario_asignado.correo_electronico)
+
+    # Correos adicionales desde la lista de seguimiento CC
+    if ticket.correos_seguimiento:
+        adicionales = [c.strip() for c in ticket.correos_seguimiento.split(',') if c.strip()]
+        lista_correos.extend(adicionales)
+
+    # Eliminamos duplicados
+    lista_correos = list(set(lista_correos))
+
+    # Disparamos el hilo secundario si hay destinatarios válidos
+    if lista_correos:
+        folio_ticket = getattr(ticket, 'folio', ticket.id)
+        titulo_ticket = getattr(ticket, 'titulo', 'Soporte Técnico')
+        nombre_operador = user.nombre_completo if (user and hasattr(user, 'nombre_completo') and user.nombre_completo) else "Sistema"
+        
+        asunto = f"⚙️ Cambio de Estado en Ticket #{folio_ticket} - {titulo_ticket}"
+        
+        html_contenido = f"""
+        <div style="font-family: sans-serif; max-width: 600px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+            <div style="background-color: #1e293b; padding: 20px; color: #38bdf8; font-weight: bold; font-size: 16px;">
+                ⚙️ Actualización Automática de Sistema - Ticket #{folio_ticket}
+            </div>
+            <div style="padding: 20px; font-size: 13px; line-height: 1.6; color: #334155;">
+                <p>Se ha registrado un movimiento automático de control por el operador <strong>{nombre_operador}</strong>:</p>
+                <div style="margin: 15px 0; padding: 12px; border-left: 4px solid #38bdf8; background-color: #f8fafc; font-weight: 500;">
+                    {contenido_sistema}
+                </div>
+                <p>Puedes verificar los tiempos de atención, las matrices de criticidad y el SLA ingresando al panel de control.</p>
+            </div>
+        </div>
+        """
+        
+        # Despacho en segundo plano para evitar congelar los selects de la interfaz
+        import threading
+        hilo_sistema = threading.Thread(
+            target=_tarea_enviar_correo_async,
+            args=(asunto, html_contenido, settings.DEFAULT_FROM_EMAIL, lista_correos)
+        )
+        hilo_sistema.daemon = True
+        hilo_sistema.start()
+
+
 
 
 # ─────────────────────────────────────────────

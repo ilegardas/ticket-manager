@@ -233,13 +233,7 @@ class Ticket(models.Model):
 
     # 📁 Control de Historial / Archivado
     archivado = models.BooleanField(default=False, db_index=True)
-    class Ticket(models.Model):
-    # ... tus campos actuales ...
-    correos_seguimiento = models.TextField(
-        blank=True, 
-        null=True, 
-        help_text="Correos electrónicos separados por comas para recibir notificaciones."
-    )
+    correos_seguimiento = models.TextField(blank=True, null=True, help_text="Correos electrónicos separados por comas para recibir notificaciones.")
 
     class Meta:
         verbose_name = 'Ticket'

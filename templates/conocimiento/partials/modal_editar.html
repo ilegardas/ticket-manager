@@ -1,0 +1,71 @@
+<div class="p-6 space-y-4">
+    <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+        <h3 class="text-base font-bold text-amber-400 flex items-center gap-2">✏️ Editar Entrada de Conocimiento #CON-{{ solucion.id }}</h3>
+        <button onclick="cerrarModal()" class="text-slate-400 hover:text-white text-lg">&times;</button>
+    </div>
+
+    <form hx-post="{% url 'panel_conocimiento_editar' solucion.id %}" hx-target="this" class="space-y-4 text-xs">
+        {% csrf_token %}
+        <div>
+            <label class="block font-bold text-slate-400 uppercase mb-1">Título de la Solución</label>
+            <input type="text" name="titulo" value="{{ solucion.titulo }}" required
+                   class="w-full p-2.5 border border-slate-700 rounded-lg bg-darkBg text-slate-100 outline-none focus:ring-1 focus:ring-amber-500">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+                <label class="block font-bold text-slate-400 uppercase mb-1">Sistema Vinculado</label>
+                <select name="sistema" class="w-full p-2.5 border border-slate-700 rounded-lg bg-darkBg text-slate-200 outline-none">
+                    <option value="">— Ninguno (General) —</option>
+                    {% for sis in systems %}
+                        <option value="{{ sis.id }}" {% if solucion.sistema_id == sis.id %}selected{% endif %}>{{ sis.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block font-bold text-slate-400 uppercase mb-1">Código de Error (Si Aplica)</label>
+                <input type="text" name="codigo_error" value="{{ solucion.codigo_error|default:'' }}"
+                       class="w-full p-2.5 border border-slate-700 rounded-lg bg-darkBg text-slate-100 outline-none focus:ring-1 focus:ring-amber-500">
+            </div>
+        </div>
+
+        <div>
+            <label class="block font-bold text-slate-400 uppercase mb-1">Síntomas / Problema Detectado</label>
+            <textarea name="descripcion_problema" rows="3" required
+                      class="w-full p-2.5 border border-slate-700 rounded-lg bg-darkBg text-slate-100 outline-none focus:ring-1 focus:ring-amber-500">{{ solucion.descripcion_problema }}</textarea>
+        </div>
+
+        <div>
+            <label class="block font-bold text-slate-400 uppercase mb-1">Procedimiento de Solución Aplicada</label>
+            <textarea name="solucion_aplicada" rows="4" required
+                      class="w-full p-2.5 border border-slate-700 rounded-lg bg-darkBg text-slate-100 outline-none focus:ring-1 focus:ring-amber-500">{{ solucion.solucion_aplicada }}</textarea>
+        </div>
+
+        <!-- RECURSOS DIGITALES -->
+        <div class="border-t border-slate-800 pt-3 space-y-3">
+            <h4 class="text-[11px] font-bold text-amber-500 uppercase tracking-wider">📦 Recursos Digitales y Soporte</h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-slate-400 uppercase mb-1">Enlace a Videotutorial</label>
+                    <input type="url" name="video_url" value="{{ solucion.video_url|default:'' }}"
+                           class="w-full p-2 border border-slate-700 rounded-lg bg-darkBg text-slate-100 outline-none focus:ring-1 focus:ring-amber-500">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-400 uppercase mb-1">Enlace a Manual o PDF</label>
+                    <input type="url" name="documento_url" value="{{ solucion.documento_url|default:'' }}"
+                           class="w-full p-2 border border-slate-700 rounded-lg bg-darkBg text-slate-100 outline-none focus:ring-1 focus:ring-amber-500">
+                </div>
+            </div>
+            <div>
+                <label class="block font-bold text-slate-400 uppercase mb-1">Palabras Clave / Tags</label>
+                <input type="text" name="palabras_clave" value="{{ solucion.palabras_clave|default:'' }}"
+                       class="w-full p-2 border border-slate-700 rounded-lg bg-darkBg text-slate-100 outline-none focus:ring-1 focus:ring-amber-500">
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
+            <button type="button" onclick="cerrarModal()" class="bg-slate-700 text-white px-4 py-2 rounded-lg font-bold">Cancelar</button>
+            <button type="submit" class="bg-amber-500 text-slate-950 px-4 py-2 rounded-lg font-bold">Guardar Cambios</button>
+        </div>
+    </form>
+</div>

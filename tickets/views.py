@@ -896,21 +896,69 @@ def panel_tickets_exportar_excel(request):
 
 @login_required
 def panel_ticket_chatter(request, pk):
-    """
-    ⚡ ENDPOINT HTMX: Procesa y renderiza las notas del Chatter en HTML Puro
-    """
+    #⚡ ENDPOINT HTMX: Procesa, guarda y renderiza las notas del Chatter en HTML Puro,
+    
+    #despachando una notificación por correo a los involucrados y seguidores CC.
+    #"""
     ticket = get_object_or_404(Ticket, pk=pk)
 
     if request.method == "POST":
         contenido = request.POST.get("contenido", "").strip()
         if contenido:
-            ChatterEntry.objects.create(
+            # 1. Creamos la nota en el chatter
+            nueva_nota = ChatterEntry.objects.create(
                 ticket=ticket,
-                tipo='comentario',  # 🎯 ¡Corregido a español!
+                tipo='comentario',  
                 contenido=contenido,
                 autor=request.user
             )
 
+            # 🚀 LÓGICA DE NOTIFICACIÓN POR CORREO (Agregada aquí)
+            lista_correos = []
+
+            # Correo del creador o usuario del ticket (Se cambia ticket.usuario por usuario_reporta)
+            if ticket.usuario_reporta and hasattr(ticket.usuario_reporta, 'correo_electronico') and ticket.usuario_reporta.correo_electronico:
+                lista_correos.append(ticket.usuario_reporta.correo_electronico)
+                
+            # Correo del especialista asignado (Se cambia asignado_a por usuario_asignado)
+            if ticket.usuario_asignado and hasattr(ticket.usuario_asignado, 'correo_electronico') and ticket.usuario_asignado.correo_electronico:
+                lista_correos.append(ticket.usuario_asignado.correo_electronico)
+
+            # Correos adicionales desde el campo de seguimiento CC
+            if ticket.correos_seguimiento:
+                adicionales = [c.strip() for c in ticket.correos_seguimiento.split(',') if c.strip()]
+                lista_correos.extend(adicionales)
+
+            # Eliminamos duplicados
+            lista_correos = list(set(lista_correos))
+
+            # Disparamos el correo usando send_mail de Django
+            if lista_correos:
+                from django.core.mail import send_mail
+                
+                folio_ticket = getattr(ticket, 'folio', ticket.id)
+                titulo_ticket = getattr(ticket, 'titulo', 'Soporte Técnico')
+                nombre_remitente = getattr(request.user, 'nombre_completo', request.user.username)
+                
+                asunto = f"🔔 Actualización en Ticket #{folio_ticket} - {titulo_ticket}"
+                mensaje_texto = (
+                    f"El usuario {nombre_remitente} ha agregado una nueva actualización al Historial de Notas:\n\n"
+                    f"\"{contenido}\"\n\n"
+                    f"Puedes revisar el estatus completo ingresando a la plataforma."
+                )
+                
+                try:
+                    send_mail(
+                        subject=asunto,
+                        message=mensaje_texto,
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=lista_correos,
+                        fail_silently=True  # Evita romper la app si el servidor SMTP/Resend no responde
+                    )
+                except Exception:
+                    pass  # Manejo silencioso
+
+    # 2. Tu renderizado actual del ciclo de notas (Se queda exactamente igual)
     notas = ticket.chatter.all().order_by('-fecha_creacion')
     
     html_output = ""

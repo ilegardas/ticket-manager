@@ -368,3 +368,29 @@ class ConocimientoEntry(models.Model):
 
     def __str__(self):
         return self.titulo
+
+#MODELO PARA LA RELACION CMDB SISTEMAS CON USUARIOS 
+class RelacionUsuarioSistema(models.Model):
+    """
+    Tabla Core de CMDB: Mapea los Actores (Usuario) con los CIs (Sistema) 
+    permitiendo al operador del Triage identificar escalamientos válidos.
+    """
+    TIPO_RESPONSABILIDAD_CHOICES = [
+        ('lider_tecnico', 'Líder Técnico / Desarrollador'),
+        ('product_owner', 'Product Owner / Enlace de Proceso'),
+        ('infraestructura', 'Administrador de Servidores / DB'),
+        ('soporte_n2', 'Soporte de Segundo Nivel'),
+    ]
+
+    usuario = models.ForeignKey('Usuario', on_delete=models.CASCADE, related_name='cmdb_responsabilidades')
+    sistema = models.ForeignKey(Sistema, on_delete=models.CASCADE, related_name='cmdb_responsables')
+    tipo_relacion = models.CharField(max_length=25, choices=TIPO_RESPONSABILIDAD_CHOICES, default='lider_tecnico')
+    fecha_asignacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Relación CMDB Usuario-Sistema'
+        verbose_name_plural = 'Relaciones CMDB Usuarios-Sistemas'
+        unique_together = ('usuario', 'sistema', 'tipo_relacion') # Evita duplicar el mismo rol para la misma app
+
+    def __str__(self):
+        return f"{self.usuario.nombre_completo} -> {self.sistema.nombre} ({self.get_tipo_relacion_display()})"

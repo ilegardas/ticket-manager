@@ -118,21 +118,25 @@ def _handle_state_change(ticket, old_estado, new_estado, user):
     now = timezone.now()
     update_fields = []
     
-    # 🚀 CORRECCIÓN: Validar el campo nativo 'asignado_a'
-    if ticket.asignado_a:
-        # Si queremos guardar explícitamente cuando cambie el especialista
-        update_fields.append('asignado_a')
+    # 1. 🚀 CONTROL COMPLETO Y PERSISTENCIA DEL ESPECIALISTA ASIGNADO
+    # Si la petición trae un especialista asignado, aseguramos que se incluya en el guardado
+    if ticket.usuario_asignado:
+        update_fields.append('usuario_asignado')
         
+        # Estampamos la fecha de asignación inicial si no existía
         if not ticket.fecha_asignacion:
             ticket.fecha_asignacion = now
             update_fields.append('fecha_asignacion')
+    else:
+        # Si se desasigna explicitamente el técnico, también debemos persistir el cambio
+        update_fields.append('usuario_asignado')
 
     # 2. Controlar Fecha de Primera Respuesta
     if old_estado and not ticket.fecha_primera_respuesta:
         ticket.fecha_primera_respuesta = now
         update_fields.append('fecha_primera_respuesta')
 
-    # 3. Si venía de un estado de pausa
+    # 3. Gestión de pausas SLA (Cierre de logs antiguos si venía de pausa)
     if old_estado and old_estado.pausa_sla:
         open_log = TicketTimeLog.objects.filter(ticket=ticket, fecha_fin__isnull=True).first()
         if open_log:
@@ -141,11 +145,11 @@ def _handle_state_change(ticket, old_estado, new_estado, user):
             ticket.tiempo_pausa_minutos = sum(log.duracion_minutos for log in TicketTimeLog.objects.filter(ticket=ticket, duracion_minutos__isnull=False))
             update_fields.append('tiempo_pausa_minutos')
             
-    # 4. Si entra a un nuevo estado de pausa SLA
+    # 4. Apertura de nuevo log si entra a un estado de pausa SLA
     if new_estado and new_estado.pausa_sla:
         TicketTimeLog.objects.create(ticket=ticket, estado_pausa=new_estado.nombre, fecha_inicio=now)
         
-    # 5. CONTROL DE FECHAS DE RESOLUCIÓN Y CIERRE
+    # 5. Control de fechas y tiempos de Resolución y Cierre
     if new_estado and 'resuelto' in new_estado.nombre.lower():
         ticket.fecha_resolucion = now
         update_fields.append('fecha_resolucion')
@@ -168,14 +172,14 @@ def _handle_state_change(ticket, old_estado, new_estado, user):
             ticket.fecha_cierre = now
             update_fields.append('fecha_cierre')
             
-    # Si hubo cambios de estado, nos aseguramos de que el campo estado se guarde
+    # Aseguramos que el estado modificado siempre viaje en el update_fields
     if 'estado' not in update_fields:
         update_fields.append('estado')
 
-    # Guardamos todos los campos afectados incluyendo el especialista asignado_a
+    # 📝 Guardado seguro con los campos validados
     ticket.save(update_fields=update_fields) if update_fields else ticket.save()
         
-    # Log del sistema
+    # Generamos la bitácora del sistema
     contenido_sistema = f"Estado cambiado a '{new_estado.nombre if new_estado else '—'}'"
     
     ChatterEntry.objects.create(
@@ -187,21 +191,23 @@ def _handle_state_change(ticket, old_estado, new_estado, user):
         contenido=contenido_sistema
     )
 
-    # LÓGICA ASÍNCRONA DE NOTIFICACIÓN CORREGIDA Y PROTEGIDA
+    # 🚀 ENVIÓ DE NOTIFICACIONES ASÍNCRONAS CON LOS CAMPOS CORRECTOS
     lista_correos = []
 
-    usuario_creador = getattr(ticket, 'usuario', None) or getattr(ticket, 'usuario_reporta', None)
-    if usuario_creador and getattr(usuario_creador, 'correo_electronico', None):
-        lista_correos.append(usuario_creador.correo_electronico)
+    # Correo del usuario que reporta
+    if ticket.usuario_reporta and getattr(ticket.usuario_reporta, 'correo_electronico', None):
+        lista_correos.append(ticket.usuario_reporta.correo_electronico)
         
-    especialista = getattr(ticket, 'asignado_a', None) or getattr(ticket, 'usuario_assigned', None)
-    if especialista and getattr(especialista, 'correo_electronico', None):
-        lista_correos.append(especialista.correo_electronico)
+    # Correo del especialista asignado
+    if ticket.usuario_asignado and getattr(ticket.usuario_asignado, 'correo_electronico', None):
+        lista_correos.append(ticket.usuario_asignado.correo_electronico)
 
+    # Correos secundarios de la lista de seguimiento CC
     if getattr(ticket, 'correos_seguimiento', None):
         adicionales = [c.strip() for c in ticket.correos_seguimiento.split(',') if c.strip()]
         lista_correos.extend(adicionales)
 
+    # Limpieza de duplicados
     lista_correos = list(set(lista_correos))
 
     if lista_correos:

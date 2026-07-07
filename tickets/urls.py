@@ -90,6 +90,8 @@ urlpatterns = [
     # Endpoints de Soporte Asíncrono (AJAX / Dinámico)
     path('ajax/cargar-modulos/', views.ajax_cargar_modulos, name='ajax_cargar_modulos'),
 
+    # CMDB url's
+    path('panel/tickets/<int:ticket_id>/responsables-cmdb/', views.ajax_obtener_responsables_cmdb, name='ajax_responsables_cmdb'),
     
     # 🚀 SOLUCIÓN: El router se monta con un prefijo o se incluye limpiamente sin duplicados
     path('api-root/', include(router.urls)),

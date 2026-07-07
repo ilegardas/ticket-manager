@@ -1,0 +1,99 @@
+<div class="space-y-6">
+    <div class="bg-white dark:bg-darkPanel rounded-xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
+        <h4 class="text-sm font-semibold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+            🔗 Asociar Responsable a Sistema (CMDB)
+        </h4>
+        
+        <form hx-post="{% url 'panel_config_cmdb' %}" 
+              hx-target="#cmdb-tab-container" 
+              class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end text-xs"
+              onhtmx:after-request="this.reset()">
+            {% csrf_token %}
+            
+            <div class="space-y-1">
+                <label class="block font-bold text-slate-400 uppercase tracking-wider text-[11px]">Empleado / Especialista:</label>
+                <select name="usuario_id" required class="w-full p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-1 focus:ring-amber-500">
+                    <option value="">— Selecciona Personal —</option>
+                    {% for u in usuarios_list %}
+                    <option value="{{ u.id }}">{{ u.nombre_completo }} ({% if u.correo_electronico %}{{ u.correo_electronico }}{% else %}ID: {{ u.id }}{% endif %})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="space-y-1">
+                <label class="block font-bold text-slate-400 uppercase tracking-wider text-[11px]">Ítem de Configuración (Sistema):</label>
+                <select name="sistema_id" required class="w-full p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-1 focus:ring-amber-500">
+                    <option value="">— Selecciona Sistema —</option>
+                    {% for s in sistemas_list %}
+                    <option value="{{ s.id }}">{{ s.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="space-y-1">
+                <label class="block font-bold text-slate-400 uppercase tracking-wider text-[11px]">Tipo de Responsabilidad:</label>
+                <select name="tipo_relacion" required class="w-full p-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-1 focus:ring-amber-500">
+                    <option value="lider_tecnico">Líder Técnico / Desarrollador</option>
+                    <option value="product_owner">Product Owner / Enlace Proceso</option>
+                    <option value="infraestructura">Administrador Servidores / DB</option>
+                    <option value="soporte_n2">Soporte Nivel 2</option>
+                </select>
+            </div>
+
+            <div>
+                <button type="submit" class="w-full bg-slate-950 hover:bg-slate-800 dark:bg-amber-500 dark:hover:bg-amber-600 text-white dark:text-slate-950 font-bold py-2 px-4 rounded-lg shadow-sm transition">
+                    ➕ Vincular Activo
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="bg-white dark:bg-darkPanel rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-darkBg/20">
+            <h4 class="text-xs font-bold text-slate-400 dark:text-darkTextSub uppercase tracking-wider">Matriz de Relaciones Activas</h4>
+        </div>
+        
+        <div class="overflow-x-auto text-xs">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-semibold bg-slate-50/30 dark:bg-darkBg/10">
+                        <th class="p-3">Sistema (CI)</th>
+                        <th class="p-3">Responsable Asignado</th>
+                        <th class="p-3">Rol Técnico</th>
+                        <th class="p-3">Fecha Alta</th>
+                        <th class="p-3 text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300 font-medium">
+                    {% for rel in cmdb_relaciones %}
+                    <tr class="hover:bg-slate-50/40 dark:hover:bg-darkBg/20 transition">
+                        <td class="p-3 text-slate-900 dark:text-amber-400 font-bold">{{ rel.sistema.nombre }}</td>
+                        <td class="p-3">{{ rel.usuario.nombre_completo }}</td>
+                        <td class="p-3">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-darkBg text-slate-600 dark:text-cyan-400 border border-slate-200 dark:border-slate-800">
+                                {{ rel.get_tipo_relacion_display }}
+                            </span>
+                        </td>
+                        <td class="p-3 font-mono text-[11px] text-slate-400">{{ rel.fecha_asignacion|date:"d/m/Y H:i" }}</td>
+                        <td class="p-3 text-center">
+                            <button hx-post="{% url 'panel_config_cmdb_eliminar' rel.id %}"
+                                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                                    hx-target="#cmdb-tab-container"
+                                    hx-confirm="¿Estás seguro de desvincular a este responsable de la administración de este sistema?"
+                                    class="text-red-500 hover:text-red-600 font-bold hover:underline bg-transparent border-none cursor-pointer">
+                                Quitar
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="p-6 text-center text-slate-400 italic">
+                            No se han mapeado relaciones de gobernanza en la CMDB todavía.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

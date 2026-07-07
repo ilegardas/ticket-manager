@@ -118,17 +118,21 @@ def _handle_state_change(ticket, old_estado, new_estado, user):
     now = timezone.now()
     update_fields = []
     
-    # 1. Controlar Fecha de Asignación si se le pone un técnico por primera vez
-    if ticket.usuario_asignado and not ticket.fecha_asignacion:
-        ticket.fecha_asignacion = now
-        update_fields.append('fecha_asignacion')
+    # 🚀 CORRECCIÓN: Validar el campo nativo 'asignado_a'
+    if ticket.asignado_a:
+        # Si queremos guardar explícitamente cuando cambie el especialista
+        update_fields.append('asignado_a')
+        
+        if not ticket.fecha_asignacion:
+            ticket.fecha_asignacion = now
+            update_fields.append('fecha_asignacion')
 
-    # 2. Controlar Fecha de Primera Respuesta (Si cambia de estado inicial a cualquier otro con interacción)
+    # 2. Controlar Fecha de Primera Respuesta
     if old_estado and not ticket.fecha_primera_respuesta:
         ticket.fecha_primera_respuesta = now
         update_fields.append('fecha_primera_respuesta')
 
-    # 3. Si venía de un estado de pausa, cerramos el log de tiempo activo y acumulamos
+    # 3. Si venía de un estado de pausa
     if old_estado and old_estado.pausa_sla:
         open_log = TicketTimeLog.objects.filter(ticket=ticket, fecha_fin__isnull=True).first()
         if open_log:
@@ -137,12 +141,11 @@ def _handle_state_change(ticket, old_estado, new_estado, user):
             ticket.tiempo_pausa_minutos = sum(log.duracion_minutos for log in TicketTimeLog.objects.filter(ticket=ticket, duracion_minutos__isnull=False))
             update_fields.append('tiempo_pausa_minutos')
             
-    # 4. Si entra a un nuevo estado de pausa SLA, abrimos un nuevo log
+    # 4. Si entra a un nuevo estado de pausa SLA
     if new_estado and new_estado.pausa_sla:
         TicketTimeLog.objects.create(ticket=ticket, estado_pausa=new_estado.nombre, fecha_inicio=now)
         
-    # 5. 🎯 CONTROL INDEPENDIENTE DE FECHAS DE RESOLUCIÓN Y CIERRE
-    # Si pasa a un estado "Resuelto", se estampa la fecha de resolución y se calcula el tiempo neto de atención técnico
+    # 5. CONTROL DE FECHAS DE RESOLUCIÓN Y CIERRE
     if new_estado and 'resuelto' in new_estado.nombre.lower():
         ticket.fecha_resolucion = now
         update_fields.append('fecha_resolucion')
@@ -153,12 +156,10 @@ def _handle_state_change(ticket, old_estado, new_estado, user):
             ticket.tiempo_atencion_minutos = max(0, tiempo_bruto_minutos - pausas)
             update_fields.append('tiempo_atencion_minutos')
 
-    # Si pasa a un estado "Cerrado" (visto bueno del usuario), únicamente se estampa la fecha de cierre final
     elif new_estado and 'cerrado' in new_estado.nombre.lower():
         ticket.fecha_cierre = now
         update_fields.append('fecha_cierre')
         
-    # Salvavidas general: si es cualquier otro estado marcado estructuralmente como cierre en el modelo
     elif new_estado and new_estado.es_estado_cierre:
         if not ticket.fecha_resolucion:
             ticket.fecha_resolucion = now
@@ -167,10 +168,14 @@ def _handle_state_change(ticket, old_estado, new_estado, user):
             ticket.fecha_cierre = now
             update_fields.append('fecha_cierre')
             
-    # Guardamos únicamente los campos afectados
+    # Si hubo cambios de estado, nos aseguramos de que el campo estado se guarde
+    if 'estado' not in update_fields:
+        update_fields.append('estado')
+
+    # Guardamos todos los campos afectados incluyendo el especialista asignado_a
     ticket.save(update_fields=update_fields) if update_fields else ticket.save()
         
-    # 1. Definimos y creamos primero el log del sistema para que exista la variable
+    # Log del sistema
     contenido_sistema = f"Estado cambiado a '{new_estado.nombre if new_estado else '—'}'"
     
     ChatterEntry.objects.create(
@@ -182,27 +187,23 @@ def _handle_state_change(ticket, old_estado, new_estado, user):
         contenido=contenido_sistema
     )
 
-    # 🚀 LÓGICA ASÍNCRONA DE NOTIFICACIÓN CORREGIDA Y PROTEGIDA
+    # LÓGICA ASÍNCRONA DE NOTIFICACIÓN CORREGIDA Y PROTEGIDA
     lista_correos = []
 
-    # Compatibilidad nativa con ticket.usuario / usuario_reporta
     usuario_creador = getattr(ticket, 'usuario', None) or getattr(ticket, 'usuario_reporta', None)
     if usuario_creador and getattr(usuario_creador, 'correo_electronico', None):
         lista_correos.append(usuario_creador.correo_electronico)
         
-    # Compatibilidad nativa con ticket.asignado_a / usuario_asignado
-    especialista = getattr(ticket, 'asignado_a', None) or getattr(ticket, 'usuario_asignado', None)
+    especialista = getattr(ticket, 'asignado_a', None) or getattr(ticket, 'usuario_assigned', None)
     if especialista and getattr(especialista, 'correo_electronico', None):
         lista_correos.append(especialista.correo_electronico)
 
-    # Correos adicionales desde el campo de seguimiento CC
     if getattr(ticket, 'correos_seguimiento', None):
         adicionales = [c.strip() for c in ticket.correos_seguimiento.split(',') if c.strip()]
         lista_correos.extend(adicionales)
 
     lista_correos = list(set(lista_correos))
 
-    # Disparamos el hilo secundario asíncrono
     if lista_correos:
         folio_ticket = getattr(ticket, 'folio', ticket.id)
         titulo_ticket = getattr(ticket, 'titulo', 'Soporte Técnico')
@@ -210,7 +211,6 @@ def _handle_state_change(ticket, old_estado, new_estado, user):
         
         asunto = f"⚙️ Cambio de Estado en Ticket #{folio_ticket} - {titulo_ticket}"
         
-        # Ahora sí, {contenido_sistema} está perfectamente definida arriba
         html_contenido = f"""
         <div style="font-family: sans-serif; max-width: 600px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
             <div style="background-color: #1e293b; padding: 20px; color: #38bdf8; font-weight: bold; font-size: 16px;">

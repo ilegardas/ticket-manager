@@ -180,21 +180,26 @@ def _handle_state_change(ticket, old_estado, new_estado, user):
         contenido=f"Estado cambiado a '{new_estado.nombre if new_estado else '—'}'"
     )
     
-    # 🚀 LÓGICA ASÍNCRONA DE NOTIFICACIÓN PARA MENSAJES DE SISTEMA
+    # 🚀 LÓGICA ASÍNCRONA DE NOTIFICACIÓN CORREGIDA (Dentro de _handle_state_change)
     lista_correos = []
 
-    # Correo del creador o usuario del ticket
-    if ticket.usuario_reporta and getattr(ticket.usuario_reporta, 'correo_electronico', None):
-        lista_correos.append(ticket.usuario_reporta.correo_electronico)
+    # 1. Correo del creador o usuario que reporta (Compatibilidad nativa con ticket.usuario)
+    usuario_creador = getattr(ticket, 'usuario', None) or getattr(ticket, 'usuario_reporta', None)
+    if usuario_creador and getattr(usuario_creador, 'correo_electronico', None):
+        lista_correos.append(usuario_creador.correo_electronico)
         
-    # Correo del especialista asignado
-    if ticket.usuario_asignado and getattr(ticket.usuario_asignado, 'correo_electronico', None):
-        lista_correos.append(ticket.usuario_asignado.correo_electronico)
+    # 2. Correo del especialista asignado (Compatibilidad nativa con ticket.asignado_a)
+    especialista = getattr(ticket, 'asignado_a', None) or getattr(ticket, 'usuario_asignado', None)
+    if especialista and getattr(especialista, 'correo_electronico', None):
+        lista_correos.append(especialista.correo_electronico)
 
-    # Correos adicionales desde la lista de seguimiento CC
-    if ticket.correos_seguimiento:
+    # 3. Correos adicionales desde la lista de seguimiento CC
+    if getattr(ticket, 'correos_seguimiento', None):
         adicionales = [c.strip() for c in ticket.correos_seguimiento.split(',') if c.strip()]
         lista_correos.extend(adicionales)
+
+    # Eliminamos duplicados
+    lista_correos = list(set(lista_correos))
 
     # Eliminamos duplicados
     lista_correos = list(set(lista_correos))

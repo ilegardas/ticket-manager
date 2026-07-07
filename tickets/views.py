@@ -170,41 +170,39 @@ def _handle_state_change(ticket, old_estado, new_estado, user):
     # Guardamos únicamente los campos afectados
     ticket.save(update_fields=update_fields) if update_fields else ticket.save()
         
-    # Registramos el movimiento en el historial
+    # 1. Definimos y creamos primero el log del sistema para que exista la variable
+    contenido_sistema = f"Estado cambiado a '{new_estado.nombre if new_estado else '—'}'"
+    
     ChatterEntry.objects.create(
         ticket=ticket, 
         tipo='sistema', 
         autor=user, 
         estado_anterior=old_estado.nombre if old_estado else None, 
         estado_nuevo=new_estado.nombre if new_estado else None, 
-        contenido=f"Estado cambiado a '{new_estado.nombre if new_estado else '—'}'"
+        contenido=contenido_sistema
     )
-    
-    # 🚀 LÓGICA ASÍNCRONA DE NOTIFICACIÓN CORREGIDA (Dentro de _handle_state_change)
+
+    # 🚀 LÓGICA ASÍNCRONA DE NOTIFICACIÓN CORREGIDA Y PROTEGIDA
     lista_correos = []
 
-    # 1. Correo del creador o usuario que reporta (Compatibilidad nativa con ticket.usuario)
+    # Compatibilidad nativa con ticket.usuario / usuario_reporta
     usuario_creador = getattr(ticket, 'usuario', None) or getattr(ticket, 'usuario_reporta', None)
     if usuario_creador and getattr(usuario_creador, 'correo_electronico', None):
         lista_correos.append(usuario_creador.correo_electronico)
         
-    # 2. Correo del especialista asignado (Compatibilidad nativa con ticket.asignado_a)
+    # Compatibilidad nativa con ticket.asignado_a / usuario_asignado
     especialista = getattr(ticket, 'asignado_a', None) or getattr(ticket, 'usuario_asignado', None)
     if especialista and getattr(especialista, 'correo_electronico', None):
         lista_correos.append(especialista.correo_electronico)
 
-    # 3. Correos adicionales desde la lista de seguimiento CC
+    # Correos adicionales desde el campo de seguimiento CC
     if getattr(ticket, 'correos_seguimiento', None):
         adicionales = [c.strip() for c in ticket.correos_seguimiento.split(',') if c.strip()]
         lista_correos.extend(adicionales)
 
-    # Eliminamos duplicados
     lista_correos = list(set(lista_correos))
 
-    # Eliminamos duplicados
-    lista_correos = list(set(lista_correos))
-
-    # Disparamos el hilo secundario si hay destinatarios válidos
+    # Disparamos el hilo secundario asíncrono
     if lista_correos:
         folio_ticket = getattr(ticket, 'folio', ticket.id)
         titulo_ticket = getattr(ticket, 'titulo', 'Soporte Técnico')
@@ -212,6 +210,7 @@ def _handle_state_change(ticket, old_estado, new_estado, user):
         
         asunto = f"⚙️ Cambio de Estado en Ticket #{folio_ticket} - {titulo_ticket}"
         
+        # Ahora sí, {contenido_sistema} está perfectamente definida arriba
         html_contenido = f"""
         <div style="font-family: sans-serif; max-width: 600px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
             <div style="background-color: #1e293b; padding: 20px; color: #38bdf8; font-weight: bold; font-size: 16px;">
@@ -227,7 +226,6 @@ def _handle_state_change(ticket, old_estado, new_estado, user):
         </div>
         """
         
-        # Despacho en segundo plano para evitar congelar los selects de la interfaz
         import threading
         hilo_sistema = threading.Thread(
             target=_tarea_enviar_correo_async,

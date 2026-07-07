@@ -2448,3 +2448,34 @@ def panel_conocimiento_editar(request, entrada_id):
         'sistemas': Sistema.objects.filter(activo=True)
     }
     return render(request, 'conocimiento/partials/modal_editar.html', context)
+
+
+
+# definicion de funciones para CMDB
+
+@login_required
+def ajax_obtener_responsables_cmdb(request, ticket_id):
+    """
+    🔍 ACCIÓN HTMX (Triage Asistido): Consulta la CMDB basándose en el Sistema del ticket,
+    extrae los correos de sus responsables y los devuelve como string para el input.
+    """
+    ticket = get_object_or_404(Ticket, pk=ticket_id)
+    
+    if not ticket.sistema:
+        return HttpResponse("— Requiere asignar un Sistema primero —", status=200)
+        
+    # Consultamos los responsables en la CMDB asociados al sistema del ticket
+    relaciones = RelacionUsuarioSistema.objects.filter(
+        sistema=ticket.sistema
+    ).select_related('usuario')
+    
+    if not relaciones.exists():
+        return HttpResponse("", status=200) # Regresa vacío si no hay nadie mapeado
+        
+    # Extraemos y limpiamos los correos electrónicos de los encargados
+    correos = [r.usuario.correo_electronico for r in relaciones if r.usuario.correo_electronico]
+    
+    # Si hay correos, los unimos por comas
+    string_correos = ", ".join(correos)
+    
+    return HttpResponse(string_correos)

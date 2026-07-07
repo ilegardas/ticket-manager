@@ -17,6 +17,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 from datetime import timedelta, datetime
 from django.core.mail import EmailMessage
 from django.db.models.functions import TruncDate
+from .models import RelacionUsuarioSistema
+
 
 import csv
 import io

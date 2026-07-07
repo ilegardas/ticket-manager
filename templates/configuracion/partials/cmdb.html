@@ -4,10 +4,10 @@
             🔗 Asociar Responsable a Sistema (CMDB)
         </h4>
         
-        <form hx-post="{% url 'panel_config_cmdb' %}" hx-target="#tab-content" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end text-xs" onhtmx:after-request="this.reset()">
-              hx-target="#cmdb-tab-container" 
-              class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end text-xs"
-              onhtmx:after-request="this.reset()">
+      <form hx-post="{% url 'panel_config_cmdb' %}" 
+      hx-target="#tab-content" 
+      class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end text-xs"
+      onhtmx:after-request="this.reset()">
             {% csrf_token %}
             
             <div class="space-y-1">

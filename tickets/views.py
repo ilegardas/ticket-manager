@@ -2479,3 +2479,63 @@ def ajax_obtener_responsables_cmdb(request, ticket_id):
     string_correos = ", ".join(correos)
     
     return HttpResponse(string_correos)
+
+
+@login_required
+def panel_config_cmdb(request):
+    """
+    🖥️ MÓDULO CMDB: Gestiona de manera matricial la relación Muchos a Muchos 
+    entre el catálogo de sistemas (CIs) y el personal institucional.
+    """
+    # Restricción opcional por si solo los administradores configuran la CMDB
+    if request.user.rol != 'admin':
+        return HttpResponse("No autorizado", status=403)
+
+    from .models import RelacionUsuarioSistema, Sistema, Usuario
+
+    if request.method == "POST":
+        usuario_id = request.POST.get("usuario_id")
+        sistema_id = request.POST.get("sistema_id")
+        tipo_relacion = request.POST.get("tipo_relacion", "lider_tecnico")
+
+        if usuario_id and sistema_id:
+            # get_or_create evita duplicados si el operador intenta registrar el mismo renglón dos veces
+            RelacionUsuarioSistema.objects.get_or_create(
+                usuario_id=usuario_id,
+                sistema_id=sistema_id,
+                tipo_relacion=tipo_relacion
+            )
+
+    # Consultamos los datos requeridos para armar la interfaz modular
+    context = {
+        'cmdb_relaciones': RelacionUsuarioSistema.objects.select_related('usuario', 'sistema').all().order_by('sistema__nombre', 'usuario__nombre_completo'),
+        'sistemas_list': Sistema.objects.filter(activo=True).order_by('nombre'),
+        'usuarios_list': Usuario.objects.filter(activo=True).order_by('nombre_completo'),
+    }
+
+    # Si la petición viene por HTMX o tras un POST de guardado, renderizamos solo el fragmento parcial
+    if request.headers.get('HX-Request') or request.method == "POST":
+        return render(request, 'configuracion/partials/cmdb.html', context)
+        
+    return render(request, 'configuracion/panel.html', context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def panel_config_cmdb_eliminar(request, pk):
+    """🗑️ ACCIÓN HTMX: Revoca una relación de la CMDB y actualiza la cuadrícula visual"""
+    if request.user.rol != 'admin':
+        return HttpResponse("No autorizado", status=403)
+
+    from .models import RelacionUsuarioSistema, Sistema, Usuario
+    
+    relacion = get_object_or_404(RelacionUsuarioSistema, pk=pk)
+    relacion.delete()
+
+    # Devolvemos el partial actualizado para que la tabla se refresque de inmediato en pantalla
+    context = {
+        'cmdb_relaciones': RelacionUsuarioSistema.objects.select_related('usuario', 'sistema').all().order_by('sistema__nombre', 'usuario__nombre_completo'),
+        'sistemas_list': Sistema.objects.filter(activo=True).order_by('nombre'),
+        'usuarios_list': Usuario.objects.filter(activo=True).order_by('nombre_completo'),
+    }
+    return render(request, 'configuracion/partials/cmdb.html', context)

@@ -76,11 +76,11 @@
                         </td>
                         <td class="p-3 font-mono text-[11px] text-slate-400">{{ rel.fecha_asignacion|date:"d/m/Y H:i" }}</td>
                         <td class="p-3 text-center">
-                            <button hx-post="{% url 'panel_config_cmdb_eliminar' rel.id %}"
-                                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                                    hx-target="#cmdb-tab-container"
-                                    hx-confirm="¿Estás seguro de desvincular a este responsable de la administración de este sistema?"
-                                    class="text-red-500 hover:text-red-600 font-bold hover:underline bg-transparent border-none cursor-pointer">
+                            <button hx-post="{% url 'panel_config_cmdb_eliminar' rel.id %}" 
+                                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                                hx-target="#tab-content"
+                                hx-confirm="¿Estás seguro de desvincular a este responsable de la administración de este sistema?"
+                                class="text-red-500 hover:text-red-600 font-bold hover:underline bg-transparent border-none cursor-pointer">
                                 Quitar
                             </button>
                         </td>

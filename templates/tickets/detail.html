@@ -236,3 +236,13 @@
 <script>
     document.body.addEventListener('htmx:afterOnLoad', function(evt) {
         if (evt.detail.xhr.status === 200 && evt.detail.requestConfig.parameters['estado']) {
+            const selectEstado = document.querySelector('select[name="estado"]');
+            const selectedText = selectEstado.options[selectEstado.selectedIndex].text;
+            const headerBadge = document.getElementById('header-estado-badge');
+            if (headerBadge) {
+                headerBadge.innerText = selectedText;
+            }
+        }
+    });
+</script>
+{% endblock %}

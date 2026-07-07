@@ -23,6 +23,10 @@
                     class="tab-btn border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 border-b-2 py-4 px-1 text-sm font-medium transition" onclick="switchTab(this)">
                 🗂️ Categorías
             </button>
+            <button hx-get="{% url 'panel_config_cmdb' %}" hx-target="#tab-content" hx-indicator="#loading-tab"
+                    class="tab-btn border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 border-b-2 py-4 px-1 text-sm font-medium transition" onclick="switchTab(this)">
+                ⚙️ Matriz CMDB
+            </button>
         </nav>
     </div>
 
@@ -44,5 +48,14 @@
         element.classList.remove('border-transparent', 'text-slate-500', 'font-medium');
         element.classList.add('border-blue-500', 'text-blue-600', 'font-semibold');
     }
+
+    // 💡 Tip de Confort Visual:
+    // Este evento le indica a la inyección de la CMDB que si se agrega o elimina un renglón,
+    // el objetivo de la respuesta vuelva a ser el propio contenedor de la pestaña (#tab-content)
+    document.body.addEventListener('htmx:configRequest', function(evt) {
+        if (evt.detail.path.includes('cmdb')) {
+            evt.detail.target = '#tab-content';
+        }
+    });
 </script>
 {% endblock %}

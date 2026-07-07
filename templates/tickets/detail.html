@@ -10,7 +10,6 @@
 </style>
 
 <div class="space-y-6">
-    <!-- Barra Superior de Navegación -->
     <div class="flex items-center justify-between">
         <a href="{% url 'panel_tickets_list' %}" class="inline-flex items-center text-xs font-semibold text-slate-500 dark:text-darkTextSub hover:text-slate-900 dark:hover:text-amber-400 transition">
             ← Volver al listado
@@ -20,11 +19,9 @@
         </span>
     </div>
 
-    <!-- Encabezado del Ticket -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 dark:border-slate-800 pb-5 gap-4">
         <div>
             <span class="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-cyan-400">{{ ticket.sistema.nombre|default:"Sin Sistema" }}</span>
-            <!-- 🌟 Título principal en Amarillo -->
             <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-amber-400">#{{ ticket.folio }} · {{ ticket.titulo }}</h1>
             <p class="text-xs text-slate-400 dark:text-slate-300 mt-1">Creado el {{ ticket.fecha_creacion|date:"d/m/Y H:i" }} por {{ ticket.usuario_reporta.nombre_completo|default:ticket.usuario_reporta.correo_electronico }}</p>
         </div>
@@ -36,13 +33,10 @@
         </div>
     </div>
 
-    <!-- Grid Principal -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        <!-- COLUMNA IZQUIERDA: Detalles y Diagnóstico -->
         <div class="lg:col-span-2 space-y-6">
             
-            <!-- Caja de Descripción -->
             <div id="main-content-block" class="bg-white dark:bg-darkPanel rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 space-y-4">
                 <div class="flex items-center justify-between">
                     <h3 class="text-sm font-semibold text-slate-800 dark:text-white">Descripción del Problema</h3>
@@ -60,7 +54,6 @@
                 {% endif %}
             </div>
 
-            <!-- Formulario de Diagnóstico -->
             <form hx-post="{% url 'panel_ticket_detail' ticket.id %}?action=update_diagnostico" hx-trigger="change delay:500ms" hx-indicator="#save-indicator" class="bg-white dark:bg-darkPanel rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 space-y-4">
                 {% csrf_token %}
                 
@@ -80,7 +73,6 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm pt-2">
                     <div>
-                        <!-- 🍊 Etiqueta secundaria en Naranja -->
                         <label class="text-xs font-semibold text-slate-400 dark:text-darkTextSub block mb-1">Causa Raíz:</label>
                         <select name="causa_raiz" class="w-full text-xs p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 font-medium">
                             <option value="">— Selecciona Causa —</option>
@@ -90,7 +82,6 @@
                         </select>
                     </div>
                     <div>
-                        <!-- 🍊 Etiqueta secundaria en Naranja -->
                         <label class="text-xs font-semibold text-slate-400 dark:text-darkTextSub block mb-1">Solución Aplicada:</label>
                         <textarea name="solucion_aplicada" rows="3" placeholder="Describe los pasos técnicos aplicados..." class="w-full text-xs p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none resize-none focus:ring-2 focus:ring-amber-500 font-medium">{{ ticket.solucion_aplicada|default:'' }}</textarea>
                     </div>
@@ -98,10 +89,8 @@
             </form>
         </div>
 
-        <!-- COLUMNA DERECHA: Controles y Chatter -->
         <div class="space-y-6">
             
-            <!-- Caja de Controles de Estado/Asignación -->
             <div class="bg-white dark:bg-darkPanel rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 space-y-4">
                 <h3 class="text-sm font-semibold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">Información de Control</h3>
                 
@@ -129,6 +118,7 @@
                         {% csrf_token %}
                         
                         <input type="text" 
+                               id="input-correos-cc"
                                name="correos_seguimiento" 
                                value="{{ ticket.correos_seguimiento|default:'' }}"
                                placeholder="ejemplo1@soles.com, ejemplo2@seech.gob.mx"
@@ -136,6 +126,18 @@
                                hx-trigger="change"
                                hx-include="#seccion-cc [name='csrfmiddlewaretoken']"
                                class="w-full p-2 border border-slate-700 rounded-lg bg-[#0f1319] text-slate-200 outline-none focus:ring-1 focus:ring-amber-500 text-xs">
+
+                        {% if ticket.sistema %}
+                        <div class="pt-1 flex justify-end">
+                            <button type="button"
+                                    hx-get="{% url 'ajax_responsables_cmdb' ticket.id %}"
+                                    hx-target="#input-correos-cc"
+                                    hx-swap="value"
+                                    class="text-[10px] font-bold text-amber-500 hover:text-amber-400 flex items-center gap-1 bg-amber-950/20 px-2 py-0.5 rounded border border-amber-900/30 transition shadow-sm">
+                                ⚙️ Cargar responsables de {{ ticket.sistema.nombre }} desde CMDB
+                            </button>
+                        </div>
+                        {% endif %}
                     </div>
                     
                     <div>
@@ -178,7 +180,6 @@
                         <span class="text-slate-700 dark:text-slate-200 font-medium text-xs">{{ ticket.modulo.nombre|default:"—" }}</span>
                     </div>
 
-                    <!-- 📁 Control de Archivado Lógico -->
                     <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
                         <span class="text-xs font-semibold text-slate-400 dark:text-darkTextSub uppercase tracking-wider flex items-center gap-1.5">
                             📁 Estado de Archivo
@@ -213,7 +214,6 @@
                 </div>
             </div>
 
-            <!-- Caja del Historial (Chatter) -->
             <div class="bg-white dark:bg-darkPanel rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 space-y-4">
                 <h3 class="text-sm font-semibold text-slate-800 dark:text-white">Historial y Notas</h3>
                 
@@ -231,20 +231,8 @@
                 </div>
             </div>
 
-        </div> <!-- Fin Columna Derecha -->
-    </div> <!-- Fin Grid Principal -->
-</div>
+        </div> </div> </div>
 
 <script>
     document.body.addEventListener('htmx:afterOnLoad', function(evt) {
         if (evt.detail.xhr.status === 200 && evt.detail.requestConfig.parameters['estado']) {
-            const selectEstado = document.querySelector('select[name="estado"]');
-            const selectedText = selectEstado.options[selectEstado.selectedIndex].text;
-            const headerBadge = document.getElementById('header-estado-badge');
-            if (headerBadge) {
-                headerBadge.innerText = selectedText;
-            }
-        }
-    });
-</script>
-{% endblock %}

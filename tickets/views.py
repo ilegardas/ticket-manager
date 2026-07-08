@@ -1557,7 +1557,7 @@ def panel_config_sistemas(request):
         nombre = request.POST.get("nombre")
         activo = True if request.POST.get("activo") else False
         
-        # 🚀 RECOLECCIÓN DE METADATOS TÉCNICOS (Inventario y Respaldo)
+        # Recolección completa de metadatos técnicos desde el modal
         objetivo_descripcion = request.POST.get('objetivo_descripcion')
         acceso_recurso = request.POST.get('acceso_recurso')
         servidor_alojamiento = request.POST.get('servidor_alojamiento')
@@ -1576,7 +1576,7 @@ def panel_config_sistemas(request):
         cifra_usuarios_raw = request.POST.get('cifra_usuarios')
         cifra_usuarios = int(cifra_usuarios_raw) if cifra_usuarios_raw and cifra_usuarios_raw.isdigit() else None
 
-        # 🚀 EVALUACIÓN SEGURA DE LLAVES FORÁNEAS (Asociación a tu modelo Usuario)
+        # Evaluación de llaves foráneas apuntando a Usuario
         desarrollador_id = request.POST.get('desarrollado_por')
         desarrollado_por = Usuario.objects.filter(id=desarrollador_id).first() if desarrollador_id else None
 
@@ -1607,8 +1607,6 @@ def panel_config_sistemas(request):
             )
             
     sistemas = Sistema.objects.all().order_by('nombre')
-    
-    # 🚀 Traemos los técnicos para pintar las llaves foráneas en el formulario HTML
     tecnicos = Usuario.objects.filter(rol__in=['tecnico', 'admin']).order_by('nombre_completo')
     
     context = {
@@ -1619,6 +1617,18 @@ def panel_config_sistemas(request):
     if request.headers.get('HX-Request') or request.method == "POST":
         return render(request, 'configuracion/partials/sistemas.html', context)
     return render(request, 'configuracion/panel.html', context)
+
+
+@login_required
+def panel_config_sistema_crear_modal(request):
+    """
+    🗔 MODAL HTMX: Despacha el formulario flotante avanzado de sistemas.
+    """
+    if request.user.rol != 'admin':
+        return HttpResponse("No autorizado", status=403)
+        
+    tecnicos = Usuario.objects.filter(rol__in=['tecnico', 'admin']).order_by('nombre_completo')
+    return render(request, 'configuracion/partials/modal_sistema_crear.html', {'tecnicos': tecnicos})
 
 
 @login_required

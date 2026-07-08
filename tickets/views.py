@@ -2644,3 +2644,103 @@ def panel_config_cmdb_eliminar(request, pk):
         'usuarios_list': Usuario.objects.filter(activo=True).order_by('nombre_completo'),
     }
     return render(request, 'configuracion/partials/cmdb.html', context)
+
+
+
+@login_required
+def panel_config_sistema_csv_modal(request):
+    """
+    🗔 MODAL HTMX: Muestra la guía estructural para subir el archivo CSV de sistemas.
+    """
+    if request.user.rol != 'admin':
+        return HttpResponse("No autorizado", status=403)
+    return render(request, 'configuracion/partials/modal_sistema_csv.html')
+
+
+@login_required
+def panel_config_sistema_importar_csv(request):
+    """
+    📥 ACCIÓN HTMX: Procesa e importa de forma masiva los sistemas desde un archivo CSV.
+    """
+    if request.user.rol != 'admin':
+        return HttpResponse("No autorizado", status=403)
+
+    if request.method == "POST":
+        csv_file = request.FILES.get('file')
+        if not csv_file or not csv_file.name.endswith('.csv'):
+            return HttpResponse("Formato inválido. Sube un archivo .csv", status=400)
+
+        try:
+            data_set = csv_file.read().decode('UTF-8')
+            io_string = io.StringIO(data_set)
+            next(io_string)  # Omitir cabecera
+
+            for row in csv.reader(io_string, delimiter=','):
+                if len(row) < 1:
+                    continue
+                
+                nombre = row[0].strip()
+                if not nombre:
+                    continue
+
+                # Extracción por posiciones respetando la estructura documental
+                version = row[1].strip() if len(row) > 1 else None
+                formato_sistema = row[2].strip() if len(row) > 2 else None
+                objetivo_descripcion = row[3].strip() if len(row) > 3 else None
+                
+                cifra_raw = row[4].strip() if len(row) > 4 else None
+                cifra_usuarios = int(cifra_raw) if cifra_raw and cifra_raw.isdigit() else None
+                
+                acceso_recurso = row[5].strip() if len(row) > 5 else None
+                servidor_alojamiento = row[6].strip() if len(row) > 6 else None
+                ubicacion_servidor = row[7].strip() if len(row) > 7 else None
+                nombre_bd = row[8].strip() if len(row) > 8 else None
+                informacion_tecnica = row[9].strip() if len(row) > 9 else None
+                
+                # Búsqueda relacional por correo institucional
+                email_dev = row[10].strip() if len(row) > 10 else ""
+                desarrollado_por = Usuario.objects.filter(correo_electronico=email_dev).first() if email_dev else None
+
+                email_resguardo = row[11].strip() if len(row) > 11 else ""
+                responsable_resguardo = Usuario.objects.filter(correo_electronico=email_resguardo).first() if email_resguardo else None
+
+                fecha_respaldo = row[12].strip() if len(row) > 12 else None
+                formato_respaldo = row[13].strip() if len(row) > 13 else None
+                medio_respaldo = row[14].strip() if len(row) > 14 else None
+                plazo_conservacion = row[15].strip() if len(row) > 15 else None
+                observaciones = row[16].strip() if len(row) > 16 else None
+
+                # Creación o actualización masiva
+                Sistema.objects.update_or_create(
+                    nombre=nombre,
+                    defaults={
+                        'activo': True,
+                        'version': version,
+                        'formato_sistema': formato_sistema,
+                        'objetivo_descripcion': objetivo_descripcion,
+                        'cifra_usuarios': cifra_usuarios,
+                        'acceso_recurso': acceso_recurso,
+                        'servidor_alojamiento': servidor_alojamiento,
+                        'ubicacion_servidor': ubicacion_servidor,
+                        'nombre_bd': nombre_bd,
+                        'informacion_tecnica': informacion_tecnica,
+                        'desarrollado_por': desarrollado_por,
+                        'responsable_resguardo': responsable_resguardo,
+                        'fecha_respaldo': fecha_respaldo,
+                        'formato_respaldo': formato_respaldo,
+                        'medio_respaldo': medio_respaldo,
+                        'plazo_conservacion': plazo_conservacion,
+                        'observaciones': observaciones,
+                    }
+                )
+        except Exception as e:
+            return HttpResponse(f"Error al procesar el archivo: {str(e)}", status=500)
+
+    # Re-renderizado de la pestaña principal limpia con los nuevos datos cargados
+    sistemas = Sistema.objects.all().order_by('nombre')
+    try:
+        tecnicos = Usuario.objects.filter(rol__in=['tecnico', 'admin']).order_by('nombre_completo')
+    except Exception:
+        tecnicos = Usuario.objects.filter(is_staff=True).order_by('username')
+
+    return render(request, 'configuracion/partials/sistemas.html', {'sistemas': sistemas, 'tecnicos': tecnicos})

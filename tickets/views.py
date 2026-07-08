@@ -1822,6 +1822,7 @@ def panel_usuario_editar(request, user_id):
 def panel_usuario_importar_csv(request):
     """
     📥 ACCIÓN / MODAL HTMX: Procesa de forma masiva la inserción de personal vía CSV
+    Incluye soporte para Número Telefónico y Extensión institucional.
     """
     if request.user.rol != 'admin':
         return HttpResponse("No autorizado", status=403)
@@ -1833,12 +1834,13 @@ def panel_usuario_importar_csv(request):
 
         data_set = csv_file.read().decode('UTF-8')
         io_string = io.StringIO(data_set)
-        next(io_string)
+        next(io_string)  # Omitir la cabecera del CSV
 
         for row in csv.reader(io_string, delimiter=','):
             if len(row) < 2:
                 continue
             
+            # Mapeo de columnas por posiciones (0 a 6)
             correo = row[0].strip()
             nombre = row[1].strip()
             num_emp = row[2].strip() if len(row) > 2 else None
@@ -1846,6 +1848,10 @@ def panel_usuario_importar_csv(request):
             cct_val = row[4].strip() if len(row) > 4 else None
             region = row[5].strip() if len(row) > 5 else None
             nivel = row[6].strip() if len(row) > 6 else None
+            
+            # 🚀 NUEVO: Extracción segura de Teléfono y Extensión (Posiciones 7 y 8)
+            tel_val = row[7].strip() if len(row) > 7 else None
+            ext_val = row[8].strip() if len(row) > 8 else None
 
             if correo and nombre:
                 usuario, creado = Usuario.objects.get_or_create(
@@ -1857,6 +1863,8 @@ def panel_usuario_importar_csv(request):
                         'cct': cct_val,
                         'region_zona': region,
                         'nivel_educativo': nivel,
+                        'telefono': tel_val,     # 📱 Agregado al defaults
+                        'extension': ext_val,    # 📞 Agregado al defaults
                         'rol': 'usuario'
                     }
                 )
@@ -1864,14 +1872,19 @@ def panel_usuario_importar_csv(request):
                     usuario.set_password(num_emp if num_emp else "Seech2026*")
                     usuario.save()
                 else:
+                    # Actualización de datos si el usuario ya existía en la BD
                     usuario.numero_empleado = num_emp
                     usuario.puesto_cargo = puesto
                     usuario.cct = cct_val
                     usuario.region_zona = region
                     usuario.nivel_educativo = nivel
+                    usuario.telefono = tel_val     # 📱 Actualiza teléfono
+                    usuario.extension = ext_val    # 📞 Actualiza extensión
                     usuario.save()
 
-        usuarios = Usuario.objects.all().order_by('-fecha_registro')
+        # Si manejas 'fecha_registro' o 'id' como ordenamiento, asegúrate de mantenerlo
+        # Cambié a '-id' como un fallback seguro en caso de variaciones en los modelos de ordenamiento
+        usuarios = Usuario.objects.all().order_by('-id')
         return render(request, 'usuarios/partials/usuarios_row.html', {'usuarios': usuarios})
 
     return render(request, 'usuarios/partials/modal_csv.html')

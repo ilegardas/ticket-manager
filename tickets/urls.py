@@ -83,6 +83,8 @@ urlpatterns = [
     path('panel/configuracion/categorias/', views.panel_config_categorias, name='panel_config_categorias'),
     path('panel/configuracion/categorias/<int:pk>/eliminar/', views.panel_config_categoria_eliminar, name='panel_config_categoria_eliminar'),
     path('panel/configuracion/sistemas/crear-modal/', views.panel_config_sistema_crear_modal, name='panel_config_sistema_crear_modal'),
+    path('panel/configuracion/sistemas/csv-modal/', views.panel_config_sistema_csv_modal, name='panel_config_sistema_csv_modal'),
+    path('panel/configuracion/sistemas/importar-csv/', views.panel_config_sistema_importar_csv, name='panel_config_sistema_importar_csv'),
     
     # Módulo de Reportería Avanzada y Descargas
     path('panel/reportes/', views.panel_reportes_avanzados, name='panel_reportes_avanzados'),

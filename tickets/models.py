@@ -39,6 +39,8 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     activo = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     fecha_registro = models.DateTimeField(auto_now_add=True)
+    telefono = models.CharField(max_length=20, blank=True, null=True, verbose_name="Número Telefónico")
+    extension = models.CharField(max_length=10, blank=True, null=True, verbose_name="Extensión")
 
     objects = UsuarioManager()
 

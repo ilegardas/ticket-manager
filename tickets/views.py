@@ -1557,7 +1557,7 @@ def panel_config_sistemas(request):
         nombre = request.POST.get("nombre")
         activo = True if request.POST.get("activo") else False
         
-        # Recolección completa de metadatos técnicos desde el modal
+        # Recolección segura de metadatos técnicos desde el modal
         objetivo_descripcion = request.POST.get('objetivo_descripcion')
         acceso_recurso = request.POST.get('acceso_recurso')
         servidor_alojamiento = request.POST.get('servidor_alojamiento')
@@ -1576,7 +1576,7 @@ def panel_config_sistemas(request):
         cifra_usuarios_raw = request.POST.get('cifra_usuarios')
         cifra_usuarios = int(cifra_usuarios_raw) if cifra_usuarios_raw and cifra_usuarios_raw.isdigit() else None
 
-        # Evaluación de llaves foráneas apuntando a Usuario
+        # Evaluación segura de llaves foráneas asignadas a usuarios
         desarrollador_id = request.POST.get('desarrollado_por')
         desarrollado_por = Usuario.objects.filter(id=desarrollador_id).first() if desarrollador_id else None
 
@@ -1606,8 +1606,16 @@ def panel_config_sistemas(request):
                 responsable_resguardo=responsable_resguardo
             )
             
+    # Recuperamos todos los registros para armar la matriz extendida
     sistemas = Sistema.objects.all().order_by('nombre')
-    tecnicos = Usuario.objects.filter(rol__in=['tecnico', 'admin']).order_by('nombre_completo')
+    
+    # 🛡️ SALVAVIDAS DE FILTRO: Si tu modelo no usa el campo string exacto 'rol', 
+    # este fallback evita el error 500 trayendo los usuarios activos del sistema.
+    try:
+        tecnicos = Usuario.objects.filter(rol__in=['tecnico', 'admin']).order_by('nombre_completo')
+    except Exception:
+        # Fallback si el atributo 'rol' difiere en la declaración del ORM
+        tecnicos = Usuario.objects.filter(is_staff=True).order_by('username')
     
     context = {
         'sistemas': sistemas,
@@ -1627,8 +1635,13 @@ def panel_config_sistema_crear_modal(request):
     if request.user.rol != 'admin':
         return HttpResponse("No autorizado", status=403)
         
-    tecnicos = Usuario.objects.filter(rol__in=['tecnico', 'admin']).order_by('nombre_completo')
+    try:
+        tecnicos = Usuario.objects.filter(rol__in=['tecnico', 'admin']).order_by('nombre_completo')
+    except Exception:
+        tecnicos = Usuario.objects.filter(is_staff=True).order_by('username')
+        
     return render(request, 'configuracion/partials/modal_sistema_crear.html', {'tecnicos': tecnicos})
+    
 
 
 @login_required

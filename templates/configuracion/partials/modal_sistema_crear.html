@@ -1,0 +1,152 @@
+<div class="fixed inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4" id="modal-sistema-crear">
+    <div class="bg-white dark:bg-darkPanel rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 w-full max-w-4xl overflow-hidden max-h-[90vh] flex flex-col">
+        <div class="bg-slate-50 dark:bg-darkBg px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shrink-0">
+            <h3 class="text-sm font-bold text-slate-800 dark:text-amber-400 uppercase tracking-wide">➕ Registrar Sistema en Inventario de Gobernanza</h3>
+            <button onclick="document.getElementById('modal-sistema-crear').remove()" class="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-white font-bold text-lg">✕</button>
+        </div>
+        
+        <form hx-post="{% url 'panel_config_sistemas' %}" 
+              hx-target="#tab-content"
+              hx-on::after-request="if(event.detail.xhr.status === 200) document.getElementById('modal-sistema-crear').remove()"
+              class="p-6 space-y-5 overflow-y-auto text-xs">
+            {% csrf_token %}
+            
+            <div class="bg-slate-50/50 dark:bg-darkBg/30 p-4 rounded-xl border border-slate-100 dark:border-slate-800/60 space-y-4">
+                <h4 class="font-bold text-blue-600 dark:text-amber-400 text-[10px] uppercase tracking-wider flex items-center gap-1">📌 Identificación y Propósito</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">Nombre del Sistema:</label>
+                        <input type="text" name="nombre" required placeholder="Ej. Odoo, SIA, Intranet"
+                               class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">Versión Actual:</label>
+                        <input type="text" name="version" placeholder="Ej. v18.0.2"
+                               class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">Formato / Arquitectura:</label>
+                        <input type="text" name="formato_sistema" placeholder="Ej. Web App (SaaS), Desktop"
+                               class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="sm:col-span-2">
+                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">Objetivo y Descripción General:</label>
+                        <textarea name="objetivo_descripcion" rows="2" placeholder="Describe el alcance e impacto institucional de este software..."
+                                  class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition"></textarea>
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">Cifra Usuarios Activos:</label>
+                        <input type="number" name="cifra_usuarios" placeholder="Ej. 450"
+                               class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition">
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-50/50 dark:bg-darkBg/30 p-4 rounded-xl border border-slate-100 dark:border-slate-800/60 space-y-4">
+                <h4 class="font-bold text-blue-600 dark:text-amber-400 text-[10px] uppercase tracking-wider flex items-center gap-1">🌐 Infraestructura y Acceso Técnico</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">URL / IP de Acceso:</label>
+                        <input type="text" name="acceso_recurso" placeholder="Ej. https://migestion.pro"
+                               class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">Hosting / Alojamiento:</label>
+                        <input type="text" name="servidor_alojamiento" placeholder="Ej. Railway, AWS, Local"
+                               class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">Ubicación Servidor / Región:</label>
+                        <input type="text" name="ubicacion_servidor" placeholder="Ej. US-East, SITE Central"
+                               class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">Nombre Base de Datos:</label>
+                        <input type="text" name="nombre_bd" placeholder="Ej. db_prod_seech"
+                               class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">Información Técnica / Stack:</label>
+                        <input type="text" name="informacion_tecnica" placeholder="Ej. Python, Django, PostgreSQL, Tailwind"
+                               class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition">
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-50/50 dark:bg-darkBg/30 p-4 rounded-xl border border-slate-100 dark:border-slate-800/60 space-y-4">
+                <h4 class="font-bold text-blue-600 dark:text-amber-400 text-[10px] uppercase tracking-wider flex items-center gap-1">👥 Responsabilidades (Usuarios)</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">🛠️ Desarrollado Por:</label>
+                        <select name="desarrollado_por" class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 font-medium transition">
+                            <option value="">-- Seleccionar Desarrollador --</option>
+                            {% for tec in tecnicos %}
+                            <option value="{{ tec.id }}">{{ tec.nombre_completo }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">💾 Custodio / Resguardo de Fuentes:</label>
+                        <select name="responsable_resguardo" class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 font-medium transition">
+                            <option value="">-- Seleccionar Responsable --</option>
+                            {% for tec in tecnicos %}
+                            <option value="{{ tec.id }}">{{ tec.nombre_completo }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">🔗 Documentación / Git:</label>
+                        <input type="text" name="documentacion" placeholder="Ej. https://github.com/seech/repo"
+                               class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition">
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-50/50 dark:bg-darkBg/30 p-4 rounded-xl border border-slate-100 dark:border-slate-800/60 space-y-4">
+                <h4 class="font-bold text-blue-600 dark:text-amber-400 text-[10px] uppercase tracking-wider flex items-center gap-1">🔒 Políticas de Continuidad y Respaldo</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">📅 Frecuencia Respaldo:</label>
+                        <input type="text" name="fecha_respaldo" placeholder="Ej. Diaria 02:00 AM"
+                               class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">📦 Formato Respaldo:</label>
+                        <input type="text" name="formato_respaldo" placeholder="Ej. .SQL Dump"
+                               class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">💽 Medio Destino:</label>
+                        <input type="text" name="medio_respaldo" placeholder="Ej. Cloud Storage"
+                               class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">⏳ Retención Histórica:</label>
+                        <input type="text" name="plazo_conservacion" placeholder="Ej. 1 Año"
+                               class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition">
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">🗒️ Observaciones Técnicas:</label>
+                    <textarea name="observaciones" rows="2" placeholder="Notas adicionales..."
+                              class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition"></textarea>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-4 shrink-0">
+                <div class="flex items-center">
+                    <input type="checkbox" name="activo" id="modal-sis-activo" checked class="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-blue-600 dark:text-amber-500 focus:ring-blue-500 bg-white dark:bg-darkBg">
+                    <label for="modal-sis-activo" class="ml-2 font-semibold text-slate-600 dark:text-slate-300">Activar e Ingresar de Inmediato al Catálogo</label>
+                </div>
+                <div class="flex gap-2">
+                    <button type="button" onclick="document.getElementById('modal-sistema-crear').remove()" class="px-4 py-2 bg-slate-100 dark:bg-darkBg text-slate-600 dark:text-slate-300 rounded-lg font-semibold hover:bg-slate-200 dark:hover:bg-slate-800 transition">Cancelar</button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-500 dark:bg-amber-500 dark:hover:bg-amber-600 text-white dark:text-slate-950 font-bold py-2 px-5 rounded-lg shadow-sm transition">🚀 Registrar</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

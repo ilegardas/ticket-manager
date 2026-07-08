@@ -1,0 +1,34 @@
+<div class="fixed inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4" id="modal-sistema-csv">
+    <div class="bg-white dark:bg-darkPanel rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 w-full max-w-lg overflow-hidden">
+        <div class="bg-slate-50 dark:bg-darkBg px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+            <h3 class="text-sm font-bold text-slate-800 dark:text-amber-400">📥 Importar Matriz de Sistemas mediante CSV</h3>
+            <button onclick="document.getElementById('modal-sistema-csv').remove()" class="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-white font-bold text-lg">×</button>
+        </div>
+        
+        <form hx-post="{% url 'panel_config_sistema_importar_csv' %}" 
+              hx-encoding="multipart/form-data"
+              hx-target="#tab-content"
+              hx-on::after-request="if(event.detail.xhr.status === 200) document.getElementById('modal-sistema-csv').remove()"
+              class="p-6 space-y-4 text-xs">
+            {% csrf_token %}
+            
+            <div class="bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 rounded-lg p-3 text-blue-800 dark:text-blue-300 text-[10px] leading-relaxed">
+                💡 <strong>Estructura estricta del encabezado CSV (Delimitado por comas):</strong>
+                <code class="font-mono bg-white/60 dark:bg-darkBg/60 px-1 py-0.5 rounded block mt-1 text-slate-800 dark:text-slate-200 overflow-x-auto whitespace-nowrap">nombre,version,formato_sistema,objetivo_descripcion,cifra_usuarios,acceso_recurso,servidor_alojamiento,ubicacion_servidor,nombre_bd,informacion_tecnica,desarrollado_por_email,responsable_resguardo_email,fecha_respaldo,formato_respaldo,medio_respaldo,plazo_conservacion,observaciones</code>
+                <p class="mt-1 text-slate-400 font-medium">* Nota: Para los desarrolladores y custodios, coloca su correo institucional para que el sistema los enlace automáticamente.</p>
+            </div>
+
+            <div class="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-6 text-center hover:bg-slate-50 dark:hover:bg-darkBg/40 transition relative">
+                <input type="file" name="file" accept=".csv" required class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                <div class="text-2xl mb-1">📄</div>
+                <p class="text-xs font-bold text-slate-700 dark:text-slate-200">Haz clic o arrastra tu archivo de inventario .CSV aquí</p>
+                <p class="text-[10px] text-slate-400 dark:text-darkTextSub mt-0.5 font-medium">Solo archivos con codificación UTF-8</p>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button type="button" onclick="document.getElementById('modal-sistema-csv').remove()" class="px-4 py-2 bg-slate-100 dark:bg-darkBg text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg font-semibold">Cancelar</button>
+                <button type="submit" class="px-4 py-2 bg-slate-950 dark:bg-amber-500 hover:bg-slate-800 dark:hover:bg-amber-600 text-white dark:text-slate-950 rounded-lg font-bold shadow-sm transition">🚀 Iniciar Carga Masiva</button>
+            </div>
+        </form>
+    </div>
+</div>

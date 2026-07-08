@@ -1548,19 +1548,77 @@ def panel_conocimiento_crear(request):
 @login_required
 def panel_config_sistemas(request):
     """
-    🖥️ CATÁLOGO DE SISTEMAS: Lista y crea de forma asíncrona
+    🖥️ CATÁLOGO DE SISTEMAS: Lista y crea de forma asíncrona con Gobierno Técnico Completo
     """
+    if request.user.rol != 'admin':
+        return HttpResponse("No autorizado", status=403)
+
     if request.method == "POST":
         nombre = request.POST.get("nombre")
         activo = True if request.POST.get("activo") else False
+        
+        # 🚀 RECOLECCIÓN DE METADATOS TÉCNICOS (Inventario y Respaldo)
+        objetivo_descripcion = request.POST.get('objetivo_descripcion')
+        acceso_recurso = request.POST.get('acceso_recurso')
+        servidor_alojamiento = request.POST.get('servidor_alojamiento')
+        informacion_tecnica = request.POST.get('informacion_tecnica')
+        version = request.POST.get('version')
+        documentacion = request.POST.get('documentacion')
+        nombre_bd = request.POST.get('nombre_bd')
+        formato_sistema = request.POST.get('formato_sistema')
+        ubicacion_servidor = request.POST.get('ubicacion_servidor')
+        plazo_conservacion = request.POST.get('plazo_conservacion')
+        fecha_respaldo = request.POST.get('fecha_respaldo')
+        formato_respaldo = request.POST.get('formato_respaldo')
+        medio_respaldo = request.POST.get('medio_respaldo')
+        observaciones = request.POST.get('observaciones')
+        
+        cifra_usuarios_raw = request.POST.get('cifra_usuarios')
+        cifra_usuarios = int(cifra_usuarios_raw) if cifra_usuarios_raw and cifra_usuarios_raw.isdigit() else None
+
+        # 🚀 EVALUACIÓN SEGURA DE LLAVES FORÁNEAS (Asociación a tu modelo Usuario)
+        desarrollador_id = request.POST.get('desarrollado_por')
+        desarrollado_por = Usuario.objects.filter(id=desarrollador_id).first() if desarrollador_id else None
+
+        resguardo_id = request.POST.get('responsable_resguardo')
+        responsable_resguardo = Usuario.objects.filter(id=resguardo_id).first() if resguardo_id else None
+
         if nombre:
-            Sistema.objects.create(nombre=nombre, activo=activo)
+            Sistema.objects.create(
+                nombre=nombre,
+                activo=activo,
+                objetivo_descripcion=objetivo_descripcion,
+                acceso_recurso=acceso_recurso,
+                servidor_alojamiento=servidor_alojamiento,
+                informacion_tecnica=informacion_tecnica,
+                version=version,
+                cifra_usuarios=cifra_usuarios,
+                documentacion=documentacion,
+                nombre_bd=nombre_bd,
+                formato_sistema=formato_sistema,
+                ubicacion_servidor=ubicacion_servidor,
+                plazo_conservacion=plazo_conservacion,
+                fecha_respaldo=fecha_respaldo,
+                formato_respaldo=formato_respaldo,
+                medio_respaldo=medio_respaldo,
+                observaciones=observaciones,
+                desarrollado_por=desarrollado_por,
+                responsable_resguardo=responsable_resguardo
+            )
             
     sistemas = Sistema.objects.all().order_by('nombre')
     
+    # 🚀 Traemos los técnicos para pintar las llaves foráneas en el formulario HTML
+    tecnicos = Usuario.objects.filter(rol__in=['tecnico', 'admin']).order_by('nombre_completo')
+    
+    context = {
+        'sistemas': sistemas,
+        'tecnicos': tecnicos
+    }
+    
     if request.headers.get('HX-Request') or request.method == "POST":
-        return render(request, 'configuracion/partials/sistemas.html', {'sistemas': sistemas})
-    return render(request, 'configuracion/panel.html')
+        return render(request, 'configuracion/partials/sistemas.html', context)
+    return render(request, 'configuracion/panel.html', context)
 
 
 @login_required

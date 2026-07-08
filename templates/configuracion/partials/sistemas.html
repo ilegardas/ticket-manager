@@ -1,192 +1,120 @@
-<div class="space-y-6">
-    <div class="bg-white dark:bg-darkPanel border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm p-6">
-        <h3 class="text-sm font-bold text-slate-800 dark:text-amber-400 border-b border-slate-100 dark:border-slate-800 pb-3 mb-4 flex items-center gap-2">
-            ➕ Registrar Sistema en Inventario de Gobernanza
-        </h3>
-        
-        <form hx-post="{% url 'panel_config_sistemas' %}" hx-target="#tab-content" class="space-y-6 text-xs">
-            {% csrf_token %}
-            
-            <div class="bg-slate-50/50 dark:bg-darkBg/30 p-4 rounded-xl border border-slate-100 dark:border-slate-800/60 space-y-4">
-                <h4 class="font-bold text-slate-700 dark:text-slate-300 text-[11px] uppercase tracking-wider">📌 Identificación y Propósito</h4>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">Nombre del Sistema:</label>
-                        <input type="text" name="nombre" required placeholder="Ej. Odoo, SIA, Intranet"
-                               class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition">
-                    </div>
-                    <div>
-                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">Versión Actual:</label>
-                        <input type="text" name="version" placeholder="Ej. v18.0.2"
-                               class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition">
-                    </div>
-                    <div>
-                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">Formato / Arquitectura:</label>
-                        <input type="text" name="formato_sistema" placeholder="Ej. Web App (SaaS), Desktop, On-Premise"
-                               class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition">
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="md:col-span-2">
-                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">Objetivo y Descripción General:</label>
-                        <textarea name="objetivo_descripcion" rows="2" placeholder="Describe brevemente el alcance e impacto institucional de este sistema..."
-                                  class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition"></textarea>
-                    </div>
-                    <div>
-                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">Cifra Est. Usuarios Activos:</label>
-                        <input type="number" name="cifra_usuarios" placeholder="Ej. 450"
-                               class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition">
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-slate-50/50 dark:bg-darkBg/30 p-4 rounded-xl border border-slate-100 dark:border-slate-800/60 space-y-4">
-                <h4 class="font-bold text-slate-700 dark:text-slate-300 text-[11px] uppercase tracking-wider">🌐 Infraestructura y Acceso Técnico</h4>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">URL de Acceso / Recurso (IP):</label>
-                        <input type="text" name="acceso_recurso" placeholder="Ej. https://migestion.pro o 192.168.1.50"
-                               class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition">
-                    </div>
-                    <div>
-                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">Servidor / Alojamiento (Hosting):</label>
-                        <input type="text" name="servidor_alojamiento" placeholder="Ej. Railway, GCS, Hostinger, Local"
-                               class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition">
-                    </div>
-                    <div>
-                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">Ubicación Física / Región Nube:</label>
-                        <input type="text" name="ubicacion_servidor" placeholder="Ej. US-East (Nube), SITE Central SEECH"
-                               class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition">
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">Nombre Físico de Base de Datos:</label>
-                        <input type="text" name="nombre_bd" placeholder="Ej. db_odoo_prod"
-                               class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition">
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">Información Técnica / Stack Tecnológico:</label>
-                        <input type="text" name="informacion_tecnica" placeholder="Ej. Python 3.13, Django 5.1, PostgreSQL, Tailwind, HTMX"
-                               class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition">
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-slate-50/50 dark:bg-darkBg/30 p-4 rounded-xl border border-slate-100 dark:border-slate-800/60 space-y-4">
-                <h4 class="font-bold text-slate-700 dark:text-slate-300 text-[11px] uppercase tracking-wider">👥 Responsabilidades y Gobernancia</h4>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">🛠️ Desarrollado Por:</label>
-                        <select name="desarrollado_por" class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition font-medium">
-                            <option value="">-- Seleccionar Área / Desarrollador --</option>
-                            {% for tec in tecnicos %}
-                            <option value="{{ tec.id }}">{{ tec.nombre_completo }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">💾 Custodio / Resguardo de Código:</label>
-                        <select name="responsable_resguardo" class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition font-medium">
-                            <option value="">-- Seleccionar Responsable Fuertemente Asignado --</option>
-                            {% for tec in tecnicos %}
-                            <option value="{{ tec.id }}">{{ tec.nombre_completo }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">🔗 Enlace a Documentación / Git:</label>
-                        <input type="text" name="documentacion" placeholder="Ej. https://github.com/seech/repo o enlace a Drive"
-                               class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition">
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-slate-50/50 dark:bg-darkBg/30 p-4 rounded-xl border border-slate-100 dark:border-slate-800/60 space-y-4">
-                <h4 class="font-bold text-slate-700 dark:text-slate-300 text-[11px] uppercase tracking-wider">🔒 Políticas de Continuidad y Respaldo</h4>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">📅 Frecuencia de Respaldo:</label>
-                        <input type="text" name="fecha_respaldo" placeholder="Ej. Diaria a las 02:00 AM"
-                               class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition">
-                    </div>
-                    <div>
-                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">📦 Formato del Respaldo:</label>
-                        <input type="text" name="formato_respaldo" placeholder="Ej. .SQL Dump, Compressed TAR"
-                               class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition">
-                    </div>
-                    <div>
-                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">💽 Medio / Destino Respaldo:</label>
-                        <input type="text" name="medio_respaldo" placeholder="Ej. Google Cloud Storage, NAS Local"
-                               class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition">
-                    </div>
-                    <div>
-                        <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">⏳ Retención Histórica:</label>
-                        <input type="text" name="plazo_conservacion" placeholder="Ej. 1 Año, 5 Años Fiscales"
-                               class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition">
-                    </div>
-                </div>
-                <div>
-                    <label class="block font-semibold text-slate-500 dark:text-darkTextSub mb-1">🗒️ Observaciones Técnicas Complementarias:</label>
-                    <textarea name="observaciones" rows="2" placeholder="Notas de control de incidentes recurrentes, dependencias del sistema operativo o excepciones de parches..."
-                              class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition"></textarea>
-                </div>
-            </div>
-
-            <div class="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-4">
-                <div class="flex items-center">
-                    <input type="checkbox" name="activo" id="sis-activo" checked class="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-blue-600 dark:text-amber-500 focus:ring-blue-500 bg-white dark:bg-darkBg">
-                    <label for="sis-activo" class="ml-2 text-xs font-semibold text-slate-600 dark:text-slate-300">Habilitar e Ingressar de Inmediato al Catálogo Activo</label>
-                </div>
-                <button type="submit" class="bg-blue-600 hover:bg-blue-500 dark:bg-amber-500 dark:hover:bg-amber-600 text-white dark:text-slate-950 font-bold text-xs py-2.5 px-6 rounded-lg shadow-sm transition">
-                    🚀 Guardar e Incorporar Sistema
-                </button>
-            </div>
-        </form>
+<div class="space-y-4 text-xs">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white dark:bg-darkPanel border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
+        <div>
+            <h3 class="text-sm font-bold text-slate-800 dark:text-amber-400 uppercase tracking-wide">🖥️ Inventario y Gobernanza de Sistemas</h3>
+            <p class="text-[11px] text-slate-400 dark:text-darkTextSub mt-0.5">Matriz completa de ciclo de vida, stack técnico, esquemas de respaldo y custodios asignados.</p>
+        </div>
+        <button hx-get="{% url 'panel_config_sistema_crear_modal' %}" 
+                hx-target="#modals-container" 
+                hx-trigger="click"
+                class="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 dark:bg-amber-500 dark:hover:bg-amber-600 text-white dark:text-slate-950 font-bold py-2 px-4 rounded-lg shadow-sm transition flex items-center justify-center gap-1.5 shrink-0">
+            ➕ Registrar Nuevo Sistema
+        </button>
     </div>
 
     <div class="bg-white dark:bg-darkPanel border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
-        <table class="w-full text-left border-collapse">
-            <thead>
-                <tr class="bg-slate-50 dark:bg-darkBg/50 border-b border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                    <th class="py-3 px-4">ID</th>
-                    <th class="py-3 px-4">Nombre del Sistema</th>
-                    <th class="py-3 px-4">Versión</th>
-                    <th class="py-3 px-4">Hosting / Servidor</th>
-                    <th class="py-3 px-4 text-center">Estado</th>
-                    <th class="py-3 px-4 text-right">Acciones</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-xs text-slate-600 dark:text-slate-300">
-                {% for sis in sistemas %}
-                <tr class="hover:bg-slate-50/50 dark:hover:bg-darkBg/40 transition">
-                    <td class="py-3 px-4 font-mono font-bold text-slate-400 dark:text-darkTextSub">#{{ sis.id }}</td>
-                    <td class="py-3 px-4 font-semibold text-slate-800 dark:text-slate-100">{{ sis.nombre }}</td>
-                    <td class="py-3 px-4 font-medium font-mono text-slate-500 dark:text-darkTextSub">{{ sis.version|default:"—" }}</td>
-                    <td class="py-3 px-4 text-slate-500 dark:text-darkTextSub">{{ sis.servidor_alojamiento|default:"—" }}</td>
-                    <td class="py-3 px-4 text-center">
-                        {% if sis.activo %}
-                        <span class="inline-flex items-center rounded-full bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/40">Activo</span>
-                        {% else %}
-                        <span class="inline-flex items-center rounded-full bg-slate-50 dark:bg-darkBg px-2 py-0.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800">Inactivo</span>
-                        {% endif %}
-                    </td>
-                    <td class="py-3 px-4 text-right">
-                        <button hx-post="{% url 'panel_config_sistema_eliminar' sis.id %}"
-                                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                                hx-target="#tab-content"
-                                hx-confirm="¿Estás seguro de que deseas eliminar este sistema del inventario de gobernanza?"
-                                class="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-bold p-1 hover:underline text-[11px]">
-                            🗑️ Eliminar
-                        </button>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="6" class="text-center py-6 text-slate-400 dark:text-darkTextSub/60">No hay sistemas registrados en el inventario.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse whitespace-nowrap">
+                <thead>
+                    <tr class="bg-slate-50 dark:bg-darkBg/50 border-b border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+                        <th class="py-3 px-4">ID</th>
+                        <th class="py-3 px-4">Sistema / Versión</th>
+                        <th class="py-3 px-4">Infraestructura y Acceso</th>
+                        <th class="py-3 px-4">Stack Tecnológico / BD</th>
+                        <th class="py-3 px-4">Gobernancia y Resguardo</th>
+                        <th class="py-3 px-4">Esquema de Respaldos</th>
+                        <th class="py-3 px-4 text-center">Estado</th>
+                        <th class="py-3 px-4 text-right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-slate-600 dark:text-slate-300">
+                    {% for sis in sistemas %}
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-darkBg/40 transition align-top">
+                        <td class="py-4 px-4 font-mono font-bold text-slate-400 dark:text-darkTextSub">#{{ sis.id }}</td>
+                        
+                        <td class="py-4 px-4">
+                            <div class="font-bold text-slate-800 dark:text-slate-100 text-[13px]">{{ sis.nombre }}</div>
+                            <div class="flex items-center gap-2 mt-0.5 text-[10px]">
+                                <span class="bg-slate-100 dark:bg-darkBg px-1.5 py-0.5 rounded font-mono text-slate-500 dark:text-darkTextSub">Ver: {{ sis.version|default:"1.0" }}</span>
+                                <span class="text-slate-400">•</span>
+                                <span class="text-slate-500 dark:text-slate-400 font-medium">{{ sis.formato_sistema|default:"Web App" }}</span>
+                            </div>
+                            {% if sis.objetivo_descripcion %}
+                            <p class="text-[11px] text-slate-400 dark:text-darkTextSub mt-1 max-w-xs whitespace-normal line-clamp-2" title="{{ sis.objetivo_descripcion }}">
+                                {{ sis.objetivo_descripcion }}
+                            </p>
+                            {% endif %}
+                        </td>
+                        
+                        <td class="py-4 px-4">
+                            {% if sis.acceso_recurso %}
+                            <a href="{{ sis.acceso_recurso }}" target="_blank" class="text-blue-500 dark:text-amber-400 font-medium hover:underline flex items-center gap-1 mb-1 max-w-xs overflow-hidden text-ellipsis">
+                                🔗 Enlace de Acceso
+                            </a>
+                            {% else %}
+                            <span class="block text-slate-400 dark:text-darkTextSub font-mono mb-1">—</span>
+                            {% endif %}
+                            <div class="text-[10px] space-y-0.5 text-slate-500 dark:text-slate-400">
+                                <div><span class="font-semibold">Host:</span> {{ sis.servidor_alojamiento|default:"No especificado" }}</div>
+                                <div><span class="font-semibold">Región/SITE:</span> {{ sis.ubicacion_servidor|default:"—" }}</div>
+                            </div>
+                        </td>
+                        
+                        <td class="py-4 px-4">
+                            <div class="font-medium text-slate-700 dark:text-slate-200 max-w-xs whitespace-normal line-clamp-1" title="{{ sis.informacion_tecnica }}">
+                                {{ sis.informacion_tecnica|default:"Stack sin registrar" }}
+                            </div>
+                            <div class="text-[10px] space-y-0.5 text-slate-500 dark:text-slate-400 mt-1">
+                                <div><span class="font-semibold">Base de Datos:</span> <span class="font-mono">{{ sis.nombre_bd|default:"—" }}</span></div>
+                                <div><span class="font-semibold">Usuarios Concurrentes:</span> {{ sis.cifra_usuarios|default:"0" }} cap.</div>
+                            </div>
+                        </td>
+                        
+                        <td class="py-4 px-4 space-y-1">
+                            <div>
+                                <span class="text-[10px] text-slate-400 uppercase font-bold block">Desarrollado Por:</span>
+                                <span class="font-medium text-slate-700 dark:text-slate-200">{{ sis.desarrollado_por.nombre_completo|default:"Área Externa / Proveedor" }}</span>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-400 uppercase font-bold block">Custodio / Git:</span>
+                                <span class="font-medium text-slate-700 dark:text-slate-200">{{ sis.responsable_resguardo.nombre_completo|default:"Mesa de Ayuda SEECH" }}</span>
+                            </div>
+                        </td>
+                        
+                        <td class="py-4 px-4 text-[11px]">
+                            <div class="font-bold text-slate-700 dark:text-slate-200">⏳ Retención: {{ sis.plazo_conservacion|default:"No definida" }}</div>
+                            <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 space-y-0.5">
+                                <div><span class="font-semibold">Freq:</span> {{ sis.fecha_respaldo|default:"—" }}</div>
+                                <div><span class="font-semibold">Formato:</span> {{ sis.formato_respaldo|default:"—" }}</div>
+                                <div><span class="font-semibold">Medio:</span> {{ sis.medio_respaldo|default:"—" }}</div>
+                            </div>
+                        </td>
+                        
+                        <td class="py-4 px-4 text-center">
+                            {% if sis.activo %}
+                            <span class="inline-flex items-center rounded-full bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/40">Activo</span>
+                            {% else %}
+                            <span class="inline-flex items-center rounded-full bg-slate-50 dark:bg-darkBg px-2 py-0.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800">Inactivo</span>
+                            {% endif %}
+                        </td>
+                        
+                        <td class="py-4 px-4 text-right">
+                            <button hx-post="{% url 'panel_config_sistema_eliminar' sis.id %}"
+                                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                                    hx-target="#tab-content"
+                                    hx-confirm="¿Estás seguro de que deseas eliminar este sistema del inventario de gobernanza?"
+                                    class="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-bold p-1 hover:underline text-[11px]">
+                                🗑️ Eliminar
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-8 text-slate-400 dark:text-darkTextSub/60 font-medium">No hay sistemas registrados en la base de datos de gobernanza.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>

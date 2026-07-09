@@ -110,7 +110,7 @@ class Sistema(models.Model):
     plazo_conservacion = models.CharField(max_length=100, blank=True, null=True)
     observaciones = models.TextField(blank=True, null=True)
 
-    modulos = models.ManyToManyField(Modulo, blank=True, related_name='sistemas')
+    modulos = models.ManyToManyField('Modulo', blank=True, related_name='sistemas')
 
     class Meta:
         verbose_name = 'Sistema'

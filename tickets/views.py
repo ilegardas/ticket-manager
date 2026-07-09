@@ -18,7 +18,7 @@ from datetime import timedelta, datetime
 from django.core.mail import EmailMessage
 from django.db.models.functions import TruncDate
 from .models import RelacionUsuarioSistema
-
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 import csv
 import io
@@ -1549,6 +1549,7 @@ def panel_conocimiento_crear(request):
 def panel_config_sistemas(request):
     """
     🖥️ CATÁLOGO DE SISTEMAS: Lista y crea de forma asíncrona con Gobierno Técnico Completo
+    Paginación progresiva reactiva (Infinite Scroll / Lazy Loading) vía HTMX integrada.
     """
     if request.user.rol != 'admin':
         return HttpResponse("No autorizado", status=403)
@@ -1578,10 +1579,10 @@ def panel_config_sistemas(request):
 
         # Evaluación segura de llaves foráneas asignadas a usuarios
         desarrollador_id = request.POST.get('desarrollado_por')
-        desarrollado_por = Usuario.objects.filter(id=desarrollador_id).first() if desarrollador_id else None
+        desarrollador_by = Usuario.objects.filter(id=desarrollador_id).first() if desarrollador_id else None
 
         resguardo_id = request.POST.get('responsable_resguardo')
-        responsable_resguardo = Usuario.objects.filter(id=resguardo_id).first() if resguardo_id else None
+        responsable_res = Usuario.objects.filter(id=resguardo_id).first() if resguardo_id else None
 
         if nombre:
             Sistema.objects.create(
@@ -1602,14 +1603,28 @@ def panel_config_sistemas(request):
                 formato_respaldo=formato_respaldo,
                 medio_respaldo=medio_respaldo,
                 observaciones=observaciones,
-                desarrollado_por=desarrollado_por,
-                responsable_resguardo=responsable_resguardo
+                desarrollado_por=desarrollador_by,
+                responsable_resguardo=responsable_res
             )
             
-    # Recuperamos todos los registros para armar la matriz extendida
-    sistemas = Sistema.objects.all().order_by('nombre')
+    # 🚀 1. Recuperamos el QuerySet base ordenado de la CMDB
+    sistemas_list = Sistema.objects.all().order_by('nombre')
     
-    # 🛡️ Fallback seguro: Trae los técnicos basándose puramente en tu modelo relacional
+    # 🚀 2. Configuración del Paginador (Ej. Lotes de 15 registros por llamada)
+    paginator = Paginator(sistemas_list, 15)
+    page_number = request.GET.get('page', 1)
+    
+    try:
+        sistemas = paginator.page(page_number)
+    except PageNotAnInteger:
+        sistemas = paginator.page(1)
+    except EmptyPage:
+        # Si HTMX pide una página que supera el final, devolvemos vacío para frenar el Scroll Infinito
+        if request.headers.get('HX-Request'):
+            return HttpResponse("")
+        sistemas = paginator.page(paginator.num_pages)
+    
+    # 🛡️ Fallback seguro de técnicos
     try:
         tecnicos = Usuario.objects.filter(rol__in=['tecnico', 'admin']).order_by('nombre_completo')
     except Exception:
@@ -1620,10 +1635,16 @@ def panel_config_sistemas(request):
         'tecnicos': tecnicos
     }
     
-    if request.headers.get('HX-Request') or request.method == "POST":
+    # 🚀 3. Ruteo de respuestas asíncronas HTMX según el origen del Trigger
+    if request.headers.get('HX-Request') and 'page' in request.GET:
+        # Se solicita únicamente la carga de nuevas filas para adjuntar abajo
+        return render(request, 'configuracion/partials/sistemas_rows.html', context)
+        
+    elif request.headers.get('HX-Request') or request.method == "POST":
+        # Carga completa de la pestaña tras registrar un nuevo sistema o cambio de tab
         return render(request, 'configuracion/partials/sistemas.html', context)
+        
     return render(request, 'configuracion/panel.html', context)
-
 
 
 @login_required

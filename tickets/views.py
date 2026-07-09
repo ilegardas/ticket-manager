@@ -2457,8 +2457,10 @@ def panel_usuario_crear(request):
         return HttpResponse("No autorizado", status=403)
 
     if request.method == "POST":
-        correo = request.POST.get("correo_electronico", "").strip()
-        nombre = request.POST.get("nombre_completo", "").strip()
+        # 🚀 Captura doble por seguridad (soporta el name del HTML y variantes de la API)
+        correo = (request.POST.get("correo_electronico") or request.POST.get("email") or "").strip()
+        nombre = (request.POST.get("nombre_completo") or request.POST.get("nombre") or "").strip()
+        
         num_emp = request.POST.get("numero_empleado", "").strip()
         puesto = request.POST.get("puesto_cargo", "").strip()
         cct_val = request.POST.get("cct", "").strip()
@@ -2466,33 +2468,41 @@ def panel_usuario_crear(request):
         nivel = request.POST.get("nivel_educativo", "").strip()
         rol_val = request.POST.get("rol", "usuario")
 
+        # 🛡️ Si faltan los campos críticos, respondemos con un mensaje claro pero amigable
         if not correo or not nombre:
-            return HttpResponse("El correo y el nombre son obligatorios.", status=400)
+            return HttpResponse('<div class="p-2 text-xs font-bold text-red-500 bg-red-50 dark:bg-red-950/20 border border-red-200 rounded-lg">⚠️ El nombre y el correo electrónico son campos obligatorios.</div>', status=200)
 
+        # Validación manual de duplicados para evitar el choque en la base de datos
         if Usuario.objects.filter(correo_electronico=correo).exists():
-            return HttpResponse('<script>alert("❌ Error: Este correo ya se encuentra registrado.");</script>', status=200)
+            return HttpResponse('<script>alert("❌ Error: Este correo ya se encuentra registrado en el sistema.");</script>', status=200)
 
-        nuevo_usuario = Usuario.objects.create(
-            correo_electronico=correo,
-            nombre_completo=nombre,
-            numero_empleado=num_emp if num_emp else None,
-            puesto_cargo=puesto if puesto else None,
-            cct=cct_val if cct_val else None,
-            region_zona=region if region else None,
-            nivel_educativo=nivel if nivel else None,
-            rol=rol_val,
-            activo=True,
-            is_staff=True if rol_val == 'admin' else False
-        )
-        
-        password_inicial = num_emp if num_emp else "Seech2026*"
-        nuevo_usuario.set_password(password_inicial)
-        nuevo_usuario.save()
+        try:
+            nuevo_usuario = Usuario.objects.create(
+                correo_electronico=correo,
+                nombre_completo=nombre,
+                numero_empleado=num_emp if num_emp else None,
+                puesto_cargo=puesto if puesto else None,
+                cct=cct_val if cct_val else None,
+                region_zona=region if region else None,
+                nivel_educativo=nivel if nivel else None,
+                rol=rol_val,
+                activo=True,
+                is_staff=True if rol_val == 'admin' else False
+            )
+            
+            # Contraseña por defecto: número de empleado o la genérica institucional
+            password_inicial = num_emp if num_emp else "Seech2026*"
+            nuevo_usuario.set_password(password_inicial)
+            nuevo_usuario.save()
 
-        return HttpResponse('<script>window.location.reload();</script>')
+            # Forzar recarga limpia del listado de personal tras la inserción exitosa
+            return HttpResponse('<script>window.location.reload();</script>')
+
+        except Exception as e:
+            return HttpResponse(f'<div class="p-2 text-xs text-red-500 font-bold">Error de persistencia: {str(e)}</div>', status=200)
 
     return render(request, 'usuarios/partials/modal_crear.html')
-
+    
 
 @login_required
 def panel_conocimiento_crear_desde_ticket(request, ticket_id):

@@ -1609,13 +1609,11 @@ def panel_config_sistemas(request):
     # Recuperamos todos los registros para armar la matriz extendida
     sistemas = Sistema.objects.all().order_by('nombre')
     
-    # 🛡️ SALVAVIDAS DE FILTRO: Si tu modelo no usa el campo string exacto 'rol', 
-    # este fallback evita el error 500 trayendo los usuarios activos del sistema.
+    # 🛡️ Fallback seguro: Trae los técnicos basándose puramente en tu modelo relacional
     try:
         tecnicos = Usuario.objects.filter(rol__in=['tecnico', 'admin']).order_by('nombre_completo')
     except Exception:
-        # Fallback si el atributo 'rol' difiere en la declaración del ORM
-        tecnicos = Usuario.objects.filter(is_staff=True).order_by('username')
+        tecnicos = Usuario.objects.all().order_by('id')
     
     context = {
         'sistemas': sistemas,
@@ -1625,6 +1623,7 @@ def panel_config_sistemas(request):
     if request.headers.get('HX-Request') or request.method == "POST":
         return render(request, 'configuracion/partials/sistemas.html', context)
     return render(request, 'configuracion/panel.html', context)
+
 
 
 @login_required
@@ -2674,7 +2673,7 @@ def panel_config_sistema_csv_modal(request):
 def panel_config_sistema_importar_csv(request):
     """
     📥 ACCIÓN HTMX: Procesa e importa de forma masiva los sistemas desde un archivo CSV.
-    Versión blindada contra errores de parseo numérico de Excel e IndexError.
+    Versión ultra-blindada contra encodigs conflictivos de Microsoft Excel (UTF-8-SIG / Latin-1)
     """
     if request.user.rol != 'admin':
         return HttpResponse("No autorizado", status=403)
@@ -2685,12 +2684,17 @@ def panel_config_sistema_importar_csv(request):
             return HttpResponse("Formato inválido. Sube un archivo .csv", status=400)
 
         try:
-            data_set = csv_file.read().decode('UTF-8')
+            # 🚀 DECODIFICACIÓN TOLERANTE A WINDOWS / EXCEL
+            try:
+                data_set = csv_file.read().decode('utf-8-sig')
+            except UnicodeDecodeError:
+                csv_file.seek(0)
+                data_set = csv_file.read().decode('latin-1')
+
             io_string = io.StringIO(data_set)
             next(io_string)  # Omitir la línea de cabecera
 
             for row in csv.reader(io_string, delimiter=','):
-                # Limpieza elemental de filas vacías
                 if not row or len(row) == 0:
                     continue
                 
@@ -2698,22 +2702,20 @@ def panel_config_sistema_importar_csv(request):
                 if not nombre:
                     continue
 
-                # Forzar a que la fila tenga al menos 17 columnas de manera segura
+                # Asegurar de forma segura las 17 posiciones
                 while len(row) < 17:
                     row.append("")
 
                 try:
-                    # Extracción limpia eliminando espacios en los extremos
                     version = row[1].strip() if row[1].strip() else None
                     formato_sistema = row[2].strip() if row[2].strip() else None
                     objetivo_descripcion = row[3].strip() if row[3].strip() else None
                     
-                    # 🚀 PARSEO NUMÉRICO ULTRA-BLINDADO (Soporta "450", "450.0" y vacíos)
+                    # Parseo numérico flotante/entero seguro
                     cifra_raw = row[4].strip()
                     cifra_usuarios = None
                     if cifra_raw:
                         try:
-                            # Primero a float por si Excel metió un ".0", luego a int
                             cifra_usuarios = int(float(cifra_raw))
                         except ValueError:
                             cifra_usuarios = None
@@ -2724,7 +2726,6 @@ def panel_config_sistema_importar_csv(request):
                     nombre_bd = row[8].strip() if row[8].strip() else None
                     informacion_tecnica = row[9].strip() if row[9].strip() else None
                     
-                    # Búsqueda relacional por correo electrónico institucional
                     email_dev = row[10].strip()
                     desarrollado_por = Usuario.objects.filter(correo_electronico=email_dev).first() if email_dev else None
 
@@ -2737,7 +2738,6 @@ def panel_config_sistema_importar_csv(request):
                     plazo_conservacion = row[15].strip() if row[15].strip() else None
                     observaciones = row[16].strip() if row[16].strip() else None
 
-                    # Upsert directo en la tabla tickets_sistema de PostgreSQL
                     Sistema.objects.update_or_create(
                         nombre=nombre,
                         defaults={
@@ -2761,18 +2761,16 @@ def panel_config_sistema_importar_csv(request):
                         }
                     )
                 except Exception as row_error:
-                    # Si una fila en específico falla, se imprime en el log pero NO tumba el proceso
                     print(f"⚠️ Error procesando la fila del sistema '{nombre}': {str(row_error)}")
                     continue
 
         except Exception as e:
             return HttpResponse(f"Error general en la lectura del archivo: {str(e)}", status=500)
 
-    # Devolvemos la respuesta exitosa re-renderizando la tabla extendida de la CMDB
     sistemas = Sistema.objects.all().order_by('nombre')
     try:
         tecnicos = Usuario.objects.filter(rol__in=['tecnico', 'admin']).order_by('nombre_completo')
     except Exception:
-        tecnicos = Usuario.objects.filter(is_staff=True).order_by('username')
+        tecnicos = Usuario.objects.all().order_by('id')
 
     return render(request, 'configuracion/partials/sistemas.html', {'sistemas': sistemas, 'tecnicos': tecnicos})

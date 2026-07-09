@@ -2785,3 +2785,76 @@ def panel_config_sistema_importar_csv(request):
         tecnicos = Usuario.objects.all().order_by('id')
 
     return render(request, 'configuracion/partials/sistemas.html', {'sistemas': sistemas, 'tecnicos': tecnicos})
+
+
+
+@login_required
+def panel_config_sistema_editar_modal(request, pk):
+    """
+    🗔 MODAL HTMX: Carga el formulario flotante con los datos actuales del Sistema.
+    """
+    if request.user.rol != 'admin':
+        return HttpResponse("No autorizado", status=403)
+        
+    sistema = get_object_or_404(Sistema, pk=pk)
+    try:
+        tecnicos = Usuario.objects.filter(rol__in=['tecnico', 'admin']).order_by('nombre_completo')
+    except Exception:
+        tecnicos = Usuario.objects.all().order_by('id')
+        
+    return render(request, 'configuracion/partials/modal_sistema_editar.html', {
+        'sistema': sistema, 
+        'tecnicos': tecnicos
+    })
+
+
+@login_required
+def panel_config_sistema_actualizar(request, pk):
+    """
+    🔄 ACCIÓN HTMX: Procesa los cambios enviados desde el modal de edición.
+    """
+    if request.user.rol != 'admin':
+        return HttpResponse("No autorizado", status=403)
+        
+    sistema = get_object_or_404(Sistema, pk=pk)
+
+    if request.method == "POST":
+        sistema.nombre = request.POST.get("nombre")
+        sistema.activo = True if request.POST.get("activo") else False
+        sistema.version = request.POST.get('version')
+        sistema.formato_sistema = request.POST.get('formato_sistema')
+        sistema.objetivo_descripcion = request.POST.get('objetivo_descripcion')
+        
+        cifra_raw = request.POST.get('cifra_usuarios')
+        sistema.cifra_usuarios = int(cifra_raw) if cifra_raw and cifra_raw.isdigit() else None
+        
+        sistema.acceso_recurso = request.POST.get('acceso_recurso')
+        sistema.servidor_alojamiento = request.POST.get('servidor_alojamiento')
+        sistema.ubicacion_servidor = request.POST.get('ubicacion_servidor')
+        sistema.nombre_bd = request.POST.get('nombre_bd')
+        sistema.informacion_tecnica = request.POST.get('informacion_tecnica')
+        sistema.documentacion = request.POST.get('documentacion')
+        
+        # Enlace de llaves foráneas directas desde el select de técnicos
+        desarrollador_id = request.POST.get('desarrollado_por')
+        sistema.desarrollado_por = Usuario.objects.filter(id=desarrollador_id).first() if desarrollador_id else None
+
+        resguardo_id = request.POST.get('responsable_resguardo')
+        sistema.responsable_resguardo = Usuario.objects.filter(id=resguardo_id).first() if resguardo_id else None
+        
+        sistema.fecha_respaldo = request.POST.get('fecha_respaldo')
+        sistema.formato_respaldo = request.POST.get('formato_respaldo')
+        sistema.medio_respaldo = request.POST.get('medio_respaldo')
+        sistema.plazo_conservacion = request.POST.get('plazo_conservacion')
+        sistema.observaciones = request.POST.get('observaciones')
+        
+        sistema.save()
+
+    # Devolvemos el partial de sistemas actualizado para refrescar la tabla en caliente
+    sistemas = Sistema.objects.all().order_by('nombre')
+    try:
+        tecnicos = Usuario.objects.filter(rol__in=['tecnico', 'admin']).order_by('nombre_completo')
+    except Exception:
+        tecnicos = Usuario.objects.all().order_by('id')
+
+    return render(request, 'configuracion/partials/sistemas.html', {'sistemas': sistemas, 'tecnicos': tecnicos})

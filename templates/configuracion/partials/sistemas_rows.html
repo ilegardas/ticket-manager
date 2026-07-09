@@ -1,12 +1,13 @@
 {% for sis in sistemas %}
     {% if forloop.last and sistemas.has_next %}
-    <tr class="hover:bg-slate-50/50 dark:hover:bg-darkBg/40 transition align-top"
+    <tr class="hover:bg-slate-50/50 dark:hover:bg-darkBg/40 transition align-top text-[11px]"
         hx-get="{% url 'panel_config_sistemas' %}?page={{ sistemas.next_page_number }}"
         hx-trigger="revealed"
         hx-swap="afterend">
     {% else %}
-    <tr class="hover:bg-slate-50/50 dark:hover:bg-darkBg/40 transition align-top">
+    <tr class="hover:bg-slate-50/50 dark:hover:bg-darkBg/40 transition align-top text-[11px]">
     {% endif %}
+        
         <td class="py-4 px-4 font-mono font-bold text-slate-400 dark:text-darkTextSub">#{{ sis.id }}</td>
         
         <td class="py-4 px-4">

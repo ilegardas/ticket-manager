@@ -1902,7 +1902,6 @@ def panel_usuario_editar(request, user_id):
 def panel_usuario_importar_csv(request):
     """
     📥 ACCIÓN / MODAL HTMX: Procesa de forma masiva la inserción de personal vía CSV
-    Versión ultra-blindada contra encodigs conflictivos de Microsoft Excel (UTF-8-SIG / Latin-1)
     """
     if request.user.rol != 'admin':
         return HttpResponse("No autorizado", status=403)
@@ -1914,15 +1913,13 @@ def panel_usuario_importar_csv(request):
 
         # 🚀 DECODIFICACIÓN SEGURA DE ENCODINGS DE EXCEL / WINDOWS
         try:
-            # Primero intentamos con 'utf-8-sig' que limpia automáticamente firmas BOM de Excel
             data_set = csv_file.read().decode('utf-8-sig')
         except UnicodeDecodeError:
-            # Fallback inmediato si viene con codificación nativa de Windows Latinoamerica/España
             csv_file.seek(0)
             data_set = csv_file.read().decode('latin-1')
 
         io_string = io.StringIO(data_set)
-        next(io_string)  # Omitir cabecera
+        next(io_string)  # Omitir la cabecera del CSV
 
         for row in csv.reader(io_string, delimiter=','):
             if not row or len(row) < 2:
@@ -1931,7 +1928,6 @@ def panel_usuario_importar_csv(request):
             correo = row[0].strip()
             nombre = row[1].strip()
             
-            # Forzamos un relleno seguro por si la fila viene incompleta
             while len(row) < 9:
                 row.append("")
                 
@@ -1945,7 +1941,7 @@ def panel_usuario_importar_csv(request):
 
             if correo and nombre:
                 try:
-                    usuario, creado = Usuario.objects.get_or_create(
+                    usuario_obj, creado = Usuario.objects.get_or_create(
                         correo_electronico=correo,
                         defaults={
                             'nombre_completo': nombre,
@@ -1960,24 +1956,29 @@ def panel_usuario_importar_csv(request):
                         }
                     )
                     if creado:
-                        usuario.set_password(num_emp if num_emp else "Seech2026*")
-                        usuario.save()
+                        usuario_obj.set_password(num_emp if num_emp else "Seech2026*")
+                        usuario_obj.save()
                     else:
-                        usuario.numero_empleado = num_emp
-                        usuario.puesto_cargo = puesto
-                        usuario.cct = cct_val
-                        usuario.region_zona = region
-                        usuario.nivel_educativo = nivel
-                        usuario.telefono = tel_val
-                        usuario.extension = ext_val
-                        usuario.save()
+                        usuario_obj.numero_empleado = num_emp
+                        usuario_obj.puesto_cargo = puesto
+                        usuario_obj.cct = cct_val
+                        usuario_obj.region_zona = region
+                        usuario_obj.nivel_educativo = nivel
+                        usuario_obj.telefono = tel_val
+                        usuario_obj.extension = ext_val
+                        usuario_obj.save()
                 except Exception as row_error:
                     print(f"⚠️ Error en fila de usuario {correo}: {str(row_error)}")
                     continue
 
-        # Nota: Ajusta tu criterio real de ordenamiento ('-id' o '-fecha_registro')
         usuarios = Usuario.objects.all().order_by('-id')
-        return render(request, 'usuarios/partials/usuarios_row.html', {'usuarios': usuarios})
+        
+        # 🛡️ CONTEXTO REFORZADO CONTRA TYPOS EN LA PLANTILLA usuarios_row.html
+        context = {
+            'usuarios': usuarios,
+            'usuario': request.user  # Evita el fallo de key lookup [usuario]
+        }
+        return render(request, 'usuarios/partials/usuarios_row.html', context)
 
     return render(request, 'usuarios/partials/modal_csv.html')
 

@@ -106,12 +106,19 @@
                             {% endif %}
                         </td>
                         
-                        <td class="py-4 px-4 text-right">
+                        <td class="py-3 px-4 text-right flex items-center justify-end gap-2">
+                            <button hx-get="{% url 'panel_config_sistema_editar_modal' sis.id %}"
+                                    hx-target="body"
+                                    hx-swap="beforeend"
+                                    class="text-blue-600 dark:text-amber-400 hover:text-blue-800 dark:hover:text-amber-300 font-bold p-1 hover:underline text-[11px]">
+                                📝 Editar
+                            </button>
+                            
                             <button hx-post="{% url 'panel_config_sistema_eliminar' sis.id %}"
                                     hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                                     hx-target="#tab-content"
-                                    hx-confirm="¿Estás seguro de que deseas eliminar este sistema del inventario de gobernanza?"
-                                    class="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-bold p-1 hover:underline text-[11px]">
+                                    hx-confirm=\"¿Estás seguro de que deseas eliminar este sistema?\"
+                                    class="text-red-500 dark:text-red-400 hover:text-red-700 font-bold p-1 hover:underline text-[11px]">
                                 🗑️ Eliminar
                             </button>
                         </td>

@@ -2661,6 +2661,7 @@ def panel_config_sistema_csv_modal(request):
 def panel_config_sistema_importar_csv(request):
     """
     📥 ACCIÓN HTMX: Procesa e importa de forma masiva los sistemas desde un archivo CSV.
+    Versión blindada contra IndexError y filas incompletas.
     """
     if request.user.rol != 'admin':
         return HttpResponse("No autorizado", status=403)
@@ -2673,44 +2674,50 @@ def panel_config_sistema_importar_csv(request):
         try:
             data_set = csv_file.read().decode('UTF-8')
             io_string = io.StringIO(data_set)
-            next(io_string)  # Omitir cabecera
+            next(io_string)  # Omitir la línea de cabecera
 
             for row in csv.reader(io_string, delimiter=','):
-                if len(row) < 1:
+                # 🚀 LIMPIEZA: Si la fila está vacía o no tiene al menos el nombre del sistema, la ignoramos
+                if not row or len(row) == 0:
                     continue
                 
                 nombre = row[0].strip()
                 if not nombre:
                     continue
 
-                # Extracción por posiciones respetando la estructura documental
-                version = row[1].strip() if len(row) > 1 else None
-                formato_sistema = row[2].strip() if len(row) > 2 else None
-                objetivo_descripcion = row[3].strip() if len(row) > 3 else None
+                # 🚀 FUNCIÓN COMPLEMENTARIA DE SEGURIDAD:
+                # Si la fila tiene menos de 17 columnas, la rellenamos con strings vacíos para evitar IndexError
+                while len(row) < 17:
+                    row.append("")
+
+                # Ahora es 100% seguro extraer por posiciones sin que truene la app
+                version = row[1].strip() if row[1].strip() else None
+                formato_sistema = row[2].strip() if row[2].strip() else None
+                objetivo_descripcion = row[3].strip() if row[3].strip() else None
                 
-                cifra_raw = row[4].strip() if len(row) > 4 else None
+                cifra_raw = row[4].strip()
                 cifra_usuarios = int(cifra_raw) if cifra_raw and cifra_raw.isdigit() else None
                 
-                acceso_recurso = row[5].strip() if len(row) > 5 else None
-                servidor_alojamiento = row[6].strip() if len(row) > 6 else None
-                ubicacion_servidor = row[7].strip() if len(row) > 7 else None
-                nombre_bd = row[8].strip() if len(row) > 8 else None
-                informacion_tecnica = row[9].strip() if len(row) > 9 else None
+                acceso_recurso = row[5].strip() if row[5].strip() else None
+                servidor_alojamiento = row[6].strip() if row[6].strip() else None
+                ubicacion_servidor = row[7].strip() if row[7].strip() else None
+                nombre_bd = row[8].strip() if row[8].strip() else None
+                informacion_tecnica = row[9].strip() if row[9].strip() else None
                 
-                # Búsqueda relacional por correo institucional
-                email_dev = row[10].strip() if len(row) > 10 else ""
+                # Búsqueda relacional segura por correo institucional
+                email_dev = row[10].strip()
                 desarrollado_por = Usuario.objects.filter(correo_electronico=email_dev).first() if email_dev else None
 
-                email_resguardo = row[11].strip() if len(row) > 11 else ""
+                email_resguardo = row[11].strip()
                 responsable_resguardo = Usuario.objects.filter(correo_electronico=email_resguardo).first() if email_resguardo else None
 
-                fecha_respaldo = row[12].strip() if len(row) > 12 else None
-                formato_respaldo = row[13].strip() if len(row) > 13 else None
-                medio_respaldo = row[14].strip() if len(row) > 14 else None
-                plazo_conservacion = row[15].strip() if len(row) > 15 else None
-                observaciones = row[16].strip() if len(row) > 16 else None
+                fecha_respaldo = row[12].strip() if row[12].strip() else None
+                formato_respaldo = row[13].strip() if row[13].strip() else None
+                medio_respaldo = row[14].strip() if row[14].strip() else None
+                plazo_conservacion = row[15].strip() if row[15].strip() else None
+                observaciones = row[16].strip() if row[16].strip() else None
 
-                # Creación o actualización masiva
+                # Creación o actualización masiva en PostgreSQL
                 Sistema.objects.update_or_create(
                     nombre=nombre,
                     defaults={
@@ -2736,7 +2743,7 @@ def panel_config_sistema_importar_csv(request):
         except Exception as e:
             return HttpResponse(f"Error al procesar el archivo: {str(e)}", status=500)
 
-    # Re-renderizado de la pestaña principal limpia con los nuevos datos cargados
+    # Re-renderizado asíncrono de la tabla extendida de sistemas
     sistemas = Sistema.objects.all().order_by('nombre')
     try:
         tecnicos = Usuario.objects.filter(rol__in=['tecnico', 'admin']).order_by('nombre_completo')

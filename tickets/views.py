@@ -1715,17 +1715,29 @@ def panel_config_sistema_eliminar(request, pk):
 
 @login_required
 @require_http_methods(["POST"])
-def panel_config_modulo_eliminar(request, pk):
-    """🗑️ Acción HTMX: Elimina un módulo si ningún ticket lo está usando"""
+def panel_config_modulo_toggle_activo(request, pk):
+    """
+    📦 ACCIÓN HTMX: Desactiva (archiva) o activa un módulo según su estado actual
+    sin romper el histórico de tickets viejos en la base de datos.
+    """
+    if request.user.rol != 'admin':
+        return HttpResponse("No autorizado", status=403)
+        
     modulo = get_object_or_404(Modulo, pk=pk)
     
-    if Ticket.objects.filter(modulo=modulo).exists():
-        return HttpResponse('<script>alert("❌ No se puede eliminar: Hay tickets que dependen de este módulo.");</script>', status=200)
-
-    modulo.delete()
+    # Invertimos el estado del campo activo
+    modulo.activo = not modulo.activo
+    modulo.save()
+    
+    # Volvemos a consultar los datos para actualizar la tabla en caliente
+    # Nota: Si prefieres que desaparezcan de inmediato, puedes usar .filter(activo=True)
     modulos = Modulo.objects.select_related('sistema').all().order_by('sistema__nombre', 'nombre')
     sistemas_list = Sistema.objects.filter(activo=True)
-    return render(request, 'configuracion/partials/modulos.html', {'modulos': modulos, 'sistemas_list': sistemas_list})
+    
+    return render(request, 'configuracion/partials/modulos.html', {
+        'modulos': modulos,
+        'sistemas_list': sistemas_list
+    })
 
 
 @login_required

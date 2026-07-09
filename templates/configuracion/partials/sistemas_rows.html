@@ -1,13 +1,5 @@
 {% for sis in sistemas %}
-    {% if forloop.last and sistemas.has_next %}
-    <tr class="hover:bg-slate-50/50 dark:hover:bg-darkBg/40 transition align-top text-[11px]"
-        hx-get="{% url 'panel_config_sistemas' %}?page={{ sistemas.next_page_number }}"
-        hx-trigger="revealed"
-        hx-swap="afterend">
-    {% else %}
     <tr class="hover:bg-slate-50/50 dark:hover:bg-darkBg/40 transition align-top text-[11px]">
-    {% endif %}
-        
         <td class="py-4 px-4 font-mono font-bold text-slate-400 dark:text-darkTextSub">#{{ sis.id }}</td>
         
         <td class="py-4 px-4">
@@ -77,22 +69,24 @@
         </td>
         
         <td class="py-3 px-4 text-right flex items-center justify-end gap-2">
-            <button hx-get="{% url 'panel_config_sistema_editar_modal' sis.id %}"
-                    hx-target="body"
-                    hx-swap="beforeend"
-                    class="text-blue-600 dark:text-amber-400 hover:text-blue-800 dark:hover:text-amber-300 font-bold p-1 hover:underline text-[11px]">
-                📝 Editar
-            </button>
-            
-            <button hx-post="{% url 'panel_config_sistema_eliminar' sis.id %}"
-                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                    hx-target="#tab-content"
-                    hx-confirm="¿Estás seguro de que deseas eliminar este sistema?"
-                    class="text-red-500 dark:text-red-400 hover:text-red-700 font-bold p-1 hover:underline text-[11px]">
-                🗑️ Eliminar
+            <button hx-get="{% url 'panel_config_sistema_editar_modal' sis.id %}" hx-target="body" hx-swap="beforeend" class="text-blue-600 dark:text-amber-400 hover:text-blue-800 dark:hover:text-amber-300 font-bold p-1 hover:underline text-[11px]">📝 Editar</button>
+            <button hx-post="{% url 'panel_config_sistema_eliminar' sis.id %}" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' hx-target="#tab-content" hx-confirm="¿Estás seguro de que deseas eliminar este sistema?" class="text-red-500 dark:text-red-400 hover:text-red-700 font-bold p-1 hover:underline text-[11px]">🗑️ Eliminar</button>
+        </td>
+    </tr>
+
+    {% if forloop.last and sistemas.has_next %}
+    <tr id="fila-paginacion">
+        <td colspan="8" class="py-4 px-4 text-center bg-slate-50/40 dark:bg-darkBg/10">
+            <button hx-get="{% url 'panel_config_sistemas' %}?page={{ sistemas.next_page_number }}"
+                    hx-target="#fila-paginacion"
+                    hx-swap="outerHTML"
+                    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-darkPanel text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-xs shadow-xs transition tracking-wide uppercase">
+                ⏳ Cargar sistemas siguientes...
             </button>
         </td>
     </tr>
+    {% endif %}
+
 {% empty %}
     {% if not sistemas.number or sistemas.number == 1 %}
     <tr>

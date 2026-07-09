@@ -88,6 +88,28 @@ class Sistema(models.Model):
     activo = models.BooleanField(default=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 
+    # 🚀 NUEVOS CAMPOS ADICIONALES PARA LA CMDB COMPLETA
+    formato_sistema = models.CharField(max_length=100, blank=True, null=True)
+    objetivo_descripcion = models.TextField(blank=True, null=True)
+    cifra_usuarios = models.IntegerField(blank=True, null=True)
+    acceso_recurso = models.CharField(max_length=255, blank=True, null=True)
+    servidor_alojamiento = models.CharField(max_length=150, blank=True, null=True)
+    ubicacion_servidor = models.CharField(max_length=150, blank=True, null=True)
+    nombre_bd = models.CharField(max_length=100, blank=True, null=True)
+    informacion_tecnica = models.CharField(max_length=255, blank=True, null=True)
+    documentacion = models.CharField(max_length=255, blank=True, null=True)
+    
+    # Relaciones Muchos a Uno (Foreign Keys) seguras apuntando a Usuario
+    desarrollado_por = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True, blank=True, related_name='sistemas_desarrollados')
+    responsable_resguardo = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True, blank=True, related_name='sistemas_resguardados')
+    
+    # Respaldo y Continuidad
+    fecha_respaldo = models.CharField(max_length=100, blank=True, null=True)
+    formato_respaldo = models.CharField(max_length=50, blank=True, null=True)
+    medio_respaldo = models.CharField(max_length=100, blank=True, null=True)
+    plazo_conservacion = models.CharField(max_length=100, blank=True, null=True)
+    observaciones = models.TextField(blank=True, null=True)
+
     class Meta:
         verbose_name = 'Sistema'
         verbose_name_plural = 'Sistemas'

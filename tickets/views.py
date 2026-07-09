@@ -1756,9 +1756,11 @@ def panel_config_categoria_eliminar(request, pk):
 
 @login_required
 def ajax_cargar_modulos(request):
-    """🔍 Retorna las opciones <option> de módulos del sistema seleccionado """
+    """🔍 Retorna las opciones <option> de módulos activos del sistema seleccionado """
     sistema_id = request.GET.get('sistema')
-    modulos = Modulo.objects.filter(sistema_id=sistema_id).order_by('nombre')
+    
+    # 🚀 FILTRADO CRÍTICO: Omitimos los que el administrador haya archivado/desactivado
+    modulos = Modulo.objects.filter(sistema_id=sistema_id, activo=True).order_by('nombre')
     
     options = '<option value="">— Selecciona Módulo —</option>'
     for mod in modulos:

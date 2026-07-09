@@ -1,0 +1,32 @@
+{% for sis in sistemas %}
+    {% if forloop.last and sistemas.has_next %}
+    <tr class="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-darkBg/20 transition text-[11px]"
+        hx-get="{% url 'panel_config_sistemas' %}?page={{ sistemas.next_page_number }}"
+        hx-trigger="revealed"
+        hx-swap="afterend">
+    {% else %}
+    <tr class="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-darkBg/20 transition text-[11px]">
+    {% endif %}
+        <td class="py-3 px-4 font-bold text-slate-800 dark:text-slate-200">{{ sis.nombre }}</td>
+        <td class="py-3 px-4 text-slate-400 font-mono">{{ sis.version|default:"1.0" }}</td>
+        <td class="py-3 px-4 text-slate-500 max-w-xs truncate">{{ sis.objetivo_descripcion|default:"—" }}</td>
+        <td class="py-3 px-4 font-medium text-slate-600 dark:text-slate-400">{{ sis.servidor_alojamiento|default:"—" }}</td>
+        <td class="py-3 px-4">
+            {% if sis.activo %}
+            <span class="inline-flex items-center rounded-full bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/40">● Activo</span>
+            {% else %}
+            <span class="inline-flex items-center rounded-full bg-slate-50 dark:bg-darkBg px-2 py-0.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800">○ Inactivo</span>
+            {% endif %}
+        </td>
+        <td class="py-3 px-4 text-right flex items-center justify-end gap-2">
+            <button hx-get="{% url 'panel_config_sistema_editar_modal' sis.id %}" hx-target="body" hx-swap="beforeend" class="text-blue-600 dark:text-amber-400 hover:text-blue-800 font-bold p-1 hover:underline text-[11px]">📝 Editar</button>
+            <button hx-post="{% url 'panel_config_sistema_eliminar' sis.id %}" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' hx-target="#tab-content" hx-confirm="¿Eliminar sistema?" class="text-red-500 hover:text-red-700 font-bold p-1 hover:underline text-[11px]">🗑️ Eliminar</button>
+        </td>
+    </tr>
+{% empty %}
+    {% if not sistemas.number or sistemas.number == 1 %}
+    <tr>
+        <td colspan="6" class="text-center py-6 text-slate-400">No hay sistemas registrados en el inventario.</td>
+    </tr>
+    {% endif %}
+{% endfor %}

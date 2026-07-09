@@ -2661,7 +2661,7 @@ def panel_config_sistema_csv_modal(request):
 def panel_config_sistema_importar_csv(request):
     """
     📥 ACCIÓN HTMX: Procesa e importa de forma masiva los sistemas desde un archivo CSV.
-    Versión blindada contra IndexError y filas incompletas.
+    Versión blindada contra errores de parseo numérico de Excel e IndexError.
     """
     if request.user.rol != 'admin':
         return HttpResponse("No autorizado", status=403)
@@ -2677,7 +2677,7 @@ def panel_config_sistema_importar_csv(request):
             next(io_string)  # Omitir la línea de cabecera
 
             for row in csv.reader(io_string, delimiter=','):
-                # 🚀 LIMPIEZA: Si la fila está vacía o no tiene al menos el nombre del sistema, la ignoramos
+                # Limpieza elemental de filas vacías
                 if not row or len(row) == 0:
                     continue
                 
@@ -2685,65 +2685,77 @@ def panel_config_sistema_importar_csv(request):
                 if not nombre:
                     continue
 
-                # 🚀 FUNCIÓN COMPLEMENTARIA DE SEGURIDAD:
-                # Si la fila tiene menos de 17 columnas, la rellenamos con strings vacíos para evitar IndexError
+                # Forzar a que la fila tenga al menos 17 columnas de manera segura
                 while len(row) < 17:
                     row.append("")
 
-                # Ahora es 100% seguro extraer por posiciones sin que truene la app
-                version = row[1].strip() if row[1].strip() else None
-                formato_sistema = row[2].strip() if row[2].strip() else None
-                objetivo_descripcion = row[3].strip() if row[3].strip() else None
-                
-                cifra_raw = row[4].strip()
-                cifra_usuarios = int(cifra_raw) if cifra_raw and cifra_raw.isdigit() else None
-                
-                acceso_recurso = row[5].strip() if row[5].strip() else None
-                servidor_alojamiento = row[6].strip() if row[6].strip() else None
-                ubicacion_servidor = row[7].strip() if row[7].strip() else None
-                nombre_bd = row[8].strip() if row[8].strip() else None
-                informacion_tecnica = row[9].strip() if row[9].strip() else None
-                
-                # Búsqueda relacional segura por correo institucional
-                email_dev = row[10].strip()
-                desarrollado_por = Usuario.objects.filter(correo_electronico=email_dev).first() if email_dev else None
+                try:
+                    # Extracción limpia eliminando espacios en los extremos
+                    version = row[1].strip() if row[1].strip() else None
+                    formato_sistema = row[2].strip() if row[2].strip() else None
+                    objetivo_descripcion = row[3].strip() if row[3].strip() else None
+                    
+                    # 🚀 PARSEO NUMÉRICO ULTRA-BLINDADO (Soporta "450", "450.0" y vacíos)
+                    cifra_raw = row[4].strip()
+                    cifra_usuarios = None
+                    if cifra_raw:
+                        try:
+                            # Primero a float por si Excel metió un ".0", luego a int
+                            cifra_usuarios = int(float(cifra_raw))
+                        except ValueError:
+                            cifra_usuarios = None
 
-                email_resguardo = row[11].strip()
-                responsable_resguardo = Usuario.objects.filter(correo_electronico=email_resguardo).first() if email_resguardo else None
+                    acceso_recurso = row[5].strip() if row[5].strip() else None
+                    servidor_alojamiento = row[6].strip() if row[6].strip() else None
+                    ubicacion_servidor = row[7].strip() if row[7].strip() else None
+                    nombre_bd = row[8].strip() if row[8].strip() else None
+                    informacion_tecnica = row[9].strip() if row[9].strip() else None
+                    
+                    # Búsqueda relacional por correo electrónico institucional
+                    email_dev = row[10].strip()
+                    desarrollado_por = Usuario.objects.filter(correo_electronico=email_dev).first() if email_dev else None
 
-                fecha_respaldo = row[12].strip() if row[12].strip() else None
-                formato_respaldo = row[13].strip() if row[13].strip() else None
-                medio_respaldo = row[14].strip() if row[14].strip() else None
-                plazo_conservacion = row[15].strip() if row[15].strip() else None
-                observaciones = row[16].strip() if row[16].strip() else None
+                    email_resguardo = row[11].strip()
+                    responsable_resguardo = Usuario.objects.filter(correo_electronico=email_resguardo).first() if email_resguardo else None
 
-                # Creación o actualización masiva en PostgreSQL
-                Sistema.objects.update_or_create(
-                    nombre=nombre,
-                    defaults={
-                        'activo': True,
-                        'version': version,
-                        'formato_sistema': formato_sistema,
-                        'objetivo_descripcion': objetivo_descripcion,
-                        'cifra_usuarios': cifra_usuarios,
-                        'acceso_recurso': acceso_recurso,
-                        'servidor_alojamiento': servidor_alojamiento,
-                        'ubicacion_servidor': ubicacion_servidor,
-                        'nombre_bd': nombre_bd,
-                        'informacion_tecnica': informacion_tecnica,
-                        'desarrollado_por': desarrollado_por,
-                        'responsable_resguardo': responsable_resguardo,
-                        'fecha_respaldo': fecha_respaldo,
-                        'formato_respaldo': formato_respaldo,
-                        'medio_respaldo': medio_respaldo,
-                        'plazo_conservacion': plazo_conservacion,
-                        'observaciones': observaciones,
-                    }
-                )
+                    fecha_respaldo = row[12].strip() if row[12].strip() else None
+                    formato_respaldo = row[13].strip() if row[13].strip() else None
+                    medio_respaldo = row[14].strip() if row[14].strip() else None
+                    plazo_conservacion = row[15].strip() if row[15].strip() else None
+                    observaciones = row[16].strip() if row[16].strip() else None
+
+                    # Upsert directo en la tabla tickets_sistema de PostgreSQL
+                    Sistema.objects.update_or_create(
+                        nombre=nombre,
+                        defaults={
+                            'activo': True,
+                            'version': version,
+                            'formato_sistema': formato_sistema,
+                            'objetivo_descripcion': objetivo_descripcion,
+                            'cifra_usuarios': cifra_usuarios,
+                            'acceso_recurso': acceso_recurso,
+                            'servidor_alojamiento': servidor_alojamiento,
+                            'ubicacion_servidor': ubicacion_servidor,
+                            'nombre_bd': nombre_bd,
+                            'informacion_tecnica': informacion_tecnica,
+                            'desarrollado_por': desarrollado_por,
+                            'responsable_resguardo': responsable_resguardo,
+                            'fecha_respaldo': fecha_respaldo,
+                            'formato_respaldo': formato_respaldo,
+                            'medio_respaldo': medio_respaldo,
+                            'plazo_conservacion': plazo_conservacion,
+                            'observaciones': observaciones,
+                        }
+                    )
+                except Exception as row_error:
+                    # Si una fila en específico falla, se imprime en el log pero NO tumba el proceso
+                    print(f"⚠️ Error procesando la fila del sistema '{nombre}': {str(row_error)}")
+                    continue
+
         except Exception as e:
-            return HttpResponse(f"Error al procesar el archivo: {str(e)}", status=500)
+            return HttpResponse(f"Error general en la lectura del archivo: {str(e)}", status=500)
 
-    # Re-renderizado asíncrono de la tabla extendida de sistemas
+    # Devolvemos la respuesta exitosa re-renderizando la tabla extendida de la CMDB
     sistemas = Sistema.objects.all().order_by('nombre')
     try:
         tecnicos = Usuario.objects.filter(rol__in=['tecnico', 'admin']).order_by('nombre_completo')

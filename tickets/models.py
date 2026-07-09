@@ -110,6 +110,8 @@ class Sistema(models.Model):
     plazo_conservacion = models.CharField(max_length=100, blank=True, null=True)
     observaciones = models.TextField(blank=True, null=True)
 
+    modulos = models.ManyToManyField(Modulo, blank=True, related_name='sistemas')
+
     class Meta:
         verbose_name = 'Sistema'
         verbose_name_plural = 'Sistemas'
@@ -122,17 +124,16 @@ class Sistema(models.Model):
 class Modulo(models.Model):
     nombre = models.CharField(max_length=200)
     descripcion = models.TextField(blank=True, null=True)
-    sistema = models.ForeignKey(Sistema, on_delete=models.CASCADE, related_name='modulos')
     activo = models.BooleanField(default=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name = 'Módulo'
         verbose_name_plural = 'Módulos'
-        ordering = ['sistema__nombre', 'nombre']
+        ordering = ['nombre']
 
     def __str__(self):
-        return f"{self.sistema.nombre} / {self.nombre}"
+        return self.nombre
 
 
 class Documento(models.Model):

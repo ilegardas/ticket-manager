@@ -1903,7 +1903,7 @@ def panel_usuario_editar(request, user_id):
 def panel_usuario_importar_csv(request):
     """
     📥 ACCIÓN / MODAL HTMX: Procesa de forma masiva la inserción de personal vía CSV
-    Incluye soporte para Número Telefónico y Extensión institucional.
+    Versión ultra-blindada contra encodigs conflictivos de Microsoft Excel (UTF-8-SIG / Latin-1)
     """
     if request.user.rol != 'admin':
         return HttpResponse("No autorizado", status=403)
@@ -1913,62 +1913,75 @@ def panel_usuario_importar_csv(request):
         if not csv_file or not csv_file.name.endswith('.csv'):
             return HttpResponse("Formato inválido. Sube un archivo .csv", status=400)
 
-        data_set = csv_file.read().decode('UTF-8')
+        # 🚀 DECODIFICACIÓN SEGURA DE ENCODINGS DE EXCEL / WINDOWS
+        try:
+            # Primero intentamos con 'utf-8-sig' que limpia automáticamente firmas BOM de Excel
+            data_set = csv_file.read().decode('utf-8-sig')
+        except UnicodeDecodeError:
+            # Fallback inmediato si viene con codificación nativa de Windows Latinoamerica/España
+            csv_file.seek(0)
+            data_set = csv_file.read().decode('latin-1')
+
         io_string = io.StringIO(data_set)
-        next(io_string)  # Omitir la cabecera del CSV
+        next(io_string)  # Omitir cabecera
 
         for row in csv.reader(io_string, delimiter=','):
-            if len(row) < 2:
+            if not row or len(row) < 2:
                 continue
             
-            # Mapeo de columnas por posiciones (0 a 6)
             correo = row[0].strip()
             nombre = row[1].strip()
-            num_emp = row[2].strip() if len(row) > 2 else None
-            puesto = row[3].strip() if len(row) > 3 else None
-            cct_val = row[4].strip() if len(row) > 4 else None
-            region = row[5].strip() if len(row) > 5 else None
-            nivel = row[6].strip() if len(row) > 6 else None
             
-            # 🚀 NUEVO: Extracción segura de Teléfono y Extensión (Posiciones 7 y 8)
-            tel_val = row[7].strip() if len(row) > 7 else None
-            ext_val = row[8].strip() if len(row) > 8 else None
+            # Forzamos un relleno seguro por si la fila viene incompleta
+            while len(row) < 9:
+                row.append("")
+                
+            num_emp = row[2].strip() if row[2].strip() else None
+            puesto = row[3].strip() if row[3].strip() else None
+            cct_val = row[4].strip() if row[4].strip() else None
+            region = row[5].strip() if row[5].strip() else None
+            nivel = row[6].strip() if row[6].strip() else None
+            tel_val = row[7].strip() if row[7].strip() else None
+            ext_val = row[8].strip() if row[8].strip() else None
 
             if correo and nombre:
-                usuario, creado = Usuario.objects.get_or_create(
-                    correo_electronico=correo,
-                    defaults={
-                        'nombre_completo': nombre,
-                        'numero_empleado': num_emp,
-                        'puesto_cargo': puesto,
-                        'cct': cct_val,
-                        'region_zona': region,
-                        'nivel_educativo': nivel,
-                        'telefono': tel_val,     # 📱 Agregado al defaults
-                        'extension': ext_val,    # 📞 Agregado al defaults
-                        'rol': 'usuario'
-                    }
-                )
-                if creado:
-                    usuario.set_password(num_emp if num_emp else "Seech2026*")
-                    usuario.save()
-                else:
-                    # Actualización de datos si el usuario ya existía en la BD
-                    usuario.numero_empleado = num_emp
-                    usuario.puesto_cargo = puesto
-                    usuario.cct = cct_val
-                    usuario.region_zona = region
-                    usuario.nivel_educativo = nivel
-                    usuario.telefono = tel_val     # 📱 Actualiza teléfono
-                    usuario.extension = ext_val    # 📞 Actualiza extensión
-                    usuario.save()
+                try:
+                    usuario, creado = Usuario.objects.get_or_create(
+                        correo_electronico=correo,
+                        defaults={
+                            'nombre_completo': nombre,
+                            'numero_empleado': num_emp,
+                            'puesto_cargo': puesto,
+                            'cct': cct_val,
+                            'region_zona': region,
+                            'nivel_educativo': nivel,
+                            'telefono': tel_val,
+                            'extension': ext_val,
+                            'rol': 'usuario'
+                        }
+                    )
+                    if creado:
+                        usuario.set_password(num_emp if num_emp else "Seech2026*")
+                        usuario.save()
+                    else:
+                        usuario.numero_empleado = num_emp
+                        usuario.puesto_cargo = puesto
+                        usuario.cct = cct_val
+                        usuario.region_zona = region
+                        usuario.nivel_educativo = nivel
+                        usuario.telefono = tel_val
+                        usuario.extension = ext_val
+                        usuario.save()
+                except Exception as row_error:
+                    print(f"⚠️ Error en fila de usuario {correo}: {str(row_error)}")
+                    continue
 
-        # Si manejas 'fecha_registro' o 'id' como ordenamiento, asegúrate de mantenerlo
-        # Cambié a '-id' como un fallback seguro en caso de variaciones en los modelos de ordenamiento
+        # Nota: Ajusta tu criterio real de ordenamiento ('-id' o '-fecha_registro')
         usuarios = Usuario.objects.all().order_by('-id')
         return render(request, 'usuarios/partials/usuarios_row.html', {'usuarios': usuarios})
 
     return render(request, 'usuarios/partials/modal_csv.html')
+
 
 
 @login_required

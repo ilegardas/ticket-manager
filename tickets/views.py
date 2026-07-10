@@ -1194,14 +1194,22 @@ def panel_config_sistemas(request):
         'solo_activos': solo_activos
     }
 
-    # Al final de panel_config_sistemas en views.py:
+    # === REGRESO DE RESPUESTAS INTELIGENTES ===
+    
+    # 1. Si es Scroll Infinito (pide una página específica), regresamos SÓLO las filas nuevas
     if request.headers.get('HX-Request') and 'page' in request.GET: 
         return render(request, 'configuracion/partials/sistemas_rows.html', context)
     
-    # 🎯 Ajustar este elif para que regrese sólo las filas cuando se busque o filtre:
+    # 2. 🎯 CORRECCIÓN AQUÍ: Si es la carga de la pestaña o una búsqueda/filtro, regresamos el CONTENEDOR MAESTRO COMPLETO
     elif request.headers.get('HX-Request'):
-        return render(request, 'configuracion/partials/sistemas_rows.html', context)
+        # Si la petición viene del buscador 'q_sistema' o del checkbox, actualizamos sólo el body de la tabla
+        if 'q_sistema' in request.GET or 'solo_activos' in request.GET:
+            return render(request, 'configuracion/partials/sistemas_rows.html', context)
         
+        # Si es la carga inicial de la pestaña (clic desde panel.html), cargamos el buscador y la estructura
+        return render(request, 'configuracion/partials/sistemas.html', context)
+        
+    # 3. Si entran directo pegando la URL en el navegador
     return render(request, 'configuracion/panel.html', context)
 
     

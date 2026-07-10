@@ -1193,13 +1193,13 @@ def panel_config_sistemas(request):
         'solo_activos': solo_activos
     }
 
-    # Si se pide paginación infinita, regresamos sólo las filas nuevas
+    # Al final de panel_config_sistemas en views.py:
     if request.headers.get('HX-Request') and 'page' in request.GET: 
         return render(request, 'configuracion/partials/sistemas_rows.html', context)
     
-    # Si es una búsqueda o cambio de check desde HTMX, repintamos la tabla/grid completa
+    # 🎯 Ajustar este elif para que regrese sólo las filas cuando se busque o filtre:
     elif request.headers.get('HX-Request'):
-        return render(request, 'configuracion/partials/sistemas_table.html', context)
+        return render(request, 'configuracion/partials/sistemas_rows.html', context)
         
     return render(request, 'configuracion/panel.html', context)
 

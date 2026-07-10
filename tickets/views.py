@@ -1100,11 +1100,14 @@ def panel_conocimiento_crear(request):
 @login_required
 def panel_config_sistemas(request):
     """
-    🖥️ CATÁLOGO DE SISTEMAS: Paginación progresiva reactiva (Infinite Scroll / Lazy Loading) vía HTMX.
+    🖥️ CATÁLOGO DE SISTEMAS: Lista y crea de forma asíncrona con Gobierno Técnico Completo.
+    Soporta búsqueda multivariable cruzada y filtro de activos en tiempo real vía HTMX.
     """
-    if request.user.rol != 'admin': return HttpResponse("No autorizado", status=403)
+    if request.user.rol != 'admin': 
+        return HttpResponse("No autorizado", status=403)
 
-    if request.method == "POST":
+    # --- PROCESAMIENTO DE CREACIÓN (POST) ---
+    if request.method == "POST" and not request.headers.get('HX-Request'):
         nombre = request.POST.get("nombre")
         activo = True if request.POST.get("activo") else False
         objetivo_descripcion = request.POST.get('objetivo_descripcion')
@@ -1139,8 +1142,33 @@ def panel_config_sistemas(request):
                 formato_respaldo=formato_respaldo, medio_respaldo=medio_respaldo, observaciones=observaciones,
                 desarrollado_por=desarrollador_by, responsable_resguardo=responsable_res
             )
-            
-    sistemas_list = Sistema.objects.all().order_by('nombre')
+
+    # --- LÓGICA DE BÚSQUEDA Y FILTRADO (GET/HTMX) ---
+    query = request.GET.get('q_sistema', '').strip()
+    # Por defecto viene activado ('true'), si no se envía o cambia se evalúa explícitamente
+    solo_activos = request.GET.get('solo_activos', 'true') == 'true'
+
+    sistemas_list = Sistema.objects.select_related('desarrollado_por', 'responsable_resguardo').all()
+
+    # 1. Filtro por estado activo/inactivo
+    if solo_activos:
+        sistemas_list = systems_list.filter(activo=True)
+
+    # 2. Búsqueda cruzada multivariable
+    if query:
+        sistemas_list = systems_list.filter(
+            Q(nombre__icontains=query) |
+            Q(objetivo_descripcion__icontains=query) |
+            Q(servidor_alojamiento__icontains=query) |
+            Q(informacion_tecnica__icontains=query) |  # Stack Técnico
+            Q(desarrollado_por__nombre_completo__icontains=query) |
+            Q(responsable_resguardo__nombre_completo__icontains=query) |
+            Q(desarrollado_por__region_zona__icontains=query)  # Región del dev o resguardo
+        )
+
+    sistemas_list = systems_list.order_by('nombre')
+
+    # Configuración del Paginador Inteligente (Infinite Scroll)
     paginator = Paginator(sistemas_list, 15)
     page_number = request.GET.get('page', 1)
     
@@ -1149,7 +1177,8 @@ def panel_config_sistemas(request):
     except PageNotAnInteger:
         sistemas = paginator.page(1)
     except EmptyPage:
-        if request.headers.get('HX-Request'): return HttpResponse("")
+        if request.headers.get('HX-Request'): 
+            return HttpResponse("")
         sistemas = paginator.page(paginator.num_pages)
     
     try:
@@ -1157,10 +1186,24 @@ def panel_config_sistemas(request):
     except Exception:
         tecnicos = Usuario.objects.all().order_by('id')
     
-    context = {'sistemas': sistemas, 'tecnicos': tecnicos}
-    if request.headers.get('HX-Request') and 'page' in request.GET: return render(request, 'configuracion/partials/sistemas_rows.html', context)
-    elif request.headers.get('HX-Request') or request.method == "POST": return render(request, 'configuracion/partials/sistemas.html', context)
+    context = {
+        'sistemas': sistemas, 
+        'tecnicos': tecnicos,
+        'q_sistema': query,
+        'solo_activos': solo_activos
+    }
+
+    # Si se pide paginación infinita, regresamos sólo las filas nuevas
+    if request.headers.get('HX-Request') and 'page' in request.GET: 
+        return render(request, 'configuracion/partials/sistemas_rows.html', context)
+    
+    # Si es una búsqueda o cambio de check desde HTMX, repintamos la tabla/grid completa
+    elif request.headers.get('HX-Request'):
+        return render(request, 'configuracion/partials/sistemas_table.html', context)
+        
     return render(request, 'configuracion/panel.html', context)
+
+    
 
 @login_required
 def panel_config_sistema_crear_modal(request):

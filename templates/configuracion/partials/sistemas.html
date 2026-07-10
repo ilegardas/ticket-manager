@@ -27,8 +27,7 @@
                    name="q_sistema" 
                    value="{{ q_sistema|default:'' }}"
                    hx-get="{% url 'panel_config_sistemas' %}" 
-                   hx-target="#sistemas-table-body"
-                   hx-trigger="keyup delay:300ms, search"
+                   hx-target="#sistemas-table-body" hx-trigger="keyup delay:300ms, search"
                    hx-include="[name='solo_activos']"
                    placeholder="Buscar por nombre, dev, host, stack..." 
                    class="w-full text-xs pl-9 pr-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition">
@@ -39,7 +38,7 @@
                    name="solo_activos" 
                    value="true"
                    hx-get="{% url 'panel_config_sistemas' %}" 
-                   hx-target="#sistemas-table-body"
+                   hx-target="#sistemas-table-body" 
                    hx-include="[name='q_sistema']"
                    {% if solo_activos %}checked{% endif %}
                    class="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-amber-500 focus:ring-amber-500 bg-white dark:bg-darkBg">

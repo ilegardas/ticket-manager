@@ -1183,7 +1183,11 @@ def panel_config_sistema_editar_modal(request, pk):
 
 @login_required
 def panel_config_sistema_actualizar(request, pk):
+    """
+    🔄 ACCIÓN HTMX: Procesa los cambios enviados desde el modal de edición.
+    """
     if request.user.rol != 'admin': return HttpResponse("No autorizado", status=403)
+        
     sistema = get_object_or_404(Sistema, pk=pk)
 
     if request.method == "POST":
@@ -1191,9 +1195,13 @@ def panel_config_sistema_actualizar(request, pk):
         sistema.activo = True if request.POST.get("activo") else False
         sistema.version = request.POST.get('version')
         sistema.formato_sistema = request.POST.get('formato_sistema')
-        sistema.objective_description = request.POST.get('objetivo_descripcion')
+        
+        # 🚀 CORRECCIÓN AQUÍ: Cambiamos 'objective_description' por 'objetivo_descripcion'
+        sistema.objetivo_descripcion = request.POST.get('objetivo_descripcion')
+        
         cifra_raw = request.POST.get('cifra_usuarios')
         sistema.cifra_usuarios = int(cifra_raw) if cifra_raw and cifra_raw.isdigit() else None
+        
         sistema.acceso_recurso = request.POST.get('acceso_recurso')
         sistema.servidor_alojamiento = request.POST.get('servidor_alojamiento')
         sistema.ubicacion_servidor = request.POST.get('ubicacion_servidor')
@@ -1203,6 +1211,7 @@ def panel_config_sistema_actualizar(request, pk):
         
         desarrollador_id = request.POST.get('desarrollado_por')
         sistema.desarrollado_por = Usuario.objects.filter(id=desarrollador_id).first() if desarrollador_id else None
+
         resguardo_id = request.POST.get('responsable_resguardo')
         sistema.responsable_resguardo = Usuario.objects.filter(id=resguardo_id).first() if resguardo_id else None
         
@@ -1211,6 +1220,7 @@ def panel_config_sistema_actualizar(request, pk):
         sistema.medio_respaldo = request.POST.get('medio_respaldo')
         sistema.plazo_conservacion = request.POST.get('plazo_conservacion')
         sistema.observaciones = request.POST.get('observaciones')
+        
         sistema.save()
 
     sistemas = Sistema.objects.all().order_by('nombre')
@@ -1218,7 +1228,10 @@ def panel_config_sistema_actualizar(request, pk):
         tecnicos = Usuario.objects.filter(rol__in=['tecnico', 'admin']).order_by('nombre_completo')
     except Exception:
         tecnicos = Usuario.objects.all().order_by('id')
+
     return render(request, 'configuracion/partials/sistemas.html', {'sistemas': sistemas, 'tecnicos': tecnicos})
+
+
 
 @login_required
 @require_http_methods(["POST"])

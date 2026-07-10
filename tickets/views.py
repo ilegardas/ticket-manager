@@ -1145,18 +1145,18 @@ def panel_config_sistemas(request):
 
     # --- LÓGICA DE BÚSQUEDA Y FILTRADO (GET/HTMX) ---
     query = request.GET.get('q_sistema', '').strip()
-    # Por defecto viene activado ('true'), si no se envía o cambia se evalúa explícitamente
     solo_activos = request.GET.get('solo_activos', 'true') == 'true'
 
+    # 🚀 Definición estándar en español
     sistemas_list = Sistema.objects.select_related('desarrollado_por', 'responsable_resguardo').all()
 
-    # 1. Filtro por estado activo/inactivo
+    # 1. Filtro por estado activo/inactivo (Corregido a sistemas_list)
     if solo_activos:
-        sistemas_list = systemas_list.filter(activo=True)
+        sistemas_list = sistemas_list.filter(activo=True)
 
-    # 2. Búsqueda cruzada multivariable
+    # 2. Búsqueda cruzada multivariable (Corregido a sistemas_list)
     if query:
-        sistemas_list = systemas_list.filter(
+        sistemas_list = sistemas_list.filter(
             Q(nombre__icontains=query) |
             Q(objetivo_descripcion__icontains=query) |
             Q(servidor_alojamiento__icontains=query) |
@@ -1166,7 +1166,8 @@ def panel_config_sistemas(request):
             Q(desarrollado_por__region_zona__icontains=query)  # Región del dev o resguardo
         )
 
-    sistemas_list = systemas_list.order_by('nombre')
+    # Ordenamiento final (Corregido a sistemas_list)
+    sistemas_list = sistemas_list.order_by('nombre')
 
     # Configuración del Paginador Inteligente (Infinite Scroll)
     paginator = Paginator(sistemas_list, 15)

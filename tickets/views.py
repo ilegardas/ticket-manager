@@ -1152,11 +1152,11 @@ def panel_config_sistemas(request):
 
     # 1. Filtro por estado activo/inactivo
     if solo_activos:
-        sistemas_list = systems_list.filter(activo=True)
+        sistemas_list = systemas_list.filter(activo=True)
 
     # 2. Búsqueda cruzada multivariable
     if query:
-        sistemas_list = systems_list.filter(
+        sistemas_list = systemas_list.filter(
             Q(nombre__icontains=query) |
             Q(objetivo_descripcion__icontains=query) |
             Q(servidor_alojamiento__icontains=query) |
@@ -1166,7 +1166,7 @@ def panel_config_sistemas(request):
             Q(desarrollado_por__region_zona__icontains=query)  # Región del dev o resguardo
         )
 
-    sistemas_list = systems_list.order_by('nombre')
+    sistemas_list = systemas_list.order_by('nombre')
 
     # Configuración del Paginador Inteligente (Infinite Scroll)
     paginator = Paginator(sistemas_list, 15)

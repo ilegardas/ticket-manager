@@ -13,7 +13,7 @@ from rest_framework.decorators import authentication_classes
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, date
 from django.core.mail import EmailMessage
 from django.db.models.functions import TruncDate
 from .models import RelacionUsuarioSistema

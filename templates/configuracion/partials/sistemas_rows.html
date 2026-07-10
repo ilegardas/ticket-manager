@@ -1,96 +1,32 @@
 {% for sis in sistemas %}
-    <tr class="hover:bg-slate-50/50 dark:hover:bg-darkBg/40 transition align-top text-[11px]">
-        <td class="py-4 px-4 font-mono font-bold text-slate-400 dark:text-darkTextSub">#{{ sis.id }}</td>
-        
-        <td class="py-4 px-4">
-            <div class="font-bold text-slate-800 dark:text-slate-100 text-[13px]">{{ sis.nombre }}</div>
-            <div class="flex items-center gap-2 mt-0.5 text-[10px]">
-                <span class="bg-slate-100 dark:bg-darkBg px-1.5 py-0.5 rounded font-mono text-slate-500 dark:text-darkTextSub">Ver: {{ sis.version|default:"1.0" }}</span>
-                <span class="text-slate-400">•</span>
-                <span class="text-slate-500 dark:text-slate-400 font-medium">{{ sis.formato_sistema|default:"Web App" }}</span>
-            </div>
-            {% if sis.objetivo_descripcion %}
-            <p class="text-[11px] text-slate-400 dark:text-darkTextSub mt-1 max-w-xs whitespace-normal line-clamp-2" title="{{ sis.objetivo_descripcion }}">
-                {{ sis.objetivo_descripcion }}
-            </p>
-            {% endif %}
-        </td>
-        
-        <td class="py-4 px-4">
-            {% if sis.acceso_recurso %}
-            <a href="{{ sis.acceso_recurso }}" target="_blank" class="text-blue-500 dark:text-amber-400 font-medium hover:underline flex items-center gap-1 mb-1 max-w-xs overflow-hidden text-ellipsis">
-                🔗 Enlace de Acceso
-            </a>
-            {% else %}
-            <span class="block text-slate-400 dark:text-darkTextSub font-mono mb-1">—</span>
-            {% endif %}
-            <div class="text-[10px] space-y-0.5 text-slate-500 dark:text-slate-400">
-                <div><span class="font-semibold">Host:</span> {{ sis.servidor_alojamiento|default:"No especificado" }}</div>
-                <div><span class="font-semibold">Región/SITE:</span> {{ sis.ubicacion_servidor|default:"—" }}</div>
-            </div>
-        </td>
-        
-        <td class="py-4 px-4">
-            <div class="font-medium text-slate-700 dark:text-slate-200 max-w-xs whitespace-normal line-clamp-1" title="{{ sis.informacion_tecnica }}">
-                {{ sis.informacion_tecnica|default:"Stack sin registrar" }}
-            </div>
-            <div class="text-[10px] space-y-0.5 text-slate-500 dark:text-slate-400 mt-1">
-                <div><span class="font-semibold">Base de Datos:</span> <span class="font-mono">{{ sis.nombre_bd|default:"—" }}</span></div>
-                <div><span class="font-semibold">Usuarios Concurrentes:</span> {{ sis.cifra_usuarios|default:"0" }} cap.</div>
-            </div>
-        </td>
-        
-        <td class="py-4 px-4 space-y-1">
-            <div>
-                <span class="text-[10px] text-slate-400 uppercase font-bold block">Desarrollado Por:</span>
-                <span class="font-medium text-slate-700 dark:text-slate-200">{{ sis.desarrollado_por.nombre_completo|default:"Área Externa / Proveedor" }}</span>
-            </div>
-            <div>
-                <span class="text-[10px] text-slate-400 uppercase font-bold block">Custodio / Git:</span>
-                <span class="font-medium text-slate-700 dark:text-slate-200">{{ sis.responsable_resguardo.nombre_completo|default:"Mesa de Ayuda SEECH" }}</span>
-            </div>
-        </td>
-        
-        <td class="py-4 px-4 text-[11px]">
-            <div class="font-bold text-slate-700 dark:text-slate-200">⏳ Retención: {{ sis.plazo_conservacion|default:"No definida" }}</div>
-            <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 space-y-0.5">
-                <div><span class="font-semibold">Freq:</span> {{ sis.fecha_respaldo|default:"—" }}</div>
-                <div><span class="font-semibold">Formato:</span> {{ sis.formato_respaldo|default:"—" }}</div>
-                <div><span class="font-semibold">Medio:</span> {{ sis.medio_respaldo|default:"—" }}</div>
-            </div>
-        </td>
-        
-        <td class="py-4 px-4 text-center">
-            {% if sis.activo %}
-            <span class="inline-flex items-center rounded-full bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/40">Activo</span>
-            {% else %}
-            <span class="inline-flex items-center rounded-full bg-slate-50 dark:bg-darkBg px-2 py-0.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800">Inactivo</span>
-            {% endif %}
-        </td>
-        
-        <td class="py-3 px-4 text-right flex items-center justify-end gap-2">
-            <button hx-get="{% url 'panel_config_sistema_editar_modal' sis.id %}" hx-target="body" hx-swap="beforeend" class="text-blue-600 dark:text-amber-400 hover:text-blue-800 dark:hover:text-amber-300 font-bold p-1 hover:underline text-[11px]">📝 Editar</button>
-            <button hx-post="{% url 'panel_config_sistema_eliminar' sis.id %}" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' hx-target="#tab-content" hx-confirm="¿Estás seguro de que deseas eliminar este sistema?" class="text-red-500 dark:text-red-400 hover:text-red-700 font-bold p-1 hover:underline text-[11px]">🗑️ Eliminar</button>
-        </td>
-    </tr>
-
     {% if forloop.last and sistemas.has_next %}
-    <tr id="fila-paginacion">
-        <td colspan="8" class="py-4 px-4 text-center bg-slate-50/40 dark:bg-darkBg/10">
-            <button hx-get="{% url 'panel_config_sistemas' %}?page={{ sistemas.next_page_number }}"
-                    hx-target="#fila-paginacion"
-                    hx-swap="outerHTML"
-                    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-darkPanel text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-xs shadow-xs transition tracking-wide uppercase">
-                ⏳ Cargar sistemas siguientes...
-            </button>
+    <tr class="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-darkBg/20 transition text-[11px]"
+        hx-get="{% url 'panel_config_sistemas' %}?page={{ sistemas.next_page_number }}"
+        hx-trigger="revealed"
+        hx-swap="afterend"
+        hx-include="[name='q_sistema'], [name='solo_activos']"> {% else %}
+    <tr class="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-darkBg/20 transition text-[11px]">
+    {% endif %}
+        <td class="py-3 px-4 font-bold text-slate-800 dark:text-slate-200">{{ sis.nombre }}</td>
+        <td class="py-3 px-4 text-slate-400 font-mono">{{ sis.version|default:"1.0" }}</td>
+        <td class="py-3 px-4 text-slate-500 max-w-xs truncate">{{ sis.objetivo_descripcion|default:"—" }}</td>
+        <td class="py-3 px-4 font-medium text-slate-600 dark:text-slate-400">{{ sis.servidor_alojamiento|default:"—" }}</td>
+        <td class="py-3 px-4">
+            {% if sis.activo %}
+            <span class="inline-flex items-center rounded-full bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/40">● Activo</span>
+            {% else %}
+            <span class="inline-flex items-center rounded-full bg-slate-50 dark:bg-darkBg px-2 py-0.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800">○ Inactivo</span>
+            {% endif %}
+        </td>
+        <td class="py-3 px-4 text-right flex items-center justify-end gap-2">
+            <button hx-get="{% url 'panel_config_sistema_editar_modal' sis.id %}" hx-target="body" hx-swap="beforeend" class="text-blue-600 dark:text-amber-400 hover:text-blue-800 font-bold p-1 hover:underline text-[11px]">📝 Editar</button>
+            <button hx-post="{% url 'panel_config_sistema_eliminar' sis.id %}" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' hx-target="#tab-content" hx-confirm="¿Eliminar sistema?" class="text-red-500 hover:text-red-700 font-bold p-1 hover:underline text-[11px]">🗑️ Eliminar</button>
         </td>
     </tr>
-    {% endif %}
-
 {% empty %}
     {% if not sistemas.number or sistemas.number == 1 %}
     <tr>
-        <td colspan="8" class="text-center py-8 text-slate-400 dark:text-darkTextSub/60 font-medium">No hay sistemas registrados en la base de datos de gobernanza.</td>
+        <td colspan="6" class="text-center py-6 text-slate-400">No hay sistemas registrados en el inventario.</td>
     </tr>
     {% endif %}
 {% endfor %}

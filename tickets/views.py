@@ -18,6 +18,7 @@ from django.core.mail import EmailMessage
 from django.db.models.functions import TruncDate
 from .models import RelacionUsuarioSistema
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+import openpyxl
 
 import csv
 import io
@@ -1867,3 +1868,114 @@ def panel_config_sistema_importar_csv(request):
     try: tecnicos = Usuario.objects.filter(rol__in=['tecnico', 'admin']).order_by('nombre_completo')
     except Exception: tecnicos = Usuario.objects.all().order_by('id')
     return render(request, 'configuracion/partials/sistemas.html', {'sistemas': sistemas, 'tecnicos': tecnicos})
+
+
+@login_required
+def panel_directorio(request):
+    """
+    📇 DIRECTORIO INSTITUCIONAL: Vista de solo lectura para listar usuarios.
+    Soporta búsqueda en tiempo real vía HTMX y paginación infinita.
+    """
+    query = request.GET.get('q_directorio', '').strip()
+
+    # Filtramos sólo usuarios activos (puedes quitar el filter si quieres mostrar a todos)
+    usuarios_list = Usuario.objects.all()
+
+    # Búsqueda multivariable (Nombre, Correo, Puesto/Cargo, Extensión, Clave)
+    if query:
+        usuarios_list = usuarios_list.filter(
+            Q(nombre_completo__icontains=query) |
+            Q(email__icontains=query) |
+            Q(puesto__icontains=query) |      # Ajusta según tus campos del modelo
+            Q(extension__icontains=query) |   # Ajusta según tus campos del modelo
+            Q(username__icontains=query)       # O el campo que uses para la 'clave'
+        )
+
+    # Ordenamos alfabéticamente por nombre
+    usuarios_list = usuarios_list.order_by('nombre_completo')
+
+    # Paginación para Scroll Infinito (15 registros por tanda)
+    paginator = Paginator(usuarios_list, 15)
+    page_number = request.GET.get('page', 1)
+
+    try:
+        usuarios = paginator.page(page_number)
+    except PageNotAnInteger:
+        usuarios = paginator.page(1)
+    except EmptyPage:
+        if request.headers.get('HX-Request'):
+            return HttpResponse("")  # Detiene el scroll si no hay más páginas
+        usuarios = paginator.page(paginator.num_pages)
+
+    context = {
+        'usuarios': usuarios,
+        'q_directorio': query,
+    }
+
+    # Control de respuestas HTMX vs Carga Completa
+    if request.headers.get('HX-Request'):
+        if 'page' in request.GET:
+            # Scroll infinito: regresa solo las nuevas filas
+            return render(request, 'directorio/partials/directorio_rows.html', context)
+        else:
+            # Búsqueda en caliente: refresca el cuerpo de la tabla
+            return render(request, 'directorio/partials/directorio_rows.html', context)
+
+    return render(request, 'directorio/directorio.html', context)
+
+
+@login_required
+def exportar_directorio_excel(request):
+    """
+    📊 EXPORTAR A EXCEL: Genera un archivo .xlsx basado en los filtros aplicados en el buscador.
+    """
+    query = request.GET.get('q_directorio', '').strip()
+    usuarios_list = Usuario.objects.all()
+
+    if query:
+        usuarios_list = usuarios_list.filter(
+            Q(nombre_completo__icontains=query) |
+            Q(email__icontains=query) |
+            Q(puesto__icontains=query) |
+            Q(extension__icontains=query) |
+            Q(username__icontains=query)
+        )
+
+    usuarios_list = usuarios_list.order_by('nombre_completo')
+
+    # Crear el libro de Excel en memoria
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Directorio"
+
+    # Encabezados de la tabla
+    headers = ["Clave", "Nombre Completo", "Correo Electrónico", "Puesto / Cargo", "Extensión"]
+    ws.append(headers)
+
+    # Estilo básico para los encabezados (Negrita)
+    for col_num, header_title in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.font = openpyxl.styles.Font(bold=True, color="FFFFFF")
+        cell.fill = openpyxl.styles.PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid") # Azul corporativo
+
+    # Inyectar datos de los usuarios
+    for u in usuarios_list:
+        ws.append([
+            u.username, # o tu campo clave
+            u.nombre_completo,
+            u.email,
+            getattr(u, 'puesto', '—'),     # Evita errores si el campo está vacío
+            getattr(u, 'extension', '—')
+        ])
+
+    # Auto-ajustar el ancho de las columnas
+    for col in ws.columns:
+        max_len = max(len(str(cell.value or '')) for cell in col)
+        col_letter = openpyxl.utils.get_column_letter(col[0].column)
+        ws.column_dimensions[col_letter].width = max(max_len + 3, 12)
+
+    # Preparar respuesta HTTP
+    response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    response["Content-Disposition"] = 'attachment; filename="Directorio_Personal.xlsx"'
+    wb.save(response)
+    return response

@@ -1895,13 +1895,14 @@ def panel_directorio(request):
 
     # Búsqueda multivariable (Nombre, Correo, Puesto/Cargo, Extensión, Clave)
     # Búsqueda multivariable con los campos reales de tu modelo
+    # Búsqueda multivariable limpia con los campos exactos de tu modelo
     if query:
         usuarios_list = usuarios_list.filter(
             Q(nombre_completo__icontains=query) |
-            Q(correo_electronico__icontains=query) |  # 🚀 Corregido
-            Q(puesto_cargo__icontains=query) |        # 🚀 Corregido
+            Q(correo_electronico__icontains=query) |
+            Q(puesto_cargo__icontains=query) |
             Q(extension__icontains=query) |
-            Q(username__icontains=query)
+            Q(numero_empleado__icontains=query)  # 🚀 Cambiado de username a numero_empleado
         )
 
     # Ordenamos alfabéticamente por nombre

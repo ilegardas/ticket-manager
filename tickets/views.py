@@ -1453,6 +1453,13 @@ def panel_usuario_toggle_activo(request, user_id):
         return HttpResponse(f'<button hx-post="/api/panel/usuarios/{usuario.id}/toggle/" hx-headers=\'{{"X-CSRFToken": "{request.META.get("CSRF_COOKIE")}"}}\' hx-target="this" hx-swap="outerHTML" class="px-2.5 py-1 text-[10px] font-bold rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100">● Activo</button>')
     return HttpResponse(f'<button hx-post="/api/panel/usuarios/{usuario.id}/toggle/" hx-headers=\'{{"X-CSRFToken": "{request.META.get("CSRF_COOKIE")}"}}\' hx-target="this" hx-swap="outerHTML" class="px-2.5 py-1 text-[10px] font-bold rounded-full border bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100">○ Inactivo</button>')
 
+from django.shortcuts import render, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+from django.db.models import Q
+# 🚀 Asegúrate de importar el modelo Departamento si no está arriba:
+from .models import Usuario, Departamento 
+
 @login_required
 def panel_usuario_editar(request, user_id):
     if request.user.rol != 'admin': 
@@ -1461,30 +1468,44 @@ def panel_usuario_editar(request, user_id):
     usuario = get_object_or_404(Usuario, pk=user_id)
     
     if request.method == "POST":
+        # ... (Tus asignaciones actuales: nombre_completo, email, extension, etc.)
         usuario.nombre_completo = request.POST.get("nombre_completo")
-        usuario.correo_electronico = request.POST.get("email") # Sincronizado
+        usuario.correo_electronico = request.POST.get("email")
+        usuario.extension = request.POST.get("extension")
         usuario.puesto_cargo = request.POST.get("puesto_cargo")
         usuario.numero_empleado = request.POST.get("numero_empleado")
         usuario.cct = request.POST.get("cct")
         usuario.region_zona = request.POST.get("region_zona")
         usuario.nivel_educativo = request.POST.get("nivel_educativo")
         
-        # 🚀 GUARDAR EXTENSIÓN:
-        usuario.extension = request.POST.get("extension")
-        
+        # 🏢 1. PROCESAR EL DEPARTAMENTO SELECCIONADO EN EL POST:
+        dept_id = request.POST.get("departamento")
+        if dept_id:
+            usuario.departamento_id = dept_id  # Guardamos la relación usando el ID directo
+        else:
+            usuario.departamento = None  # Si eligió "Sin Asignar"
+            
         estado_raw = request.POST.get("estado") == "True"
         usuario.activo = estado_raw
-        usuario.is_active = estado_raw
-        
         usuario.rol = request.POST.get("rol")
         usuario.save()
         
+        # Devolvemos la fila actualizada para HTMX
         return render(request, 'usuarios/partials/usuarios_row.html', {
             'u': usuario,
             'usuario': usuario
         })
         
-    return render(request, 'usuarios/partials/modal_editar.html', {'usuario': usuario})
+    # 🏢 2. ENVIAR LOS DEPARTAMENTOS DISPONIBLES AL MODAL (GET):
+    # Traemos los que están activos O el que ya tenga asignado el usuario (aunque esté archivado)
+    departamentos = Departamento.objects.filter(
+        Q(activo=True) | Q(id=usuario.departamento_id)
+    ).distinct().order_by('nombre')
+    
+    return render(request, 'usuarios/partials/modal_editar.html', {
+        'usuario': usuario,
+        'departamentos': departamentos  # 🚀 CRUCIAL para que el {% for %} funcione
+    })
 
 
         

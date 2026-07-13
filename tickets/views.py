@@ -1454,11 +1454,10 @@ def panel_usuario_toggle_activo(request, user_id):
     return HttpResponse(f'<button hx-post="/api/panel/usuarios/{usuario.id}/toggle/" hx-headers=\'{{"X-CSRFToken": "{request.META.get("CSRF_COOKIE")}"}}\' hx-target="this" hx-swap="outerHTML" class="px-2.5 py-1 text-[10px] font-bold rounded-full border bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100">○ Inactivo</button>')
 
 @login_required
-def panel_usuario_editar(request, user_id):  # 🚀 CAMBIADO AQUÍ: de pk a user_id
+def panel_usuario_editar(request, user_id):
     if request.user.rol != 'admin': 
         return HttpResponse("No autorizado", status=403)
     
-    # 🚀 CAMBIADO AQUÍ TAMBIÉN: usar user_id para buscar al usuario
     usuario = get_object_or_404(Usuario, pk=user_id)
     
     if request.method == "POST":
@@ -1479,9 +1478,8 @@ def panel_usuario_editar(request, user_id):  # 🚀 CAMBIADO AQUÍ: de pk a user
         
         return render(request, 'configuracion/partials/usuarios_row.html', {'u': usuario})
         
-    # Si la petición es GET (cargar el modal), asegúrate de retornar el modal aquí
-    # (Generalmente renderizas el formulario del modal si no es POST)
-    return render(request, 'configuracion/partials/modal_usuario_editar.html', {'usuario': usuario})
+    # 🚀 CORREGIDO: Apuntar al nombre real del archivo en tu CMDB/Configuración
+    return render(request, 'configuracion/partials/modal_editar.html', {'usuario': usuario})
 
 
         

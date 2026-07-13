@@ -22,6 +22,21 @@ class UsuarioManager(BaseUserManager):
         return self.create_user(correo_electronico, nombre_completo, password, **extra_fields)
 
 
+class Departamento(models.Model):
+    nombre = models.CharField(max_length=100, unique=True, verbose_name="Nombre del Departamento")
+    # 🚀 NUEVO CAMPO: Bandera booleana para archivar/desactivar el registro
+    activo = models.BooleanField(default=True, verbose_name="Activo")
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.nombre
+
+    class Meta:
+        verbose_name = "Departamento"
+        verbose_name_plural = "Departamentos"
+        ordering = ['nombre']
+        
+
 class Usuario(AbstractBaseUser, PermissionsMixin):
     ROL_CHOICES = [
         ('admin', 'Administrador'),
@@ -41,6 +56,7 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     fecha_registro = models.DateTimeField(auto_now_add=True)
     telefono = models.CharField(max_length=20, blank=True, null=True, verbose_name="Número Telefónico")
     extension = models.CharField(max_length=10, blank=True, null=True, verbose_name="Extensión")
+    departamento = models.ForeignKey(Departamento, on_delete=models.SET_NULL, null=True, blank=True, related_name="usuarios", verbose_name="Departamento / Área" )
 
     objects = UsuarioManager()
 

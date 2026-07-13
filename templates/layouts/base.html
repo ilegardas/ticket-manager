@@ -79,6 +79,17 @@
                 Configuración
             </a>
 
+            <a href="{% url 'panel_departamentos' %}" 
+               class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-xs font-semibold transition group 
+                      {% if request.resolver_match.url_name == 'panel_departamentos' %}
+                          bg-blue-500/10 text-blue-600 dark:bg-amber-500/10 dark:text-amber-400
+                      {% else %}
+                          text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-darkBg/30 hover:text-slate-900 dark:hover:text-slate-200
+                      {% endif %}">
+                <span class="text-base transition group-hover:scale-110 duration-200">🏢</span>
+                <span>Departamentos</span>
+            </a>
+
             {% if request.user.rol == 'admin' %}
             <a href="{% url 'panel_usuarios_list' %}" class="flex items-center px-4 py-2.5 text-sm font-medium rounded-lg text-slate-400 hover:bg-slate-900/60 dark:hover:bg-darkBg/60 hover:text-white transition">
                 <svg class="mr-3 h-5 w-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.35c1.34 0 2.43-1.09 2.43-2.43S13.34.48 12 .48 9.57 1.57 9.57 2.91 10.66 4.35 12 4.35zm0 2.43c-2.97 0-9 1.49-9 4.46v2.43h18v-2.43c0-2.97-6-4.46-9-4.46z"/></svg>

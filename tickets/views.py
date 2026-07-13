@@ -1476,10 +1476,11 @@ def panel_usuario_editar(request, user_id):
         usuario.rol = request.POST.get("rol")
         usuario.save()
         
-        return render(request, 'configuracion/partials/usuarios_row.html', {'u': usuario})
+        # 🚀 CORRECCIÓN AQUÍ TAMBIÉN (Debe apuntar a usuarios/partials/)
+        return render(request, 'usuarios/partials/usuarios_row.html', {'u': usuario})
         
-    # 🚀 CORREGIDO: Apuntar al nombre real del archivo en tu CMDB/Configuración
-    return render(request, 'configuracion/partials/modal_editar.html', {'usuario': usuario})
+    # 🚀 CORRECCIÓN AQUÍ: Apuntar a la ubicación real bajo la carpeta usuarios
+    return render(request, 'usuarios/partials/modal_editar.html', {'usuario': usuario})
 
 
         

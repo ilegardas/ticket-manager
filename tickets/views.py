@@ -1946,13 +1946,14 @@ def exportar_directorio_excel(request):
     query = request.GET.get('q_directorio', '').strip()
     usuarios_list = Usuario.objects.all()
 
+    # 🚀 CORREGIDO: Usando los campos exactos de tu modelo de base de datos
     if query:
         usuarios_list = usuarios_list.filter(
             Q(nombre_completo__icontains=query) |
-            Q(email__icontains=query) |
-            Q(puesto__icontains=query) |
+            Q(correo_electronico__icontains=query) |
+            Q(puesto_cargo__icontains=query) |
             Q(extension__icontains=query) |
-            Q(username__icontains=query)
+            Q(numero_empleado__icontains=query)
         )
 
     usuarios_list = usuarios_list.order_by('nombre_completo')
@@ -1963,23 +1964,24 @@ def exportar_directorio_excel(request):
     ws.title = "Directorio"
 
     # Encabezados de la tabla
-    headers = ["Clave", "Nombre Completo", "Correo Electrónico", "Puesto / Cargo", "Extensión"]
+    headers = ["Clave / ID", "Nombre Completo", "Correo Electrónico", "Puesto / Cargo", "Extensión", "Rol"]
     ws.append(headers)
 
-    # Estilo básico para los encabezados (Negrita)
+    # Estilo básico para los encabezados (Azul corporativo)
     for col_num, header_title in enumerate(headers, 1):
         cell = ws.cell(row=1, column=col_num)
         cell.font = openpyxl.styles.Font(bold=True, color="FFFFFF")
-        cell.fill = openpyxl.styles.PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid") # Azul corporativo
+        cell.fill = openpyxl.styles.PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid")
 
-    # Inyectar datos de los usuarios
+    # Inyectar datos reales de los usuarios filtrados
     for u in usuarios_list:
         ws.append([
-            u.username, # o tu campo clave
+            u.id,  # O u.numero_empleado si prefieres usar ese como clave visible
             u.nombre_completo,
-            u.email,
-            getattr(u, 'puesto', '—'),     # Evita errores si el campo está vacío
-            getattr(u, 'extension', '—')
+            u.correo_electronico,
+            getattr(u, 'puesto_cargo', '—'),
+            getattr(u, 'extension', '—'),
+            getattr(u, 'rol', '—').capitalize()
         ])
 
     # Auto-ajustar el ancho de las columnas
@@ -1988,7 +1990,7 @@ def exportar_directorio_excel(request):
         col_letter = openpyxl.utils.get_column_letter(col[0].column)
         ws.column_dimensions[col_letter].width = max(max_len + 3, 12)
 
-    # Preparar respuesta HTTP
+    # Preparar respuesta HTTP para la descarga
     response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     response["Content-Disposition"] = 'attachment; filename="Directorio_Personal.xlsx"'
     wb.save(response)

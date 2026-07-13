@@ -67,6 +67,13 @@
                     <option value="admin" {% if usuario.rol == 'admin' %}selected{% endif %}>🔮 Admin</option>
                 </select>
             </div>
+
+            <div>
+                <label class="block font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1">Correo Electrónico</label>
+                <input type="email" name="email" required value="{{ usuario.email|default:'' }}" placeholder="ejemplo@dominio.com"
+                       class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500">
+            </div>
+            
         </div>
 
         

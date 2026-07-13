@@ -1454,26 +1454,34 @@ def panel_usuario_toggle_activo(request, user_id):
     return HttpResponse(f'<button hx-post="/api/panel/usuarios/{usuario.id}/toggle/" hx-headers=\'{{"X-CSRFToken": "{request.META.get("CSRF_COOKIE")}"}}\' hx-target="this" hx-swap="outerHTML" class="px-2.5 py-1 text-[10px] font-bold rounded-full border bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100">○ Inactivo</button>')
 
 @login_required
-def panel_usuario_editar(request, user_id):
+def panel_usuario_editar(request, pk):
     if request.user.rol != 'admin': return HttpResponse("No autorizado", status=403)
-    usuario = get_object_or_404(Usuario, pk=user_id)
-
+    
+    usuario = get_object_or_404(Usuario, pk=pk)
+    
     if request.method == "POST":
         usuario.nombre_completo = request.POST.get("nombre_completo")
+        
+        # 🚀 AGREGAR ESTA LÍNEA PARA PERSISTIR EL CORREO:
+        usuario.email = request.POST.get("email")
+        
+        usuario.puesto_cargo = request.POST.get("puesto_cargo")
         usuario.numero_empleado = request.POST.get("numero_empleado")
         usuario.cct = request.POST.get("cct")
-        usuario.puesto_cargo = request.POST.get("puesto_cargo")
-        usuario.nivel_educativo = request.POST.get("nivel_educativo")
         usuario.region_zona = request.POST.get("region_zona")
-        nuevo_rol = request.POST.get("rol", "usuario")
-        usuario.rol = nuevo_rol
-        usuario.is_staff = True if nuevo_rol == 'admin' else False
-        usuario.activo = request.POST.get("estado") in ['True', True, 'Activo']
-        usuario.is_active = usuario.activo 
+        usuario.nivel_educativo = request.POST.get("nivel_educativo")
+        
+        # Sincronización de estados lógicos
+        estado_raw = request.POST.get("estado") == "True"
+        usuario.activo = estado_raw
+        usuario.is_active = estado_raw
+        
+        usuario.rol = request.POST.get("rol")
         usuario.save()
-        return render(request, 'usuarios/partials/usuarios_row.html', {'usuario': usuario})
-
-    return render(request, 'usuarios/partials/modal_editar.html', {'usuario': usuario})
+        
+        # Retornar el fragmento de renglón actualizado de la tabla
+        return render(request, 'configuracion/partials/usuarios_row.html', {'u': usuario})
+        
 
 @login_required
 def panel_usuario_importar_csv(request):

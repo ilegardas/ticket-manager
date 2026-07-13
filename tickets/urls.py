@@ -104,6 +104,11 @@ urlpatterns = [
     # ... DIRECTORIO ...
     path('panel/directorio/', views.panel_directorio, name='panel_directorio'),
     path('panel/directorio/exportar/', views.exportar_directorio_excel, name='exportar_directorio_excel'),
+
+    # ... Depaertamentos
+    path('panel/departamentos/', views.panel_departamentos, name='panel_departamentos'),
+    path('panel/departamentos/crear/', views.departamento_crear, name='departamento_crear'),
+    path('panel/departamentos/<int=dept_id>/editar/', views.departamento_editar, name='departamento_editar'),
     
     # 🚀 SOLUCIÓN: El router se monta con un prefijo o se incluye limpiamente sin duplicados
     path('api-root/', include(router.urls)),

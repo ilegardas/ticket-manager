@@ -1,0 +1,58 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Directorio Institucional - Ticket Manager{% endblock %}
+
+{% block content %}
+<div class="space-y-4 text-xs">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white dark:bg-darkPanel border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
+        <div>
+            <h3 class="text-sm font-bold text-slate-800 dark:text-amber-400 uppercase tracking-wide">📇 Directorio Telefónico e Institucional</h3>
+            <p class="text-[11px] text-slate-400 dark:text-darkTextSub mt-0.5">Consulta de contactos, extensiones internas y puestos del personal (Solo Lectura).</p>
+        </div>
+        
+        <div class="shrink-0">
+            <a href="{% url 'exportar_directorio_excel' %}" 
+               id="btn-exportar-excel"
+               onclick="this.href='{% url 'exportar_directorio_excel' %}?q_directorio=' + encodeURIComponent(document.getElementById('search-directorio').value)"
+               class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-4 rounded-lg text-xs shadow-sm transition flex items-center gap-1.5">
+                🟢 Exportar a Excel
+            </a>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-darkPanel border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-sm">
+        <div class="relative w-full sm:w-96">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">🔍</span>
+            <input type="text" 
+                   id="search-directorio"
+                   name="q_directorio" 
+                   value="{{ q_directorio|default:'' }}"
+                   hx-get="{% url 'panel_directorio' %}" 
+                   hx-target="#directorio-table-body"
+                   hx-trigger="keyup delay:300ms, search"
+                   hx-swap="innerHTML"
+                   placeholder="Buscar por nombre, correo, extensión, puesto o clave..." 
+                   class="w-full text-xs pl-9 pr-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500 transition">
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-darkPanel border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse whitespace-nowrap">
+                <thead>
+                    <tr class="bg-slate-50 dark:bg-darkBg/50 border-b border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+                        <th class="py-3 px-4">Clave</th>
+                        <th class="py-3 px-4">Nombre Completo</th>
+                        <th class="py-3 px-4">Correo Electrónico</th>
+                        <th class="py-3 px-4">Puesto / Cargo</th>
+                        <th class="py-3 px-4">Extensión</th>
+                    </tr>
+                </thead>
+                <tbody id="directorio-table-body" class="divide-y divide-slate-100 dark:divide-slate-800 text-slate-600 dark:text-slate-300">
+                    {% include 'directorio/partials/directorio_rows.html' %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

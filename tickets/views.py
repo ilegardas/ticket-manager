@@ -1913,19 +1913,19 @@ def panel_directorio(request):
     """
     query = request.GET.get('q_directorio', '').strip()
 
-    # Filtramos sólo usuarios activos (puedes quitar el filter si quieres mostrar a todos)
-    usuarios_list = Usuario.objects.all()
+    # 🚀 OPTIMIZACIÓN CRUCIAL: select_related('departamento') trae el nombre del depto
+    # en un solo JOIN de SQL en lugar de hacer una consulta por cada fila de la tabla.
+    usuarios_list = Usuario.objects.all().select_related('departamento')
 
-    # Búsqueda multivariable (Nombre, Correo, Puesto/Cargo, Extensión, Clave)
-    # Búsqueda multivariable con los campos reales de tu modelo
-    # Búsqueda multivariable limpia con los campos exactos de tu modelo
+    # Búsqueda multivariable (Nombre, Correo, Puesto/Cargo, Extensión, Número de Empleado y Departamento)
     if query:
         usuarios_list = usuarios_list.filter(
             Q(nombre_completo__icontains=query) |
             Q(correo_electronico__icontains=query) |
             Q(puesto_cargo__icontains=query) |
             Q(extension__icontains=query) |
-            Q(numero_empleado__icontains=query)  # 🚀 Cambiado de username a numero_empleado
+            Q(numero_empleado__icontains=query) |
+            Q(departamento__nombre__icontains=query)  # 🚀 NUEVO: Permite buscar por Departamento en vivo
         )
 
     # Ordenamos alfabéticamente por nombre
@@ -1951,12 +1951,8 @@ def panel_directorio(request):
 
     # Control de respuestas HTMX vs Carga Completa
     if request.headers.get('HX-Request'):
-        if 'page' in request.GET:
-            # Scroll infinito: regresa solo las nuevas filas
-            return render(request, 'directorio/partials/directorio_rows.html', context)
-        else:
-            # Búsqueda en caliente: refresca el cuerpo de la tabla
-            return render(request, 'directorio/partials/directorio_rows.html', context)
+        # Tanto el scroll infinito como la búsqueda refrescan las filas partials
+        return render(request, 'directorio/partials/directorio_rows.html', context)
 
     return render(request, 'directorio/directorio.html', context)
 

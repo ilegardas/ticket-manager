@@ -29,7 +29,7 @@ from rest_framework.exceptions import AuthenticationFailed
 
 from .models import (
     Usuario, Sistema, Modulo, Documento, Prioridad, Estado, Categoria,
-    Ticket, ChatterEntry, TicketTimeLog, ConocimientoEntry, Token
+    Ticket, ChatterEntry, TicketTimeLog, ConocimientoEntry, Token, Departamento
 )
 
 from .serializers import (
@@ -1997,3 +1997,61 @@ def exportar_directorio_excel(request):
     response["Content-Disposition"] = 'attachment; filename="Directorio_Personal.xlsx"'
     wb.save(response)
     return response
+
+
+@login_required
+def panel_departamentos(request):
+    """
+    🖥️ Vista principal que renderiza el contenedor y la estructura del panel de departamentos.
+    """
+    if request.user.rol != 'admin':
+        return HttpResponse("No autorizado", status=403)
+    
+    # Traemos todos ordenados por nombre
+    departamentos = Departamento.objects.all().order_by('nombre')
+    return render(request, 'departamentos/panel.html', {'departamentos': departamentos})
+
+
+@login_required
+def departamento_crear(request):
+    """
+    ➕ Crear un nuevo departamento vía HTMX
+    """
+    if request.user.rol != 'admin':
+        return HttpResponse("No autorizado", status=403)
+
+    if request.method == "POST":
+        nombre = request.POST.get("nombre", "").strip()
+        if not nombre:
+            return HttpResponse("El nombre es requerido", status=400)
+        
+        # Crear el registro
+        dept, creado = Departamento.objects.get_or_create(nombre=nombre)
+        
+        # Devolvemos la fila fresca para que HTMX la inserte en la tabla
+        return render(request, 'departamentos/partials/departamento_row.html', {'d': dept})
+    
+    # Si es GET, devolvemos el formulario limpio dentro del modal
+    return render(request, 'departamentos/partials/modal_crear.html')
+
+
+@login_required
+def departamento_editar(request, dept_id):
+    """
+    📝 Editar o Archivar un departamento existente
+    """
+    if request.user.rol != 'admin':
+        return HttpResponse("No autorizado", status=403)
+
+    dept = get_object_or_404(Departamento, pk=dept_id)
+
+    if request.method == "POST":
+        dept.nombre = request.POST.get("nombre", "").strip()
+        dept.activo = request.POST.get("activo") == "True"
+        dept.save()
+
+        # HTMX reemplaza la fila vieja por esta fila actualizada
+        return render(request, 'departamentos/partials/departamento_row.html', {'d': dept})
+
+    # Si es GET, carga los datos actuales en el modal de edición
+    return render(request, 'departamentos/partials/modal_editar.html', {'dept': dept})

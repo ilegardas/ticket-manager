@@ -1894,13 +1894,14 @@ def panel_directorio(request):
     usuarios_list = Usuario.objects.all()
 
     # Búsqueda multivariable (Nombre, Correo, Puesto/Cargo, Extensión, Clave)
+    # Búsqueda multivariable con los campos reales de tu modelo
     if query:
         usuarios_list = usuarios_list.filter(
             Q(nombre_completo__icontains=query) |
-            Q(email__icontains=query) |
-            Q(puesto__icontains=query) |      # Ajusta según tus campos del modelo
-            Q(extension__icontains=query) |   # Ajusta según tus campos del modelo
-            Q(username__icontains=query)       # O el campo que uses para la 'clave'
+            Q(correo_electronico__icontains=query) |  # 🚀 Corregido
+            Q(puesto_cargo__icontains=query) |        # 🚀 Corregido
+            Q(extension__icontains=query) |
+            Q(username__icontains=query)
         )
 
     # Ordenamos alfabéticamente por nombre

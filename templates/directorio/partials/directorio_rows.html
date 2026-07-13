@@ -4,13 +4,18 @@
         hx-get="{% url 'panel_directorio' %}?page={{ usuarios.next_page_number }}"
         hx-trigger="revealed"
         hx-swap="afterend"
-        hx-include="[name='q_directorio']"> {% else %}
+        hx-include="[name='q_directorio']"> 
+    {% else %}
     <tr class="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-darkBg/20 transition text-[11px]">
     {% endif %}
         <td class="py-3 px-4 font-mono text-slate-400">#{{ u.username }}</td>
         <td class="py-3 px-4 font-bold text-slate-800 dark:text-slate-200">{{ u.nombre_completo }}</td>
         <td class="py-3 px-4 text-blue-600 dark:text-amber-400 font-medium">{{ u.correo_electronico }}</td>
-        <td class="py-3 px-4 text-slate-600 dark:text-slate-400">{{ u.rol:"—" }}</td>
+        
+        <td class="py-3 px-4 text-slate-600 dark:text-slate-400 font-medium">
+            {{ u.rol|default:"—"|capfirst }}
+        </td>
+        
         <td class="py-3 px-4 font-mono font-bold text-slate-700 dark:text-slate-300">
             {% if u.extension %}
                 📞 {{ u.extension }}

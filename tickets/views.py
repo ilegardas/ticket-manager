@@ -1476,8 +1476,10 @@ def panel_usuario_editar(request, user_id):
         usuario.rol = request.POST.get("rol")
         usuario.save()
         
-        # 🚀 CORRECCIÓN AQUÍ TAMBIÉN (Debe apuntar a usuarios/partials/)
-        return render(request, 'usuarios/partials/usuarios_row.html', {'u': usuario})
+        return render(request, 'usuarios/partials/usuarios_row.html', {
+            'u': usuario,
+            'usuario': usuario
+        })
         
     # 🚀 CORRECCIÓN AQUÍ: Apuntar a la ubicación real bajo la carpeta usuarios
     return render(request, 'usuarios/partials/modal_editar.html', {'usuario': usuario})

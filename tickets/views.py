@@ -1462,12 +1462,15 @@ def panel_usuario_editar(request, user_id):
     
     if request.method == "POST":
         usuario.nombre_completo = request.POST.get("nombre_completo")
-        usuario.email = request.POST.get("email")
+        usuario.correo_electronico = request.POST.get("email") # Sincronizado
         usuario.puesto_cargo = request.POST.get("puesto_cargo")
         usuario.numero_empleado = request.POST.get("numero_empleado")
         usuario.cct = request.POST.get("cct")
         usuario.region_zona = request.POST.get("region_zona")
         usuario.nivel_educativo = request.POST.get("nivel_educativo")
+        
+        # 🚀 GUARDAR EXTENSIÓN:
+        usuario.extension = request.POST.get("extension")
         
         estado_raw = request.POST.get("estado") == "True"
         usuario.activo = estado_raw
@@ -1481,7 +1484,6 @@ def panel_usuario_editar(request, user_id):
             'usuario': usuario
         })
         
-    # 🚀 CORRECCIÓN AQUÍ: Apuntar a la ubicación real bajo la carpeta usuarios
     return render(request, 'usuarios/partials/modal_editar.html', {'usuario': usuario})
 
 

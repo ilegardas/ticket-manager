@@ -34,9 +34,24 @@ class SistemaAdmin(admin.ModelAdmin):
 
 @admin.register(Modulo)
 class ModuloAdmin(admin.ModelAdmin):
-    list_display = ['nombre', 'sistema', 'activo']
-    list_filter = ['sistema', 'activo']
-    search_fields = ['nombre']
+    # 🚀 1. Quitamos 'sistema' de list_display y agregamos un método personalizado
+    list_display = ('id', 'nombre', 'ver_sistemas', 'activo', 'fecha_creacion') 
+    
+    # 🚀 2. Eliminamos 'sistema' de list_filter ya que causaba el error E116
+    list_filter = ('activo', 'fecha_creacion')
+    
+    search_fields = ('nombre', 'descripcion')
+
+    # 🎯 3. Método auxiliar para mostrar los sistemas asociados en la tabla del admin
+    def ver_sistemas(self, obj):
+        # Buscamos todos los sistemas asociados a este módulo usando la relación inversa (related_name='sistemas')
+        sistemas_asociados = obj.sistemas.all()
+        if sistemas_asociados:
+            return ", ".join([s.nombre for s in sistemas_asociados])
+        return "—"
+    
+    # Nombre que saldrá en la cabecera de la columna en el panel
+    ver_sistemas.short_description = "Sistemas Asociados"
 
 
 @admin.register(Prioridad)

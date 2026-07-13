@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="p-6 space-y-6 max-w-5xl mx-auto">
+    
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
+        <div>
+            <h1 class="text-xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                🏢 Catálogo de Departamentos
+            </h1>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Administra las áreas organizacionales y controla su disponibilidad en los expedientes de usuario.
+            </p>
+        </div>
+        <div>
+            <button hx-get="{% url 'departamento_crear' %}" 
+                    hx-target="#modal-container" 
+                    hx-swap="innerHTML" 
+                    onclick="openModal()"
+                    class="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 dark:bg-amber-500 dark:hover:bg-amber-600 text-white dark:text-slate-950 text-xs font-bold rounded-lg shadow-sm transition">
+                ➕ Agregar Área
+            </button>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-darkBgSub border border-slate-100 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50/70 dark:bg-darkBg/40 border-b border-slate-100 dark:border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-darkTextSub">
+                        <th class="py-3.5 px-4 w-20">ID</th>
+                        <th class="py-3.5 px-4">Nombre de Departamento</th>
+                        <th class="py-3.5 px-4 w-32">Estado</th>
+                        <th class="py-3.5 px-4 w-36">Fecha Registro</th>
+                        <th class="py-3.5 px-4 w-28 text-right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="departamentos-tbody">
+                    {% for d in departamentos %}
+                        {% include 'departamentos/partials/departamento_row.html' %}
+                    {% empty %}
+                        <tr id="depts-empty-row">
+                            <td colspan="5" class="text-center py-12 text-xs text-slate-400 dark:text-slate-500 bg-slate-50/20 dark:bg-transparent">
+                                📭 No hay departamentos registrados en el catálogo.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="modal-backdrop" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4 transition-opacity duration-300 opacity-0">
+    <div class="bg-white dark:bg-darkBgSub w-full max-w-md rounded-xl shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden transform scale-95 transition-transform duration-300">
+        <div id="modal-container">
+            </div>
+    </div>
+</div>
+
+<script>
+    function openModal() {
+        const backdrop = document.getElementById('modal-backdrop');
+        backdrop.classList.remove('hidden');
+        // Delay mínimo para permitir la transición CSS suave
+        setTimeout(() => {
+            backdrop.classList.remove('opacity-0');
+            backdrop.querySelector('.transform').classList.remove('scale-95');
+        }, 10);
+    }
+
+    function closeModal() {
+        const backdrop = document.getElementById('modal-backdrop');
+        backdrop.classList.add('opacity-0');
+        backdrop.querySelector('.transform').classList.add('scale-95');
+        setTimeout(() => {
+            backdrop.classList.add('hidden');
+            document.getElementById('modal-container').innerHTML = '';
+        }, 300);
+    }
+
+    // Cerrar modal automáticamente si se presiona la tecla Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeModal();
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,31 @@
+<div class="p-6 space-y-4">
+    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <h3 class="text-sm font-bold text-slate-900 dark:text-amber-400 uppercase tracking-wide">
+            🏢 Nuevo Departamento
+        </h3>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white font-bold text-sm">✕</button>
+    </div>
+
+    <form hx-post="{% url 'departamento_crear' %}" 
+          hx-target="#departamentos-tbody" 
+          hx-swap="afterbegin" 
+          class="space-y-4 text-xs"
+          onsubmit="const empty = document.getElementById('depts-empty-row'); if(empty) empty.remove();">
+        {% csrf_token %}
+        
+        <div>
+            <label class="block font-bold text-slate-400 dark:text-darkTextSub uppercase mb-1">Nombre del Área / Departamento</label>
+            <input type="text" name="nombre" required placeholder="Ej. Contabilidad" autocomplete="off"
+                   class="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+
+        <div class="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-100 dark:bg-darkBg text-slate-600 dark:text-slate-300 rounded-lg font-semibold hover:bg-slate-200 dark:hover:bg-slate-800 transition">
+                Cancelar
+            </button>
+            <button type="submit" onclick="setTimeout(closeModal, 400)" class="px-4 py-2 bg-blue-600 dark:bg-amber-500 text-white dark:text-slate-950 rounded-lg font-bold hover:bg-blue-500 dark:hover:bg-amber-600 transition">
+                🚀 Crear Registro
+            </button>
+        </div>
+    </form>
+</div>

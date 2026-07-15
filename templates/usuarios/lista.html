@@ -5,8 +5,7 @@
 {% block content %}
 <div id="modal-box" class="fixed inset-0 z-50 hidden bg-slate-900/60 dark:bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
     <div class="bg-white dark:bg-darkPanel border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
-        <div id="body-modal-box">
-            </div>
+        <div id="body-modal-box"></div>
     </div>
 </div>
 
@@ -55,6 +54,7 @@
                 <tr class="bg-slate-50 dark:bg-darkBg/50 border-b border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider">
                     <th class="py-3 px-4">Usuario / Cuenta</th>
                     <th class="py-3 px-4">Datos de Adscripción</th>
+                    <th class="py-3 px-4">Departamento / Área</th>
                     <th class="py-3 px-4">Centro de Trabajo (CCT)</th>
                     <th class="py-3 px-4 text-center">Rol de Acceso</th>
                     <th class="py-3 px-4 text-center">Estado</th>
@@ -66,7 +66,7 @@
                     {% include 'usuarios/partials/usuarios_row.html' with usuario=u %}
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="text-center py-8 text-slate-400 dark:text-darkTextSub/60">
+                    <td colspan="7" class="text-center py-8 text-slate-400 dark:text-darkTextSub/60">
                         🚫 No se encontraron usuarios en los registros de la institución.
                     </td>
                 </tr>
@@ -88,27 +88,15 @@
 </script>
 
 <script>
-    // ... tus funciones de modal existentes ...
-
     function exportarUsuariosConFiltro(event) {
-        event.preventDefault(); // Evitamos que intente navegar al '#'
-        
-        // 1. Buscamos el input del buscador por su atributo name="q"
+        event.preventDefault();
         const inputBuscador = document.querySelector("input[name='q']");
         const queryValor = inputBuscador ? inputBuscador.value.trim() : "";
-        
-        // 2. Construimos la URL base que ya registraste en tus urls.py
         let urlDestino = "{% url 'panel_usuarios_exportar_excel' %}";
-        
-        // 3. Si hay texto escrito en el buscador, se lo pegamos como parámetro GET
         if (queryValor) {
             urlDestino += "?q=" + encodeURIComponent(queryValor);
         }
-        
-        // 4. Redirigimos al navegador a esa URL para que inicie la descarga del CSV filtrado
         window.location.href = urlDestino;
     }
 </script>
-
-
 {% endblock %}

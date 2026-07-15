@@ -1762,22 +1762,50 @@ def panel_ticket_enviar_recordatorio(request, ticket_id):
 
 @login_required
 def panel_usuario_crear(request):
-    if request.user.rol != 'admin': return HttpResponse("No autorizado", status=403)
+    if request.user.rol != 'admin': 
+        return HttpResponse("No autorizado", status=403)
+        
     if request.method == "POST":
         correo = (request.POST.get("correo_electronico") or request.POST.get("email") or "").strip()
         nombre = (request.POST.get("nombre_completo") or request.POST.get("nombre") or "").strip()
-        if not correo or not nombre: return HttpResponse('⚠️ Campos obligatorios.', status=200)
-        if Usuario.objects.filter(correo_electronico=correo).exists(): return HttpResponse('❌ Correo duplicado.', status=200)
+        
+        if not correo or not nombre: 
+            return HttpResponse('⚠️ Campos obligatorios.', status=200)
+        if Usuario.objects.filter(correo_electronico=correo).exists(): 
+            return HttpResponse('❌ Correo duplicado.', status=200)
+
+        # 🏢 1. CAPTURAR EL DEPARTAMENTO DEL FORMULARIO
+        # Si no se seleccionó ninguno, guardamos None (NULL en DB)
+        dept_id = request.POST.get("departamento")
+        depto_seleccionado = dept_id if dept_id else None
 
         nuevo = Usuario.objects.create(
-            correo_electronico=correo, nombre_completo=nombre, numero_empleado=request.POST.get("numero_empleado"),
-            puesto_cargo=request.POST.get("puesto_cargo"), cct=request.POST.get("cct"), region_zona=request.POST.get("region_zona"),
-            nivel_educativo=request.POST.get("nivel_educativo"), rol=request.POST.get("rol", "usuario"), activo=True
+            correo_electronico=correo, 
+            nombre_completo=nombre, 
+            numero_empleado=request.POST.get("numero_empleado"),
+            puesto_cargo=request.POST.get("puesto_cargo"), 
+            cct=request.POST.get("cct"), 
+            region_zona=request.POST.get("region_zona"),
+            nivel_educativo=request.POST.get("nivel_educativo"), 
+            rol=request.POST.get("rol", "usuario"), 
+            departamento_id=depto_seleccionado,  # 🚀 ASIGNACIÓN DIRECTA POR ID
+            extension=request.POST.get("extension"),  # 📞 Agregado por simetría
+            telefono=request.POST.get("telefono"),    # 📱 Agregado por simetría
+            activo=True
         )
+        
         nuevo.set_password(nuevo.numero_empleado if nuevo.numero_empleado else "Seech2026*")
         nuevo.save()
+        
         return HttpResponse('<script>window.location.reload();</script>')
-    return render(request, 'usuarios/partials/modal_crear.html')
+        
+    # 🏢 2. EN EL GET: OBTENER EL CATÁLOGO DE DEPARTAMENTOS ACTIVOS
+    # Esto alimenta el bucle {% for dept in departamentos %} en el HTML del modal
+    departamentos = Departamento.objects.filter(activo=True).order_by('nombre')
+    
+    return render(request, 'usuarios/partials/modal_crear.html', {
+        'departamentos': departamentos
+    })
 
 @login_required
 def panel_conocimiento_crear_desde_ticket(request, ticket_id):

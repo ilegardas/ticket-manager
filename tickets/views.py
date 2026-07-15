@@ -1711,26 +1711,54 @@ def panel_usuario_eliminar(request, user_id):
 
 @login_required
 def panel_usuarios_exportar_excel(request):
-    if request.user.rol != 'admin': return HttpResponse("No autorizado", status=403)
+    if request.user.rol != 'admin': 
+        return HttpResponse("No autorizado", status=403)
+        
     query = request.GET.get('q', '').strip()
-    usuarios = Usuario.objects.all().order_by('nombre_completo')
+    
+    # 🚀 OPTIMIZACIÓN: select_related para traer el departamento en una sola query
+    usuarios = Usuario.objects.all().select_related('departamento').order_by('nombre_completo')
+    
     if query:
-        usuarios = usuarios.filter(Q(nombre_completo__icontains=query) | Q(correo_electronico__icontains=query) | Q(numero_empleado__icontains=query) | Q(puesto_cargo__icontains=query) | Q(cct__icontains=query))
+        usuarios = usuarios.filter(
+            Q(nombre_completo__icontains=query) | 
+            Q(correo_electronico__icontains=query) | 
+            Q(numero_empleado__icontains=query) | 
+            Q(puesto_cargo__icontains=query) | 
+            Q(cct__icontains=query) |
+            Q(departamento__nombre__icontains=query) # 🔍 Permite exportar el filtro si buscaron un depto
+        )
 
     response = HttpResponse(content_type='text/csv; charset=windows-1252')
     response['Content-Disposition'] = 'attachment; filename="reporte_usuarios_seech.csv"'
+    
     writer = csv.writer(response, delimiter=';')
-    writer.writerow(['Nombre Completo', 'Correo Electronico', 'Numero de Empleado', 'Puesto / Cargo', 'CCT', 'Region / Zona', 'Nivel Educativo', 'Rol de Acceso', 'Estado'])
+    
+    # 🏢 Cabecera actualizada con 'Departamento / Area'
+    writer.writerow([
+        'Nombre Completo', 'Correo Electronico', 'Numero de Empleado', 
+        'Puesto / Cargo', 'Departamento / Area', 'CCT', 'Region / Zona', 
+        'Nivel Educativo', 'Rol de Acceso', 'Estado'
+    ])
 
     for u in usuarios:
+        # 🏢 Extraer el nombre del departamento o dejar vacío si es NULL
+        nombre_depto = u.departamento.nombre if u.departamento else '—'
+
         writer.writerow([
             str(u.nombre_completo).encode('windows-1252', 'replace').decode('windows-1252'),
             str(u.correo_electronico).encode('windows-1252', 'replace').decode('windows-1252'),
-            u.numero_empleado or '', str(u.puesto_cargo or '').encode('windows-1252', 'replace').decode('windows-1252'),
-            u.cct or '', str(u.region_zona or '').encode('windows-1252', 'replace').decode('windows-1252'),
+            u.numero_empleado or '', 
+            str(u.puesto_cargo or '').encode('windows-1252', 'replace').decode('windows-1252'),
+            # 🚀 Inyección del Departamento formateado de forma segura:
+            str(nombre_depto).encode('windows-1252', 'replace').decode('windows-1252'),
+            u.cct or '', 
+            str(u.region_zona or '').encode('windows-1252', 'replace').decode('windows-1252'),
             str(u.nivel_educativo or '').encode('windows-1252', 'replace').decode('windows-1252'),
-            u.get_rol_display() if hasattr(u, 'get_rol_display') else u.rol, 'Activo' if u.activo else 'Inactivo'
+            u.get_rol_display() if hasattr(u, 'get_rol_display') else u.rol, 
+            'Activo' if u.activo else 'Inactivo'
         ])
+        
     return response
 
 def _tarea_enviar_correo_async(asunto, html_contenido, remitente, destino):

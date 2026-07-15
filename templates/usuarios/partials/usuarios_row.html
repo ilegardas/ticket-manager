@@ -11,6 +11,19 @@
         {% endif %}
     </td>
 
+    <td class="py-3 px-4">
+        {% if usuario.departamento %}
+            <div class="font-bold text-slate-800 dark:text-slate-200">🏢 {{ usuario.departamento.nombre }}</div>
+            {% if not usuario.departamento.activo %}
+                <div class="text-[9px] font-semibold text-amber-600 dark:text-amber-500 font-sans mt-0.5 tracking-wide">⚠️ ARCHIVADO</div>
+            {% else %}
+                <div class="text-[10px] text-slate-400 dark:text-slate-500 font-mono mt-0.5">Catálogo Activo</div>
+            {% endif %}
+        {% else %}
+            <div class="text-slate-400 dark:text-slate-600 italic font-normal">— Sin Asignar —</div>
+        {% endif %}
+    </td>
+
     <td class="py-3 px-4 font-mono">
         <div class="font-bold text-blue-600 dark:text-darkTextSub text-[11px]">{{ usuario.cct|default:"—" }}</div>
         <div class="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 capitalize">{{ usuario.region_zona|default:"" }}</div>

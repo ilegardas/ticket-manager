@@ -1,20 +1,6 @@
 {% for sis in sistemas %}
-    <tr>
-        {% if forloop.last and sistemas.has_next %}
-            <td class="py-3 px-4 font-bold text-slate-800 dark:text-slate-200"
-                hx-get="{% url 'panel_config_sistemas' %}?page={{ sistemas.next_page_number }}"
-                hx-trigger="revealed"
-                hx-swap="afterend"
-                hx-target="closest tr"
-                hx-include="[name='q_sistema'], [name='solo_activos']">
-                {{ sis.nombre }}
-            </td>
-        {% else %}
-            <td class="py-3 px-4 font-bold text-slate-800 dark:text-slate-200">
-                {{ sis.nombre }}
-            </td>
-        {% endif %}
-
+    <tr class="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-darkBg/20 transition text-[11px]">
+        <td class="py-3 px-4 font-bold text-slate-800 dark:text-slate-200">{{ sis.nombre }}</td>
         <td class="py-3 px-4 text-slate-400 font-mono">{{ sis.version|default:"1.0" }}</td>
         
         <td class="py-3 px-4 text-slate-500 max-w-xs relative group cursor-help">
@@ -45,6 +31,20 @@
             <button hx-post="{% url 'panel_config_sistema_eliminar' sis.id %}" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' hx-target="#tab-content" hx-confirm="¿Eliminar sistema?" class="text-red-500 hover:text-red-700 font-bold p-1 hover:underline text-[11px]">🗑️ Eliminar</button>
         </td>
     </tr>
+
+    {% if forloop.last and sistemas.has_next %}
+    <tr id="cargar-mas-row">
+        <td colspan="6" class="py-4 text-center bg-slate-50/50 dark:bg-darkBg/10">
+            <button hx-get="{% url 'panel_config_sistemas' %}?page={{ sistemas.next_page_number }}"
+                    hx-target="#cargar-mas-row"
+                    hx-swap="outerHTML"
+                    hx-include="[name='q_sistema'], [name='solo_activos']"
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold transition shadow-2xs">
+                ⏳ Cargar más sistemas
+            </button>
+        </td>
+    </tr>
+    {% endif %}
 {% empty %}
     {% if not sistemas.number or sistemas.number == 1 %}
     <tr>

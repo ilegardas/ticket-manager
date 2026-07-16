@@ -4,12 +4,29 @@
         hx-get="{% url 'panel_config_sistemas' %}?page={{ sistemas.next_page_number }}"
         hx-trigger="revealed"
         hx-swap="afterend"
-        hx-include="[name='q_sistema'], [name='solo_activos']"> {% else %}
+        hx-include="[name='q_sistema'], [name='solo_activos']"> 
+    {% else %}
     <tr class="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-darkBg/20 transition text-[11px]">
     {% endif %}
         <td class="py-3 px-4 font-bold text-slate-800 dark:text-slate-200">{{ sis.nombre }}</td>
         <td class="py-3 px-4 text-slate-400 font-mono">{{ sis.version|default:"1.0" }}</td>
-        <td class="py-3 px-4 text-slate-500 max-w-xs truncate">{{ sis.objetivo_descripcion|default:"—" }}</td>
+        
+        <td class="py-3 px-4 text-slate-500 max-w-xs relative group cursor-help">
+            <div class="truncate">{{ sis.objetivo_descripcion|default:"—" }}</div>
+            
+            {% if sis.objetivo_descripcion %}
+            <div class="absolute bottom-full left-4 mb-2 hidden group-hover:block z-50 w-64 p-3 
+                        bg-slate-900 dark:bg-slate-800 text-slate-100 text-[10px] rounded-lg shadow-xl 
+                        border border-slate-700 dark:border-slate-600 transition-all duration-200 whitespace-normal">
+                <div class="font-bold border-b border-slate-700 dark:border-slate-600 pb-1 mb-1 text-slate-400">
+                    Descripción Completa:
+                </div>
+                <p class="leading-relaxed">{{ sis.objetivo_descripcion }}</p>
+                <div class="absolute top-full left-4 -mt-1 w-2 h-2 bg-slate-900 dark:bg-slate-800 border-r border-b border-slate-700 dark:border-slate-600 transform rotate-45"></div>
+            </div>
+            {% endif %}
+        </td>
+        
         <td class="py-3 px-4 font-medium text-slate-600 dark:text-slate-400">{{ sis.servidor_alojamiento|default:"—" }}</td>
         <td class="py-3 px-4">
             {% if sis.activo %}

@@ -1,0 +1,27 @@
+{% for rel in cmdb_relaciones %}
+<tr class="hover:bg-slate-50/40 dark:hover:bg-darkBg/20 transition">
+    <td class="p-3 text-slate-900 dark:text-amber-400 font-bold">{{ rel.sistema.nombre }}</td>
+    <td class="p-3">{{ rel.usuario.nombre_completo }}</td>
+    <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-darkBg text-slate-600 dark:text-cyan-400 border border-slate-200 dark:border-slate-800">
+            {{ rel.get_tipo_relacion_display }}
+        </span>
+    </td>
+    <td class="p-3 font-mono text-[11px] text-slate-400">{{ rel.fecha_asignacion|date:"d/m/Y H:i" }}</td>
+    <td class="p-3 text-center">
+        <button hx-post="{% url 'panel_config_cmdb_eliminar' rel.id %}" 
+            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+            hx-target="#tab-content"
+            hx-confirm="¿Estás seguro de desvincular a este responsable de la administración de este sistema?"
+            class="text-red-500 hover:text-red-600 font-bold hover:underline bg-transparent border-none cursor-pointer">
+            Quitar
+        </button>
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="5" class="p-6 text-center text-slate-400 italic">
+        No se encontraron relaciones que coincidan con los criterios de búsqueda.
+    </td>
+</tr>
+{% endfor %}

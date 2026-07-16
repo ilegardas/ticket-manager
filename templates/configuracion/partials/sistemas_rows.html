@@ -1,19 +1,24 @@
 {% for sis in sistemas %}
-    {% if forloop.last and sistemas.has_next %}
-    <tr class="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-darkBg/20 transition text-[11px]"
-        hx-get="{% url 'panel_config_sistemas' %}?page={{ sistemas.next_page_number }}"
-        hx-trigger="revealed"
-        hx-swap="afterend"
-        hx-include="[name='q_sistema'], [name='solo_activos']"> 
-    {% else %}
-    <tr class="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-darkBg/20 transition text-[11px]">
-    {% endif %}
-        <td class="py-3 px-4 font-bold text-slate-800 dark:text-slate-200">{{ sis.nombre }}</td>
+    <tr>
+        {% if forloop.last and sistemas.has_next %}
+            <td class="py-3 px-4 font-bold text-slate-800 dark:text-slate-200"
+                hx-get="{% url 'panel_config_sistemas' %}?page={{ sistemas.next_page_number }}"
+                hx-trigger="revealed"
+                hx-swap="afterend"
+                hx-target="closest tr"
+                hx-include="[name='q_sistema'], [name='solo_activos']">
+                {{ sis.nombre }}
+            </td>
+        {% else %}
+            <td class="py-3 px-4 font-bold text-slate-800 dark:text-slate-200">
+                {{ sis.nombre }}
+            </td>
+        {% endif %}
+
         <td class="py-3 px-4 text-slate-400 font-mono">{{ sis.version|default:"1.0" }}</td>
         
         <td class="py-3 px-4 text-slate-500 max-w-xs relative group cursor-help">
             <div class="truncate">{{ sis.objetivo_descripcion|default:"—" }}</div>
-            
             {% if sis.objetivo_descripcion %}
             <div class="absolute bottom-full left-4 mb-2 hidden group-hover:block z-50 w-64 p-3 
                         bg-slate-900 dark:bg-slate-800 text-slate-100 text-[10px] rounded-lg shadow-xl 

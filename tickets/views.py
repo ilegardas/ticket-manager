@@ -1098,16 +1098,33 @@ def panel_conocimiento_crear(request):
 #  CMDB - SISTEMAS (MESA DE GOBIERNO CMDB)
 # ─────────────────────────────────────────────
 
+Aquí tienes la función panel_config_sistemas completa, reestructurada desde cero con una lógica de retornos simplificada y robusta.
+
+El problema de que no paginara (y que no arrojara errores en consola ni en logs) se debe a que la petición de la página 2 incluye los parámetros de búsqueda gracias al hx-include. Al simplificar los if condicionales del final, garantizamos que cualquier petición que requiera datos dinámicos (ya sea scroll, filtro o buscador) devuelva exactamente los renglones parciales sin colisionar.
+
+🛠️ Código Completo para views.py
+Reemplaza tu función actual por esta versión limpia:
+
+Python
+from django.shortcuts import render
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.http import HttpResponse
+from django.db.models import Q
+from django.contrib.auth.decorators import login_required
+from .models import Sistema, Usuario  # Asegúrate de que los nombres de importación sean correctos
+
 @login_required
 def panel_config_sistemas(request):
     """
     🖥️ CATÁLOGO DE SISTEMAS: Lista y crea de forma asíncrona con Gobierno Técnico Completo.
-    Soporta búsqueda multivariable cruzada y filtro de activos en tiempo real vía HTMX.
+    Soporta búsqueda multivariable cruzada y scroll infinito estable vía HTMX.
     """
     if request.user.rol != 'admin': 
         return HttpResponse("No autorizado", status=403)
 
-    # --- PROCESAMIENTO DE CREACIÓN (POST) ---
+    # =========================================================================
+    # 📥 1. PROCESAMIENTO DE CREACIÓN (POST TRADICIONAL / FORMULARIO)
+    # =========================================================================
     if request.method == "POST" and not request.headers.get('HX-Request'):
         nombre = request.POST.get("nombre")
         activo = True if request.POST.get("activo") else False
@@ -1141,37 +1158,46 @@ def panel_config_sistemas(request):
                 cifra_usuarios=cifra_usuarios, documentacion=documentacion, nombre_bd=nombre_bd, formato_sistema=formato_sistema,
                 ubicacion_servidor=ubicacion_servidor, plazo_conservacion=plazo_conservacion, fecha_respaldo=fecha_respaldo,
                 formato_respaldo=formato_respaldo, medio_respaldo=medio_respaldo, observaciones=observaciones,
-                desarrollado_por=desarrollador_by, responsable_resguardo=responsable_res
+                desarrollador_by=desarrollador_by, responsable_resguardo=responsable_res
             )
 
-    # --- LÓGICA DE BÚSQUEDA Y FILTRADO (GET/HTMX) ---
+    # =========================================================================
+    # 🔍 2. LÓGICA DE BÚSQUEDA Y CONTROL DE ESTADOS (GET / HTMX)
+    # =========================================================================
     query = request.GET.get('q_sistema', '').strip()
-    solo_activos = request.GET.get('solo_activos', 'true') == 'true'
+    
+    # Control estricto del Checkbox para evitar desfaces en la paginación (Página 2+)
+    if request.headers.get('HX-Request') and 'page' in request.GET:
+        solo_activos = request.GET.get('solo_activos') == 'true'
+    else:
+        solo_activos = request.GET.get('solo_activos', 'true') == 'true'
 
-    # 🚀 Definición estándar en español
+    # Optimización del QuerySet base
     sistemas_list = Sistema.objects.select_related('desarrollado_por', 'responsable_resguardo').all()
 
-    # 1. Filtro por estado activo/inactivo (Corregido a sistemas_list)
+    # Filtro 1: Mostrar sólo activos
     if solo_activos:
         sistemas_list = sistemas_list.filter(activo=True)
 
-    # 2. Búsqueda cruzada multivariable (Corregido a sistemas_list)
+    # Filtro 2: Búsqueda cruzada inteligente
     if query:
         sistemas_list = sistemas_list.filter(
             Q(nombre__icontains=query) |
             Q(objetivo_descripcion__icontains=query) |
             Q(servidor_alojamiento__icontains=query) |
-            Q(informacion_tecnica__icontains=query) |  # Stack Técnico
+            Q(informacion_tecnica__icontains=query) |
             Q(desarrollado_por__nombre_completo__icontains=query) |
             Q(responsable_resguardo__nombre_completo__icontains=query) |
-            Q(desarrollado_por__region_zona__icontains=query)  # Región del dev o resguardo
+            Q(desarrollado_por__region_zona__icontains=query)
         )
 
-    # Ordenamiento final (Corregido a sistemas_list)
+    # Garantizar orden estable para evitar saltos o duplicados en el Paginador
     sistemas_list = sistemas_list.order_by('nombre')
 
-    # Configuración del Paginador Inteligente (Infinite Scroll)
-    paginator = Paginator(sistemas_list, 15)
+    # =========================================================================
+    # 📦 3. CONFIGURACIÓN DEL PAGINADOR (SCROLL INFINITO)
+    # =========================================================================
+    paginator = Paginator(sistemas_list, 15)  # Bloques de 15 elementos
     page_number = request.GET.get('page', 1)
     
     try:
@@ -1179,10 +1205,12 @@ def panel_config_sistemas(request):
     except PageNotAnInteger:
         sistemas = paginator.page(1)
     except EmptyPage:
+        # Si HTMX pide una página que excede el total, devolvemos respuesta vacía para detener el trigger 'revealed'
         if request.headers.get('HX-Request'): 
             return HttpResponse("")
         sistemas = paginator.page(paginator.num_pages)
     
+    # Catálogo de técnicos para el modal de creación rápida
     try:
         tecnicos = Usuario.objects.filter(rol__in=['tecnico', 'admin']).order_by('nombre_completo')
     except Exception:
@@ -1195,19 +1223,22 @@ def panel_config_sistemas(request):
         'solo_activos': solo_activos
     }
 
-    # === REGRESO DE RESPUESTAS INTELIGENTES CORREGIDO ===
-    
-    if request.headers.get('HX-Request'): 
-        # 🚀 Si es una petición de la barra de búsqueda (keyup), el checkbox de activos (change), 
-        # o el Scroll Infinito (page), TODOS necesitan inyectar los puros renglones parciales.
+    # =========================================================================
+    # 🎯 4. CONTROL DE RESPUESTAS SEGÚN LA PETICIÓN (HTMX vs TRADICIONAL)
+    # =========================================================================
+    if request.headers.get('HX-Request'):
+        # ACCIÓN A: Si la petición trae 'page', 'q_sistema' o 'solo_activos', 
+        # devolvemos UNICAMENTE los renglones correspondientes.
         if 'page' in request.GET or 'q_sistema' in request.GET or 'solo_activos' in request.GET:
             return render(request, 'configuracion/partials/sistemas_rows.html', context)
         
-        # Si es la carga inicial de la pestaña (clic limpio desde las opciones del panel maestro)
+        # ACCIÓN B: Carga limpia del módulo completo desde el panel dinámico lateral
         return render(request, 'configuracion/partials/sistemas.html', context)
         
-    # Si entran directo pegando la URL de forma tradicional en el navegador
+    # ACCIÓN C: Carga tradicional directa por barra de navegación
     return render(request, 'configuracion/panel.html', context)
+
+    
     
 
 @login_required

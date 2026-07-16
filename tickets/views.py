@@ -1891,21 +1891,64 @@ def ajax_obtener_responsables_cmdb(request, ticket_id):
 
 @login_required
 def panel_config_cmdb(request):
-    if request.user.rol != 'admin': return HttpResponse("No autorizado", status=403)
+    if request.user.rol != 'admin': 
+        return HttpResponse("No autorizado", status=403)
+        
+    # --- 1. PROCESAMIENTO DE CREACIÓN (POST) ---
     if request.method == "POST":
         usuario_id = request.POST.get("usuario_id")
         sistema_id = request.POST.get("sistema_id")
         tipo_relacion = request.POST.get("tipo_relacion", "lider_tecnico")
         if usuario_id and sistema_id:
-            RelacionUsuarioSistema.objects.get_or_create(usuario_id=usuario_id, sistema_id=sistema_id, tipo_relacion=tipo_relacion)
+            RelacionUsuarioSistema.objects.get_or_create(
+                usuario_id=usuario_id, 
+                sistema_id=sistema_id, 
+                tipo_relacion=tipo_relacion
+            )
+
+    # --- 2. LÓGICA DE BÚSQUEDA CRUZADA (GET) ---
+    query = request.GET.get('q_cmdb', '').strip()
+    
+    # Queryset base optimizado con select_related
+    cmdb_relaciones = RelacionUsuarioSistema.objects.select_related('usuario', 'sistema').all()
+
+    if query:
+        cmdb_relaciones = cmdb_relaciones.filter(
+            Q(sistema__nombre__icontains=query) |
+            Q(usuario__nombre_completo__icontains=query) |
+            Q(tipo_relacion__icontains=query)
+        )
+
+    # Ordenamiento alfabético consistente
+    cmdb_relaciones = cmdb_relaciones.order_by('sistema__nombre', 'usuario__nombre_completo')
+
+    # Catálogos limpios para alimentar los selectores del formulario
+    sistemas_list = Sistema.objects.filter(activo=True).order_by('nombre')
+    usuarios_list = Usuario.objects.filter(activo=True).order_by('nombre_completo')
 
     context = {
-        'cmdb_relaciones': RelacionUsuarioSistema.objects.select_related('usuario', 'sistema').all().order_by('sistema__nombre', 'usuario__nombre_completo'),
-        'sistemas_list': Sistema.objects.filter(activo=True).order_by('nombre'),
-        'usuarios_list': Usuario.objects.filter(activo=True).order_by('nombre_completo'),
+        'cmdb_relaciones': cmdb_relaciones,
+        'sistemas_list': sistemas_list,
+        'usuarios_list': usuarios_list,
+        'q_cmdb': query,
     }
-    if request.headers.get('HX-Request') or request.method == "POST": return render(request, 'configuracion/partials/cmdb.html', context)
+
+    # --- 3. RETORNOS INTELIGENTES CON MÁSCARAS HTMX ---
+    if request.headers.get('HX-Request'):
+        # 🚀 Caso A: Si la petición viene estrictamente del buscador, 
+        # devolvemos SOLO las filas partials para refrescar el tbody
+        if 'q_cmdb' in request.GET:
+            return render(request, 'configuracion/partials/cmdb_rows.html', context)
+        
+        # Caso B: Si viene de un POST exitoso o cambio general de pestañas,
+        # refrescamos la estructura completa del módulo cmdb.html
+        return render(request, 'configuracion/partials/cmdb.html', context)
+        
+    # Caso C: Carga tradicional completa
     return render(request, 'configuracion/panel.html', context)
+
+
+
 
 @login_required
 @require_http_methods(["POST"])

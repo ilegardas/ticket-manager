@@ -1195,24 +1195,19 @@ def panel_config_sistemas(request):
         'solo_activos': solo_activos
     }
 
-    # === REGRESO DE RESPUESTAS INTELIGENTES ===
+    # === REGRESO DE RESPUESTAS INTELIGENTES CORREGIDO ===
     
-    # 1. Si es Scroll Infinito (pide una página específica), regresamos SÓLO las filas nuevas
-    if request.headers.get('HX-Request') and 'page' in request.GET: 
-        return render(request, 'configuracion/partials/sistemas_rows.html', context)
-    
-    # 2. 🎯 CORRECCIÓN AQUÍ: Si es la carga de la pestaña o una búsqueda/filtro, regresamos el CONTENEDOR MAESTRO COMPLETO
-    elif request.headers.get('HX-Request'):
-        # Si la petición viene del buscador 'q_sistema' o del checkbox, actualizamos sólo el body de la tabla
-        if 'q_sistema' in request.GET or 'solo_activos' in request.GET:
+    if request.headers.get('HX-Request'): 
+        # 🚀 Si es una petición de la barra de búsqueda (keyup), el checkbox de activos (change), 
+        # o el Scroll Infinito (page), TODOS necesitan inyectar los puros renglones parciales.
+        if 'page' in request.GET or 'q_sistema' in request.GET or 'solo_activos' in request.GET:
             return render(request, 'configuracion/partials/sistemas_rows.html', context)
         
-        # Si es la carga inicial de la pestaña (clic desde panel.html), cargamos el buscador y la estructura
+        # Si es la carga inicial de la pestaña (clic limpio desde las opciones del panel maestro)
         return render(request, 'configuracion/partials/sistemas.html', context)
         
-    # 3. Si entran directo pegando la URL en el navegador
+    # Si entran directo pegando la URL de forma tradicional en el navegador
     return render(request, 'configuracion/panel.html', context)
-
     
 
 @login_required

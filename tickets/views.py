@@ -1098,20 +1098,6 @@ def panel_conocimiento_crear(request):
 #  CMDB - SISTEMAS (MESA DE GOBIERNO CMDB)
 # ─────────────────────────────────────────────
 
-Aquí tienes la función panel_config_sistemas completa, reestructurada desde cero con una lógica de retornos simplificada y robusta.
-
-El problema de que no paginara (y que no arrojara errores en consola ni en logs) se debe a que la petición de la página 2 incluye los parámetros de búsqueda gracias al hx-include. Al simplificar los if condicionales del final, garantizamos que cualquier petición que requiera datos dinámicos (ya sea scroll, filtro o buscador) devuelva exactamente los renglones parciales sin colisionar.
-
-🛠️ Código Completo para views.py
-Reemplaza tu función actual por esta versión limpia:
-
-Python
-from django.shortcuts import render
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.http import HttpResponse
-from django.db.models import Q
-from django.contrib.auth.decorators import login_required
-from .models import Sistema, Usuario  # Asegúrate de que los nombres de importación sean correctos
 
 @login_required
 def panel_config_sistemas(request):

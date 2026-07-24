@@ -142,17 +142,27 @@
                     
                     <div>
                         <label class="block text-slate-400 dark:text-darkTextSub font-semibold mb-1">Estado / Etapa:</label>
-                        <select name="estado" 
-                                hx-post="{% url 'panel_ticket_detail' ticket.id %}" 
-                                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                                hx-target="#chatter-box" 
-                                hx-swap="innerHTML"
-                                hx-indicator="#save-indicator"
-                                class="w-full text-sm p-2 border border-slate-200 dark:border-slate-700 rounded-lg outline-none bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-amber-500">
-                            {% for est in estados %}
-                            <option value="{{ est.id }}" {% if ticket.estado.id == est.id %}selected{% endif %}>{{ est.nombre }}</option>
-                            {% endfor %}
-                        </select>
+                        {% if request.user.rol == 'admin' or request.user.rol == 'tecnico' %}
+                            <select name="estado" 
+                                    hx-post="{% url 'panel_ticket_detail' ticket.id %}" 
+                                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                                    hx-target="#chatter-box" 
+                                    hx-swap="innerHTML"
+                                    hx-indicator="#save-indicator"
+                                    class="w-full text-sm p-2 border border-slate-200 dark:border-slate-700 rounded-lg outline-none bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-amber-500">
+                                {% for est in estados %}
+                                <option value="{{ est.id }}" {% if ticket.estado.id == est.id %}selected{% endif %}>{{ est.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        {% else %}
+                            <div class="p-2 border border-slate-200 dark:border-slate-700/60 rounded-lg bg-slate-50 dark:bg-darkBg/50 flex items-center justify-between">
+                                <span class="inline-flex items-center gap-1.5 font-semibold text-slate-800 dark:text-slate-200">
+                                    <span class="h-2 w-2 rounded-full" style="background-color: {{ ticket.estado.color }}"></span>
+                                    {{ ticket.estado.nombre }}
+                                </span>
+                                <span class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">(Solo lectura)</span>
+                            </div>
+                        {% endif %}
                     </div>
                     
                     <div>

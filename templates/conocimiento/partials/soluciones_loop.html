@@ -9,11 +9,20 @@
             <h3 class="text-base font-bold text-slate-900 dark:text-slate-100 mt-1">{{ entry.titulo }}</h3>
             <p class="text-xs text-slate-400 dark:text-darkTextSub mt-0.5 font-medium">Consultado {{ entry.veces_consultado }} veces · Registrado el {{ entry.fecha_creacion|date:"d/m/Y" }}</p>
         </div>
-        {% if entry.codigo_error %}
-        <span class="text-xs font-mono font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/30 px-2 py-1 rounded">
-            {{ entry.codigo_error }}
-        </span>
-        {% endif %}
+        
+        <div class="flex items-center gap-2">
+            {% if entry.codigo_error %}
+            <span class="text-xs font-mono font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/30 px-2 py-1 rounded">
+                {{ entry.codigo_error }}
+            </span>
+            {% endif %}
+
+            <!-- Botón para ver el detalle completo de la solución -->
+            <a href="{% url 'panel_conocimiento_detalle' entry.id %}" 
+               class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-700 transition shadow-xs">
+                👁️ Ver Detalle
+            </a>
+        </div>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs border-t border-slate-100 dark:border-slate-800 pt-3">

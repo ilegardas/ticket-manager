@@ -10,12 +10,14 @@
             ← Volver a la base de conocimiento
         </a>
         <div class="flex items-center gap-2">
+            {% if request.user.rol == 'admin' %}
             <button hx-get="{% url 'panel_conocimiento_editar' solucion.id %}" 
                     hx-target="#modal-conocimiento-container" 
                     hx-swap="innerHTML"
                     class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs py-1.5 px-3 rounded-lg shadow-sm transition">
                 ✏️ Editar Información
             </button>
+            {% endif %}
             <button onclick="window.print()" class="bg-slate-100 hover:bg-slate-200 dark:bg-darkPanel dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border dark:border-slate-700 font-bold text-xs py-1.5 px-3 rounded-lg shadow-sm transition">
                 🖨️ Imprimir Solución
             </button>

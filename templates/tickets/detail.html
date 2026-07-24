@@ -115,7 +115,11 @@
                         {% else %}
                             <div class="p-2 border border-slate-200 dark:border-slate-700/60 rounded-lg bg-slate-50 dark:bg-darkBg/50 flex items-center justify-between">
                                 <span class="font-semibold text-slate-800 dark:text-slate-200">
-                                    {{ ticket.usuario_asignado.nombre_completo|default:ticket.usuario_asignado.correo_electronico|default:"Sin Asignar" }}
+                                    {% if ticket.usuario_asignado %}
+                                        {{ ticket.usuario_asignado.nombre_completo|default:ticket.usuario_asignado.correo_electronico }}
+                                    {% else %}
+                                        Sin Asignar
+                                    {% endif %}
                                 </span>
                                 <span class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">(Solo lectura)</span>
                             </div>

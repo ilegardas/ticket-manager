@@ -4,6 +4,7 @@
 
 {% block content %}
 <div class="space-y-6">
+    <!-- Encabezado y Acciones -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 dark:border-slate-800 pb-4 gap-4">
         <div>
             <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-amber-400">Base de Conocimiento</h1>
@@ -24,85 +25,40 @@
         </div>
     </div>
 
-    <div class="bg-white dark:bg-darkPanel border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="bg-slate-50 dark:bg-darkBg/50 border-b border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                        <th class="py-3 px-4">Código / Sistema</th>
-                        <th class="py-3 px-4">Solución Documentada</th>
-                        <th class="py-3 px-4 text-center">Consultas</th>
-                        <th class="py-3 px-4 text-center">Origen</th>
-                        <th class="py-3 px-4 text-center">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-xs text-slate-600 dark:text-slate-300">
-                    {% for solucion in soluciones %}
-                    <tr class="hover:bg-slate-50/50 dark:hover:bg-darkBg/40 transition">
-                        
-                        <td class="py-3 px-4 whitespace-nowrap">
-                            <span class="block font-mono font-bold text-blue-600 dark:text-darkTextSub">#CON-{{ solucion.id }}</span>
-                            <span class="block text-[10px] text-slate-400 dark:text-slate-500 font-semibold uppercase mt-0.5">{{ solucion.sistema.nombre|default:"General" }}</span>
-                        </td>
-
-                        <td class="py-3 px-4 max-w-xs md:max-w-lg">
-                            <a href="{% url 'panel_conocimiento_detalle' solucion.id %}" class="block font-bold text-slate-900 dark:text-amber-400 text-sm hover:underline hover:text-blue-600 dark:hover:text-amber-300 transition">
-                                {{ solucion.titulo }}
-                            </a>
-                            <p class="text-slate-400 dark:text-slate-400 text-[11px] truncate mt-0.5">{{ solucion.descripcion_problema }}</p>
-                        </td>
-
-                        <td class="py-3 px-4 text-center font-mono font-semibold text-slate-700 dark:text-slate-300">
-                            👁️ {{ solucion.veces_consultado }}
-                        </td>
-
-                        <td class="py-3 px-4 text-center font-mono text-[11px]">
-                            {% if solucion.ticket_origen %}
-                            <span class="bg-slate-100 dark:bg-darkBg text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded font-bold border dark:border-slate-800">
-                                {{ solucion.ticket_origen.folio }}
-                            </span>
-                            {% else %}
-                            <span class="text-slate-400 italic">Manual</span>
-                            {% endif %}
-                        </td>
-
-                        <td class="py-3 px-4 text-center whitespace-nowrap">
-                            <div class="flex items-center justify-center gap-3">
-                                <a href="{% url 'panel_conocimiento_detalle' solucion.id %}" class="text-blue-600 dark:text-cyan-400 hover:text-blue-800 dark:hover:text-cyan-300 font-bold transition hover:underline">
-                                    👁️ Ver
-                                </a>
-                                
-                                <span class="text-slate-200 dark:text-slate-800">|</span>
-                                {% if request.user.rol == 'admin' %}
-                                <form action="{% url 'panel_conocimiento_eliminar' solucion.id %}" method="POST" class="inline"
-                                      onsubmit="return confirm('¿Estás seguro de que deseas eliminar permanentemente esta entrada de conocimiento? Esta acción no se puede deshacer.');">
-                                    {% csrf_token %}
-                                    <button type="submit" class="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-bold transition hover:underline">
-                                        🗑️ Eliminar
-                                    </button>
-                                </form>
-                                {% endif %}
-                            </div>
-                        </td>
-
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="5" class="text-center py-8 text-slate-400 dark:text-darkTextSub/60">
-                            🚫 No hay soluciones o entradas documentadas en la base de conocimiento actualmente.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <!-- Buscador en Tiempo Real por HTMX -->
+    <div class="relative max-w-2xl">
+        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+            🔍
         </div>
+        <input type="search" 
+               name="q" 
+               placeholder="Buscar por título, código de error, causa raíz o solución..." 
+               hx-get="{% url 'panel_conocimiento_lista' %}" 
+               hx-trigger="keyup changed delay:300ms, search" 
+               hx-target="#soluciones-container" 
+               hx-swap="innerHTML"
+               hx-indicator="#search-spinner"
+               class="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-darkPanel border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:ring-2 focus:ring-amber-500 transition shadow-sm">
+        
+        <!-- Spinner de Carga -->
+        <div id="search-spinner" class="htmx-indicator absolute inset-y-0 right-0 pr-3.5 flex items-center">
+            <svg class="animate-spin h-4 w-4 text-amber-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+        </div>
+    </div>
+
+    <!-- Contenedor dinámico que renderiza las tarjetas de soluciones_loop.html -->
+    <div id="soluciones-container" class="space-y-4">
+        {% include 'conocimiento/partials/soluciones_loop.html' %}
     </div>
 </div>
 
+<!-- Modal Global -->
 <div id="modal-box" class="fixed inset-0 z-50 hidden bg-slate-900/60 dark:bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
     <div class="bg-white dark:bg-darkPanel border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
-        <div id="body-modal-box">
-            </div>
+        <div id="body-modal-box"></div>
     </div>
 </div>
 
@@ -114,7 +70,6 @@
         document.getElementById('modal-box').classList.add('hidden');
         document.getElementById('body-modal-box').innerHTML = '';
     }
-    // Cerrar si dan clic fuera de la tarjeta
     document.getElementById('modal-box').addEventListener('click', closeModal);
 </script>
 {% endblock %}

@@ -1065,12 +1065,28 @@ def panel_ticket_detail(request, pk):
 
 @login_required
 def panel_conocimiento_lista(request):
-    query = request.GET.get('q', '').strip()
-    soluciones = ConocimientoEntry.objects.select_related('sistema', 'ticket_origen').all()
-    if query:
-        soluciones = soluciones.filter(Q(titulo__icontains=query) | Q(descripcion_problema__icontains=query) | Q(codigo_error__icontains=query) | Q(solucion_aplicada__icontains=query))
-    if request.headers.get('HX-Request'): return render(request, 'conocimiento/partials/soluciones_loop.html', {'soluciones': soluciones})
-    return render(request, 'conocimiento/lista.html', {'soluciones': soluciones})
+  query = request.GET.get('q', '').strip()
+  soluciones = ConocimientoEntry.objects.select_related(
+      'sistema', 'ticket_origen'
+  ).all()
+
+  if query:
+    soluciones = soluciones.filter(
+        Q(titulo__icontains=query)
+        | Q(descripcion_problema__icontains=query)
+        | Q(codigo_error__icontains=query)
+        | Q(solucion_aplicada__icontains=query)
+        | Q(causa_raiz__icontains=query)
+    )
+
+  if request.headers.get('HX-Request'):
+    return render(
+        request,
+        'conocimiento/partials/soluciones_loop.html',
+        {'soluciones': soluciones},
+    )
+
+  return render(request, 'conocimiento/lista.html', {'soluciones': soluciones})
 
 @login_required
 def panel_conocimiento_crear(request):

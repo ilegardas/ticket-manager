@@ -99,18 +99,27 @@
                     
                     <div>
                         <label class="block text-slate-400 dark:text-darkTextSub font-semibold mb-1">Especialista Asignado:</label>
-                        <select name="usuario_asignado" 
-                                hx-post="{% url 'panel_ticket_detail' ticket.id %}" 
-                                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                                hx-target="#chatter-box" 
-                                hx-swap="innerHTML"
-                                hx-indicator="#save-indicator"
-                                class="w-full text-sm p-2 border border-slate-200 dark:border-slate-700 rounded-lg outline-none bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-amber-500">
-                            <option value="">Sin Asignar</option>
-                            {% for tec in tecnicos %}
-                            <option value="{{ tec.id }}" {% if ticket.usuario_asignado.id == tec.id %}selected{% endif %}>{{ tec.nombre_completo|default:tec.correo_electronico }}</option>
-                            {% endfor %}
-                        </select>
+                        {% if request.user.rol == 'admin' or request.user.rol == 'tecnico' %}
+                            <select name="usuario_asignado" 
+                                    hx-post="{% url 'panel_ticket_detail' ticket.id %}" 
+                                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                                    hx-target="#chatter-box" 
+                                    hx-swap="innerHTML"
+                                    hx-indicator="#save-indicator"
+                                    class="w-full text-sm p-2 border border-slate-200 dark:border-slate-700 rounded-lg outline-none bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-amber-500">
+                                <option value="">Sin Asignar</option>
+                                {% for tec in tecnicos %}
+                                <option value="{{ tec.id }}" {% if ticket.usuario_asignado.id == tec.id %}selected{% endif %}>{{ tec.nombre_completo|default:tec.correo_electronico }}</option>
+                                {% endfor %}
+                            </select>
+                        {% else %}
+                            <div class="p-2 border border-slate-200 dark:border-slate-700/60 rounded-lg bg-slate-50 dark:bg-darkBg/50 flex items-center justify-between">
+                                <span class="font-semibold text-slate-800 dark:text-slate-200">
+                                    {{ ticket.usuario_asignado.nombre_completo|default:ticket.usuario_asignado.correo_electronico|default:"Sin Asignar" }}
+                                </span>
+                                <span class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">(Solo lectura)</span>
+                            </div>
+                        {% endif %}
                     </div>
 
                     <div class="space-y-1" id="seccion-cc">
@@ -167,17 +176,26 @@
                     
                     <div>
                         <label class="block text-slate-400 dark:text-darkTextSub font-semibold mb-1">Prioridad de Atención:</label>
-                        <select name="prioridad" 
-                                hx-post="{% url 'panel_ticket_detail' ticket.id %}" 
-                                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                                hx-target="#chatter-box" 
-                                hx-swap="innerHTML"
-                                hx-indicator="#save-indicator"
-                                class="w-full text-sm p-2 border border-slate-200 dark:border-slate-700 rounded-lg outline-none bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-amber-500">
-                            {% for pri in prioridades %}
-                            <option value="{{ pri.id }}" {% if ticket.prioridad.id == pri.id %}selected{% endif %}>{{ pri.nombre }}</option>
-                            {% endfor %}
-                        </select>
+                        {% if request.user.rol == 'admin' or request.user.rol == 'tecnico' %}
+                            <select name="prioridad" 
+                                    hx-post="{% url 'panel_ticket_detail' ticket.id %}" 
+                                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                                    hx-target="#chatter-box" 
+                                    hx-swap="innerHTML"
+                                    hx-indicator="#save-indicator"
+                                    class="w-full text-sm p-2 border border-slate-200 dark:border-slate-700 rounded-lg outline-none bg-white dark:bg-darkBg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-amber-500">
+                                {% for pri in prioridades %}
+                                <option value="{{ pri.id }}" {% if ticket.prioridad.id == pri.id %}selected{% endif %}>{{ pri.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        {% else %}
+                            <div class="p-2 border border-slate-200 dark:border-slate-700/60 rounded-lg bg-slate-50 dark:bg-darkBg/50 flex items-center justify-between">
+                                <span class="font-semibold text-slate-800 dark:text-slate-200">
+                                    {{ ticket.prioridad.nombre|default:"Sin Prioridad" }}
+                                </span>
+                                <span class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">(Solo lectura)</span>
+                            </div>
+                        {% endif %}
                     </div>
 
                     <div class="pt-2 border-t border-slate-100 dark:border-slate-800">

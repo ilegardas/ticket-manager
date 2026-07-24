@@ -9,8 +9,6 @@
     }
 </style>
 
-{% with es_finalizado=ticket.estado.es_estado_cierre or ticket.estado.nombre.lower == 'resuelto' or ticket.estado.nombre.lower == 'cerrado' or ticket.estado.nombre.lower == 'cancelado' %}
-
 <div class="space-y-6">
     <div class="flex items-center justify-between">
         <a href="{% url 'panel_tickets_list' %}" class="inline-flex items-center text-xs font-semibold text-slate-500 dark:text-darkTextSub hover:text-slate-900 dark:hover:text-amber-400 transition">
@@ -42,7 +40,7 @@
             <div id="main-content-block" class="bg-white dark:bg-darkPanel rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 space-y-4">
                 <div class="flex items-center justify-between">
                     <h3 class="text-sm font-semibold text-slate-800 dark:text-white">Descripción del Problema</h3>
-                    {% if not es_finalizado %}
+                    {% if not ticket.estado.es_estado_cierre and ticket.estado.nombre.lower != 'resuelto' and ticket.estado.nombre.lower != 'cerrado' and ticket.estado.nombre.lower != 'cancelado' %}
                     <button hx-get="{% url 'panel_ticket_detail' ticket.id %}?action=edit_info" hx-target="#main-content-block" hx-swap="outerHTML" class="text-xs font-bold text-blue-600 dark:text-amber-400 hover:text-blue-700 dark:hover:text-amber-300 hover:underline">
                         Editar Información
                     </button>
@@ -79,7 +77,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm pt-2">
                     <div>
                         <label class="text-xs font-semibold text-slate-400 dark:text-darkTextSub block mb-1">Causa Raíz:</label>
-                        {% if es_finalizado %}
+                        {% if ticket.estado.es_estado_cierre or ticket.estado.nombre.lower == 'resuelto' or ticket.estado.nombre.lower == 'cerrado' or ticket.estado.nombre.lower == 'cancelado' %}
                             <div class="p-2.5 border border-slate-200 dark:border-slate-700/60 rounded-lg bg-slate-50 dark:bg-darkBg/50 text-xs font-medium text-slate-800 dark:text-slate-200">
                                 {{ ticket.get_causa_raiz_display|default:"— Sin especificar —" }}
                             </div>
@@ -94,7 +92,7 @@
                     </div>
                     <div>
                         <label class="text-xs font-semibold text-slate-400 dark:text-darkTextSub block mb-1">Solución Aplicada:</label>
-                        {% if es_finalizado %}
+                        {% if ticket.estado.es_estado_cierre or ticket.estado.nombre.lower == 'resuelto' or ticket.estado.nombre.lower == 'cerrado' or ticket.estado.nombre.lower == 'cancelado' %}
                             <div class="p-2.5 border border-slate-200 dark:border-slate-700/60 rounded-lg bg-slate-50 dark:bg-darkBg/50 text-xs font-medium text-slate-800 dark:text-slate-200 whitespace-pre-wrap min-h-[78px]">
                                 {{ ticket.solucion_aplicada|default:"— Sin registros de solución —" }}
                             </div>
@@ -115,7 +113,7 @@
                     
                     <div>
                         <label class="block text-slate-400 dark:text-darkTextSub font-semibold mb-1">Especialista Asignado:</label>
-                        {% if not es_finalizado and request.user.rol == 'admin' or not es_finalizado and request.user.rol == 'tecnico' %}
+                        {% if not ticket.estado.es_estado_cierre and ticket.estado.nombre.lower != 'resuelto' and ticket.estado.nombre.lower != 'cerrado' and ticket.estado.nombre.lower != 'cancelado' and request.user.rol == 'admin' or not ticket.estado.es_estado_cierre and ticket.estado.nombre.lower != 'resuelto' and ticket.estado.nombre.lower != 'cerrado' and ticket.estado.nombre.lower != 'cancelado' and request.user.rol == 'tecnico' %}
                             <select name="usuario_asignado" 
                                     hx-post="{% url 'panel_ticket_detail' ticket.id %}" 
                                     hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
@@ -147,7 +145,7 @@
                         
                         {% csrf_token %}
                         
-                        {% if es_finalizado %}
+                        {% if ticket.estado.es_estado_cierre or ticket.estado.nombre.lower == 'resuelto' or ticket.estado.nombre.lower == 'cerrado' or ticket.estado.nombre.lower == 'cancelado' %}
                             <div class="p-2 border border-slate-700 rounded-lg bg-[#0f1319] text-slate-200 text-xs">
                                 {{ ticket.correos_seguimiento|default:"Sin correos configurados" }}
                             </div>
@@ -177,7 +175,7 @@
                     
                     <div>
                         <label class="block text-slate-400 dark:text-darkTextSub font-semibold mb-1">Estado / Etapa:</label>
-                        {% if not es_finalizado and request.user.rol == 'admin' or not es_finalizado and request.user.rol == 'tecnico' %}
+                        {% if not ticket.estado.es_estado_cierre and ticket.estado.nombre.lower != 'resuelto' and ticket.estado.nombre.lower != 'cerrado' and ticket.estado.nombre.lower != 'cancelado' and request.user.rol == 'admin' or not ticket.estado.es_estado_cierre and ticket.estado.nombre.lower != 'resuelto' and ticket.estado.nombre.lower != 'cerrado' and ticket.estado.nombre.lower != 'cancelado' and request.user.rol == 'tecnico' %}
                             <select name="estado" 
                                     hx-post="{% url 'panel_ticket_detail' ticket.id %}" 
                                     hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
@@ -202,7 +200,7 @@
                     
                     <div>
                         <label class="block text-slate-400 dark:text-darkTextSub font-semibold mb-1">Prioridad de Atención:</label>
-                        {% if not es_finalizado and request.user.rol == 'admin' or not es_finalizado and request.user.rol == 'tecnico' %}
+                        {% if not ticket.estado.es_estado_cierre and ticket.estado.nombre.lower != 'resuelto' and ticket.estado.nombre.lower != 'cerrado' and ticket.estado.nombre.lower != 'cancelado' and request.user.rol == 'admin' or not ticket.estado.es_estado_cierre and ticket.estado.nombre.lower != 'resuelto' and ticket.estado.nombre.lower != 'cerrado' and ticket.estado.nombre.lower != 'cancelado' and request.user.rol == 'tecnico' %}
                             <select name="prioridad" 
                                     hx-post="{% url 'panel_ticket_detail' ticket.id %}" 
                                     hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
@@ -244,7 +242,7 @@
                                    name="archivado" 
                                    value="true"
                                    class="sr-only peer"
-                                   {% if es_finalizado %}disabled{% else %}hx-post="{% url 'panel_ticket_detail' ticket.id %}" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' hx-trigger="change" hx-swap="none"{% endif %}
+                                   {% if ticket.estado.es_estado_cierre or ticket.estado.nombre.lower == 'resuelto' or ticket.estado.nombre.lower == 'cerrado' or ticket.estado.nombre.lower == 'cancelado' %}disabled{% else %}hx-post="{% url 'panel_ticket_detail' ticket.id %}" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' hx-trigger="change" hx-swap="none"{% endif %}
                                    {% if ticket.archivado %}checked{% endif %}>
                             <div class="w-9 h-5 bg-slate-300 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500 opacity-80"></div>
                         </label>
@@ -252,7 +250,7 @@
                     </div>
                     
                     <div>
-                    {% if ticket.usuario_asignado and not es_finalizado %}
+                    {% if ticket.usuario_asignado and not ticket.estado.es_estado_cierre and ticket.estado.nombre.lower != 'resuelto' and ticket.estado.nombre.lower != 'cerrado' and ticket.estado.nombre.lower != 'cancelado' %}
                     <button hx-post="{% url 'panel_ticket_enviar_recordatorio' ticket.id %}"
                             hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                             hx-target="#chatter-box"
@@ -287,8 +285,6 @@
         </div> 
     </div> 
 </div>
-
-{% endwith %}
 
 <script>
     document.body.addEventListener('htmx:afterOnLoad', function(evt) {

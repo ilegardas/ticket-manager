@@ -59,7 +59,7 @@
                 
                 <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
                     <h3 class="text-sm font-semibold text-slate-800 dark:text-white">Diagnóstico y Cierre</h3>
-                    
+                    {% if request.user.rol == 'admin' %}
                     {% if ticket.solucion_aplicada %}
                     <button type="button"
                             hx-post="{% url 'panel_conocimiento_crear_desde_ticket' ticket.id %}"
@@ -68,6 +68,7 @@
                             class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/40 transition">
                         💡 Publicar como Solución
                     </button>
+                    {% endif %}
                     {% endif %}
                 </div>
 

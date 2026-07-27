@@ -59,7 +59,13 @@
                     class="text-blue-600 dark:text-cyan-400 hover:text-blue-800 dark:hover:text-cyan-300 font-bold transition hover:underline">
                 📝 Editar
             </button>
-
+            <button hx-get="{% url 'panel_usuario_cambiar_password' usuario.id %}" 
+                    hx-target="#body-modal-box" 
+                    hx-swap="innerHTML" 
+                    onclick="openModal()"
+                    class="text-amber-600 dark:text-amber-400 hover:underline font-bold text-xs">
+                🔑 Clave
+            </button>
             <span class="text-slate-200 dark:text-slate-800">|</span>
 
             <form action="{% url 'panel_usuario_eliminar' usuario.id %}" 

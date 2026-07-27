@@ -2215,33 +2215,34 @@ def panel_usuario_cambiar_password(request, user_id):
         if not nueva_password or len(nueva_password) < 6:
             return HttpResponse('⚠️ La contraseña debe tener al menos 6 caracteres.', status=400)
         
-        # 1. Actualizar contraseña cifrada en Django
+        # 1. Actualizar contraseña encriptada en la base de datos
         usuario.set_password(nueva_password)
         usuario.save()
         
-        # 2. Enviar correo de notificación
+        # 2. Enviar correo de notificación asíncrono con Resend / _tarea_enviar_correo_async
         if usuario.correo_electronico:
             asunto = "🔒 Notificación de Seguridad: Actualización de Contraseña"
-            mensaje = f"""Hola {usuario.nombre_completo},
-
-Le informamos que la contraseña de su cuenta en la plataforma Ticket Manager ha sido actualizada recientemente.
-
-Si usted solicitó o autorizó este cambio con el administrador, puede hacer uso de sus nuevas credenciales. 
-Si NO realizó esta solicitud, por favor póngase en contacto de inmediato con la Mesa de Ayuda / Soporte Técnico.
-
-Atentamente,
-Mesa de Ayuda e Infraestructura
-"""
-            try:
-                send_mail(
-                    subject=asunto,
-                    message=mensaje,
-                    from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'soporte@seech.edu.mx'),
-                    recipient_list=[usuario.correo_electronico],
-                    fail_silently=True,  # Evita romper la ejecución si falla el SMTP
-                )
-            except Exception as e:
-                print(f"Error al enviar correo de notificación: {e}")
+            html_contenido = f"""
+            <div style="font-family: sans-serif; max-width: 600px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+                <div style="background-color: #0f172a; padding: 20px; color: #f59e0b; font-weight: bold; font-size: 16px;">
+                    🔒 Notificación de Seguridad — Actualización de Contraseña
+                </div>
+                <div style="padding: 20px; font-size: 13px; line-height: 1.6; color: #334155;">
+                    <p>Hola <strong>{usuario.nombre_completo}</strong>,</p>
+                    <p>Le informamos que la contraseña de su cuenta en la plataforma <strong>Ticket Manager</strong> ha sido actualizada recientemente.</p>
+                    <div style="margin: 15px 0; padding: 12px; border-left: 4px solid #f59e0b; background-color: #f8fafc; font-weight: 500;">
+                        Si usted solicitó o autorizó este cambio con el administrador, puede hacer uso de sus nuevas credenciales.
+                    </div>
+                    <p>Si NO realizó esta solicitud, por favor póngase en contacto de inmediato con la Mesa de Ayuda / Soporte Técnico.</p>
+                </div>
+            </div>
+            """
+            
+            # Disparar hilo asíncrono compatible con tu infraestructura Resend
+            threading.Thread(
+                target=_tarea_enviar_correo_async,
+                args=(asunto, html_contenido, settings.DEFAULT_FROM_EMAIL, [usuario.correo_electronico])
+            ).start()
 
         return HttpResponse('<script>closeModal(); alert("Contraseña actualizada y correo de notificación enviado con éxito.");</script>')
         

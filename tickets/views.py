@@ -2215,11 +2215,11 @@ def panel_usuario_cambiar_password(request, user_id):
         if not nueva_password or len(nueva_password) < 6:
             return HttpResponse('⚠️ La contraseña debe tener al menos 6 caracteres.', status=400)
         
-        # 1. Guardar la nueva contraseña de forma segura
+        # 1. Guardar la nueva contraseña inmediatamente en la DB
         usuario.set_password(nueva_password)
         usuario.save()
         
-        # 2. Enviar correo de notificación
+        # 2. Enviar el correo en segundo plano (Hilo independiente para no congelar la vista)
         if usuario.correo_electronico:
             asunto = "🔒 Notificación de Seguridad: Actualización de Contraseña"
             mensaje = f"""Hola {usuario.nombre_completo},
@@ -2232,17 +2232,25 @@ Si NO realizó esta solicitud, por favor póngase en contacto de inmediato con l
 Atentamente,
 Mesa de Ayuda e Infraestructura
 """
-            try:
-                send_mail(
-                    subject=asunto,
-                    message=mensaje,
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[usuario.correo_electronico],
-                    fail_silently=False,  # Imprimirá en log si Gmail rechaza la conexión
-                )
-            except Exception as e:
-                print(f"❌ Error al enviar correo SMTP: {e}")
+            def _enviar_correo_background(asunto_txt, mensaje_txt, correo_destino):
+                try:
+                    send_mail(
+                        subject=asunto_txt,
+                        message=mensaje_txt,
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=[correo_destino],
+                        fail_silently=True,
+                    )
+                except Exception as e:
+                    print(f"❌ Error enviando correo en segundo plano: {e}")
 
-        return HttpResponse('<script>closeModal(); alert("Contraseña actualizada y correo de notificación enviado con éxito.");</script>')
+            # Disparar hilo asíncrono
+            threading.Thread(
+                target=_enviar_correo_background,
+                args=(asunto, mensaje, usuario.correo_electronico)
+            ).start()
+
+        # 3. Responder de inmediato al cliente para cerrar la ventana modal sin esperar al SMTP
+        return HttpResponse('<script>closeModal(); alert("Contraseña actualizada con éxito.");</script>')
         
     return render(request, 'usuarios/partials/modal_cambiar_password.html', {'usuario': usuario})

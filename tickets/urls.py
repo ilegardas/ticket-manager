@@ -89,6 +89,7 @@ urlpatterns = [
     path('panel/configuracion/sistemas/<int:pk>/actualizar/', views.panel_config_sistema_actualizar, name='panel_config_sistema_actualizar'),
     path('panel/configuracion/modulos/<int:pk>/toggle/', views.panel_config_modulo_toggle_activo, name='panel_config_modulo_toggle_activo'),
     path('panel/usuarios/<int:user_id>/password/', views.panel_usuario_cambiar_password, name='panel_usuario_cambiar_password'),
+    path('panel/configuracion/sistemas/exportar/excel/', views.panel_sistemas_exportar_excel, name='panel_sistemas_exportar_excel'),
     
     # Módulo de Reportería Avanzada y Descargas
     path('panel/reportes/', views.panel_reportes_avanzados, name='panel_reportes_avanzados'),

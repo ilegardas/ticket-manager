@@ -190,8 +190,8 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 # Especifica la ruta exacta a tu vista de login personalizada
-LOGIN_URL = '/auth/login/'  # Cambia '/login/' por la ruta URL real que tengas para iniciar sesión
-LOGIN_REDIRECT_URL = '/panel/'
+LOGIN_URL = '/api/auth/login/'  # Cambia '/login/' por la ruta URL real que tengas para iniciar sesión
+LOGIN_REDIRECT_URL = '/api/panel/dashboard/'
 
 
 

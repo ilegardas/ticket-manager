@@ -2199,3 +2199,49 @@ def departamento_editar(request, dept_id):
 
     # Si es GET, carga los datos actuales en el modal de edición
     return render(request, 'departamentos/partials/modal_editar.html', {'dept': dept})
+
+
+@login_required
+def panel_usuario_cambiar_password(request, user_id):
+    if request.user.rol != 'admin':
+        return HttpResponse("No autorizado", status=403)
+    
+    usuario = get_object_or_404(Usuario, pk=user_id)
+    
+    if request.method == "POST":
+        nueva_password = request.POST.get("nueva_password", "").strip()
+        
+        if not nueva_password or len(nueva_password) < 6:
+            return HttpResponse('⚠️ La contraseña debe tener al menos 6 caracteres.', status=400)
+        
+        # 1. Actualizar contraseña cifrada en Django
+        usuario.set_password(nueva_password)
+        usuario.save()
+        
+        # 2. Enviar correo de notificación
+        if usuario.correo_electronico:
+            asunto = "🔒 Notificación de Seguridad: Actualización de Contraseña"
+            mensaje = f"""Hola {usuario.nombre_completo},
+
+Le informamos que la contraseña de su cuenta en la plataforma Ticket Manager ha sido actualizada recientemente.
+
+Si usted solicitó o autorizó este cambio con el administrador, puede hacer uso de sus nuevas credenciales. 
+Si NO realizó esta solicitud, por favor póngase en contacto de inmediato con la Mesa de Ayuda / Soporte Técnico.
+
+Atentamente,
+Mesa de Ayuda e Infraestructura
+"""
+            try:
+                send_mail(
+                    subject=asunto,
+                    message=mensaje,
+                    from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'soporte@seech.edu.mx'),
+                    recipient_list=[usuario.correo_electronico],
+                    fail_silently=True,  # Evita romper la ejecución si falla el SMTP
+                )
+            except Exception as e:
+                print(f"Error al enviar correo de notificación: {e}")
+
+        return HttpResponse('<script>closeModal(); alert("Contraseña actualizada y correo de notificación enviado con éxito.");</script>')
+        
+    return render(request, 'usuarios/partials/modal_cambiar_password.html', {'usuario': usuario})

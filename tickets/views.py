@@ -6,6 +6,7 @@ from django.views.decorators.http import require_http_methods
 from django.http import HttpResponse
 from django.utils import timezone
 from django.db.models import Count, Q, Avg, F, ExpressionWrapper, DurationField
+from django.core.mail import send_mail
 from django.conf import settings
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action, api_view, permission_classes

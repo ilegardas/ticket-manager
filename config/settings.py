@@ -168,8 +168,8 @@ EMAIL_USE_TLS = False
 EMAIL_USE_SSL = True
 
 # Estos campos sí los leemos de tus variables de Railway para proteger tus datos
-EMAIL_HOST_USER = os.environ.get('migestionpro@gmail.com', '')
-EMAIL_HOST_PASSWORD = os.environ.get('b4TW1NG55##', '')
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'migestionpro@gmail.com')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 
 # Remitente predeterminado usando tu cuenta autenticada
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', f"Mesa de Ayuda SEECH <{EMAIL_HOST_USER}>")

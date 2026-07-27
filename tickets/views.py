@@ -2254,3 +2254,110 @@ Mesa de Ayuda e Infraestructura
         return HttpResponse('<script>closeModal(); alert("Contraseña actualizada con éxito.");</script>')
         
     return render(request, 'usuarios/partials/modal_cambiar_password.html', {'usuario': usuario})
+
+
+#exortar la informacion de los sistemas en excel 
+@login_required
+def panel_sistemas_exportar_excel(request):
+    """
+    Exporta la matriz completa de la CMDB / Sistemas a un archivo Excel (.xlsx)
+    incluyendo metadatos, responsables y módulos asociados.
+    """
+    # 1. Optimizar la consulta con JOINs
+    sistemas = Sistema.objects.select_related(
+        'desarrollado_por', 
+        'responsable_resguardo'
+    ).prefetch_related('modulos').all().order_by('id')
+
+    # 2. Crear el libro de trabajo y la hoja principal
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Matriz CMDB Sistemas"
+    ws.views.sheetView[0].showGridLines = True
+
+    # 3. Encabezados exactos según la estructura del modelo
+    headers = [
+        "ID", "Nombre del Sistema", "Descripción", "Versión", "Proveedor", "Estado", "Fecha Creación",
+        "Formato Sistema", "Objetivo / Descripción CMDB", "Cifra de Usuarios", "Acceso / Recurso",
+        "Servidor Alojamiento", "Ubicación Servidor", "Nombre BD", "Información Técnica", "Documentación",
+        "Desarrollado Por", "Responsable Resguardo",
+        "Fecha Respaldo", "Formato Respaldo", "Medio Respaldo", "Plazo Conservación", "Observaciones",
+        "Módulos Asociados"
+    ]
+
+    # ESTILOS
+    header_fill = PatternFill(start_color="0F172A", end_color="0F172A", fill_type="solid") # Slate 900
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    data_font = Font(name="Calibri", size=10)
+    center_align = Alignment(horizontal="center", vertical="center")
+    left_align = Alignment(horizontal="left", vertical="center", wrap_text=True)
+    border_side = Side(border_style="thin", color="CBD5E1")
+    cell_border = Border(left=border_side, right=border_side, top=border_side, bottom=border_side)
+
+    # Escribir Encabezados
+    ws.append(headers)
+    for col_num, _ in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = center_align
+
+    # 4. Iterar y poblar los datos
+    for sys in sistemas:
+        # Extraer nombres de usuarios si existen
+        dev = sys.desarrollado_por.nombre_completo if sys.desarrollado_por else "N/A"
+        resguardo = sys.responsable_resguardo.nombre_completo if sys.responsable_resguardo else "N/A"
+        
+        # Concatenar lista de módulos ManyToMany
+        lista_modulos = ", ".join([m.nombre for m in sys.modulos.all()]) if sys.modulos.exists() else "Sin módulos"
+
+        row = [
+            sys.id,
+            sys.nombre or "",
+            sys.descripcion or "",
+            sys.version or "",
+            sys.proveedor or "",
+            "Activo" if sys.activo else "Inactivo",
+            sys.fecha_creacion.strftime("%Y-%m-%d %H:%M") if sys.fecha_creacion else "",
+            sys.formato_sistema or "",
+            sys.objetivo_descripcion or "",
+            sys.cifra_usuarios or 0,
+            sys.acceso_recurso or "",
+            sys.servidor_alojamiento or "",
+            sys.ubicacion_servidor or "",
+            sys.nombre_bd or "",
+            sys.informacion_tecnica or "",
+            sys.documentacion or "",
+            dev,
+            resguardo,
+            sys.fecha_respaldo or "",
+            sys.formato_respaldo or "",
+            sys.medio_respaldo or "",
+            sys.plazo_conservacion or "",
+            sys.observaciones or "",
+            lista_modulos
+        ]
+        
+        ws.append(row)
+
+    # 5. Formatear celdas y auto-ajustar anchos de columnas
+    for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=len(headers)):
+        for cell in row:
+            cell.font = data_font
+            cell.border = cell_border
+            cell.alignment = left_align
+
+    for col in ws.columns:
+        max_len = max(len(str(cell.value or '')) for cell in col)
+        col_letter = get_column_letter(col[0].column)
+        ws.column_dimensions[col_letter].width = min(max(max_len + 3, 12), 50)
+
+    # 6. Generar HTTP Response con el archivo adjunto
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="CMDB_Matriz_Sistemas.xlsx"'
+    wb.save(response)
+    return response
+
+

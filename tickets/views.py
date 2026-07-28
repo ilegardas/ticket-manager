@@ -1904,12 +1904,16 @@ def panel_usuario_eliminar(request, user_id):
 
 @login_required
 def panel_usuarios_exportar_excel(request):
+    """
+    📊 EXPORTAR USUARIOS A EXCEL (.xlsx):
+    Genera un libro formateado profesionalmente respetando los filtros de búsqueda aplicados.
+    """
     if request.user.rol != 'admin': 
         return HttpResponse("No autorizado", status=403)
         
     query = request.GET.get('q', '').strip()
     
-    # 🚀 OPTIMIZACIÓN: select_related para traer el departamento en una sola query
+    # 1. Consulta optimizada trayendo el departamento vinculado
     usuarios = Usuario.objects.all().select_related('departamento').order_by('nombre_completo')
     
     if query:
@@ -1919,40 +1923,84 @@ def panel_usuarios_exportar_excel(request):
             Q(numero_empleado__icontains=query) | 
             Q(puesto_cargo__icontains=query) | 
             Q(cct__icontains=query) |
-            Q(departamento__nombre__icontains=query) # 🔍 Permite exportar el filtro si buscaron un depto
+            Q(departamento__nombre__icontains=query)
         )
 
-    response = HttpResponse(content_type='text/csv; charset=windows-1252')
-    response['Content-Disposition'] = 'attachment; filename="reporte_usuarios_seech.csv"'
-    
-    writer = csv.writer(response, delimiter=';')
-    
-    # 🏢 Cabecera actualizada con 'Departamento / Area'
-    writer.writerow([
-        'Nombre Completo', 'Correo Electronico', 'Numero de Empleado', 
-        'Puesto / Cargo', 'Departamento / Area', 'CCT', 'Region / Zona', 
-        'Nivel Educativo', 'Rol de Acceso', 'Estado'
-    ])
+    # 2. Crear el libro y la hoja de openpyxl
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Catálogo de Usuarios"
+    ws.views.sheetView[0].showGridLines = True
 
+    # 3. Encabezados de la tabla
+    headers = [
+        "ID / Clave", "Nombre Completo", "Correo Electrónico", "Número de Empleado", 
+        "Puesto / Cargo", "Departamento / Área", "CCT", "Región / Zona", 
+        "Nivel Educativo", "Rol de Acceso", "Estado"
+    ]
+
+    # ESTILOS
+    header_fill = PatternFill(start_color="0F172A", end_color="0F172A", fill_type="solid")  # Slate 900
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    data_font = Font(name="Calibri", size=10)
+    center_align = Alignment(horizontal="center", vertical="center")
+    left_align = Alignment(horizontal="left", vertical="center", wrap_text=True)
+    border_side = Side(border_style="thin", color="CBD5E1")
+    cell_border = Border(left=border_side, right=border_side, top=border_side, bottom=border_side)
+
+    # Escribir Encabezados
+    ws.append(headers)
+    for col_num, _ in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = center_align
+
+    # 4. Inyectar Filas
     for u in usuarios:
-        # 🏢 Extraer el nombre del departamento o dejar vacío si es NULL
         nombre_depto = u.departamento.nombre if u.departamento else '—'
+        rol_display = u.get_rol_display() if hasattr(u, 'get_rol_display') else u.rol
 
-        writer.writerow([
-            str(u.nombre_completo).encode('windows-1252', 'replace').decode('windows-1252'),
-            str(u.correo_electronico).encode('windows-1252', 'replace').decode('windows-1252'),
-            u.numero_empleado or '', 
-            str(u.puesto_cargo or '').encode('windows-1252', 'replace').decode('windows-1252'),
-            # 🚀 Inyección del Departamento formateado de forma segura:
-            str(nombre_depto).encode('windows-1252', 'replace').decode('windows-1252'),
-            u.cct or '', 
-            str(u.region_zona or '').encode('windows-1252', 'replace').decode('windows-1252'),
-            str(u.nivel_educativo or '').encode('windows-1252', 'replace').decode('windows-1252'),
-            u.get_rol_display() if hasattr(u, 'get_rol_display') else u.rol, 
+        row = [
+            u.id,
+            u.nombre_completo or "—",
+            u.correo_electronico or "—",
+            u.numero_empleado or "—",
+            u.puesto_cargo or "—",
+            nombre_depto,
+            u.cct or "—",
+            u.region_zona or "—",
+            u.nivel_educativo or "—",
+            str(rol_display).capitalize() if rol_display else "—",
             'Activo' if u.activo else 'Inactivo'
-        ])
-        
+        ]
+        ws.append(row)
+
+    # 5. Formatear celdas y auto-ajustar columnas
+    for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=len(headers)):
+        for idx, cell in enumerate(row):
+            cell.font = data_font
+            cell.border = cell_border
+            # Centrar ID, Num Empleado, CCT, Rol y Estado
+            if idx in [0, 3, 6, 9, 10]:
+                cell.alignment = center_align
+            else:
+                cell.alignment = left_align
+
+    for col in ws.columns:
+        max_len = max(len(str(cell.value or '')) for cell in col)
+        col_letter = get_column_letter(col[0].column)
+        ws.column_dimensions[col_letter].width = min(max(max_len + 3, 12), 45)
+
+    # 6. HTTP Response para descarga directa de .xlsx
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="Reporte_Usuarios_SEECH_{timezone.now().strftime("%Y%m%d_%H%M")}.xlsx"'
+    wb.save(response)
     return response
+
+
 
 def _tarea_enviar_correo_async(asunto, html_contenido, remitente, destino):
     import urllib.request, urllib.error

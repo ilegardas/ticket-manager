@@ -759,6 +759,10 @@ def panel_tickets_list(request):
 
 @login_required
 def panel_tickets_exportar_excel(request):
+    """
+    📊 EXPORTAR TICKETS A EXCEL (.xlsx):
+    Genera un libro formateado profesionalmente respetando los filtros de búsqueda aplicados en el panel.
+    """
     query = request.GET.get('q', '').strip()
     ordering = request.GET.get('ordering', '-fecha_creacion')
     asignado_id = request.GET.get('asignado_id')
@@ -767,8 +771,19 @@ def panel_tickets_exportar_excel(request):
     impacto = request.GET.get('impacto')
     archivado_filtro = request.GET.get('archivado', 'false')
 
-    qs = Ticket.objects.select_related('sistema', 'modulo', 'estado', 'prioridad', 'usuario_asignado').all()
-    if query: qs = qs.filter(Q(folio__icontains=query) | Q(titulo__icontains=query) | Q(descripcion__icontains=query) | Q(usuario_asignado__nombre_completo__icontains=query))
+    # 1. Optimizar la consulta con select_related
+    qs = Ticket.objects.select_related(
+        'sistema', 'modulo', 'estado', 'prioridad', 'categoria', 
+        'usuario_asignado', 'usuario_reporta'
+    ).all()
+
+    if query: 
+        qs = qs.filter(
+            Q(folio__icontains=query) | 
+            Q(titulo__icontains=query) | 
+            Q(descripcion__icontains=query) | 
+            Q(usuario_asignado__nombre_completo__icontains=query)
+        )
     if asignado_id: qs = qs.filter(usuario_asignado_id=asignado_id)
     if prioridad_id: qs = qs.filter(prioridad_id=prioridad_id)
     if estado_id: qs = qs.filter(estado_id=estado_id)
@@ -777,26 +792,86 @@ def panel_tickets_exportar_excel(request):
     elif archivado_filtro == 'false': qs = qs.filter(archivado=False)
 
     campos_permitidos = [
-        'folio', '-folio', 'titulo', '-titulo', 'usuario_asignado__nombre_completo', '-usuario_asignado__nombre_completo',
-        'prioridad__orden', '-prioridad__orden', 'estado__orden', '-estado__orden', 'impacto_proceso', '-impacto_proceso', 'fecha_creacion', '-fecha_creacion'
+        'folio', '-folio', 'titulo', '-titulo', 'usuario_asignado__nombre_completo', 
+        '-usuario_asignado__nombre_completo', 'prioridad__orden', '-prioridad__orden', 
+        'estado__orden', '-estado__orden', 'impacto_proceso', '-impacto_proceso', 
+        'fecha_creacion', '-fecha_creacion'
     ]
     qs = qs.order_by(ordering) if ordering in campos_permitidos else qs.order_by('-fecha_creacion')
 
-    response = HttpResponse(content_type='text/csv; charset=windows-1252')
-    response['Content-Disposition'] = 'attachment; filename="reporte_tickets_filtrado.csv"'
-    writer = csv.writer(response, delimiter=';')
-    writer.writerow(['Folio', 'Titulo', 'Sistema', 'Modulo', 'Prioridad', 'Estado', 'Impacto', 'Asignado A', 'Fecha Creacion'])
+    # 2. Crear el libro de trabajo de openpyxl
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Reporte de Tickets"
+    ws.views.sheetView[0].showGridLines = True
 
+    # 3. Encabezados de la tabla
+    headers = [
+        "Folio", "Título", "Sistema", "Módulo", "Categoría", 
+        "Prioridad", "Estado", "Impacto Proceso", "Usuario Reporta", 
+        "Técnico Asignado", "Fecha Creación", "Fecha Resolución", "Tiempo Atención (Min)"
+    ]
+
+    # ESTILOS ESTÁNDAR
+    header_fill = PatternFill(start_color="0F172A", end_color="0F172A", fill_type="solid")  # Slate 900
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    data_font = Font(name="Calibri", size=10)
+    center_align = Alignment(horizontal="center", vertical="center")
+    left_align = Alignment(horizontal="left", vertical="center", wrap_text=True)
+    border_side = Side(border_style="thin", color="CBD5E1")
+    cell_border = Border(left=border_side, right=border_side, top=border_side, bottom=border_side)
+
+    # Escribir Encabezados
+    ws.append(headers)
+    for col_num, _ in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = center_align
+
+    # 4. Inyectar Filas
     for tk in qs:
         impacto_txt = tk.get_impacto_proceso_display() if hasattr(tk, 'get_impacto_proceso_display') else (tk.impacto_proceso or 'Funcional')
-        writer.writerow([
-            tk.folio, str(tk.titulo).encode('windows-1252', 'replace').decode('windows-1252'),
-            str(tk.sistema.nombre if tk.sistema else '—').encode('windows-1252', 'replace').decode('windows-1252'),
-            str(tk.modulo.nombre if tk.modulo else '—').encode('windows-1252', 'replace').decode('windows-1252'),
-            tk.prioridad.nombre if tk.prioridad else '—', tk.estado.nombre if tk.estado else '—', impacto_txt,
-            str(tk.usuario_asignado.nombre_completo if tk.usuario_asignado else 'Sin Asignar').encode('windows-1252', 'replace').decode('windows-1252'),
-            tk.fecha_creacion.strftime('%d/%m/%Y %H:%M')
-        ])
+        
+        row = [
+            tk.folio or f"#{tk.id}",
+            tk.titulo or "—",
+            tk.sistema.nombre if tk.sistema else "—",
+            tk.modulo.nombre if tk.modulo else "—",
+            tk.categoria.nombre if tk.categoria else "—",
+            tk.prioridad.nombre if tk.prioridad else "—",
+            tk.estado.nombre if tk.estado else "—",
+            impacto_txt,
+            tk.usuario_reporta.nombre_completo if tk.usuario_reporta else "—",
+            tk.usuario_asignado.nombre_completo if tk.usuario_asignado else "Sin Asignar",
+            tk.fecha_creacion.strftime("%Y-%m-%d %H:%M") if tk.fecha_creacion else "—",
+            tk.fecha_resolucion.strftime("%Y-%m-%d %H:%M") if tk.fecha_resolucion else "—",
+            tk.tiempo_atencion_minutos or 0
+        ]
+        ws.append(row)
+
+    # 5. Formatear celdas y auto-ajustar columnas
+    for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=len(headers)):
+        for idx, cell in enumerate(row):
+            cell.font = data_font
+            cell.border = cell_border
+            # Centrar Folio, Fechas y Tiempos
+            if idx in [0, 10, 11, 12]:
+                cell.alignment = center_align
+            else:
+                cell.alignment = left_align
+
+    for col in ws.columns:
+        max_len = max(len(str(cell.value or '')) for cell in col)
+        col_letter = get_column_letter(col[0].column)
+        ws.column_dimensions[col_letter].width = min(max(max_len + 3, 12), 45)
+
+    # 6. Responder como archivo .xlsx
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="Reporte_Tickets_{timezone.now().strftime("%Y%m%d_%H%M")}.xlsx"'
+    wb.save(response)
     return response
 
 @login_required

@@ -1718,6 +1718,11 @@ def panel_reportes_avanzados(request):
 
 @login_required
 def exportar_reporte_csv(request):
+    """
+    📊 EXPORTAR REPORTES AVANZADOS A EXCEL (.xlsx):
+    Genera un archivo nativo de Excel con todos los filtros BI aplicados en la suite de Reportes Avanzados.
+    """
+    # 1. Captura de Parámetros de Filtro
     fecha_inicio = request.GET.get('fecha_inicio')
     fecha_fin = request.GET.get('fecha_fin')
     estado_id = request.GET.get('estado')
@@ -1729,8 +1734,13 @@ def exportar_reporte_csv(request):
     region = request.GET.get('region')
     archivado_filtro = request.GET.get('archivado', 'false')
 
-    qs = Ticket.objects.select_related('sistema', 'modulo', 'estado', 'categoria', 'usuario_asignado', 'usuario_reporta').all().order_by('-fecha_creacion')
+    # 2. QuerySet Base Optimizado
+    qs = Ticket.objects.select_related(
+        'sistema', 'modulo', 'prioridad', 'estado', 'categoria', 
+        'usuario_asignado', 'usuario_reporta'
+    ).all().order_by('-fecha_creacion')
 
+    # 3. Aplicación Dinámica de Filtros BI
     if fecha_inicio: qs = qs.filter(fecha_creacion__date__gte=fecha_inicio)
     if fecha_fin: qs = qs.filter(fecha_creacion__date__lte=fecha_fin)
     if estado_id: qs = qs.filter(estado_id=estado_id)
@@ -1743,14 +1753,91 @@ def exportar_reporte_csv(request):
     if archivado_filtro == 'true': qs = qs.filter(archivado=True)
     elif archivado_filtro == 'false': qs = qs.filter(archivado=False)
 
-    response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
-    response['Content-Disposition'] = f'attachment; filename="Reporte_BI_Avanzado_{timezone.now().strftime("%Y%m%d_%H%M")}.csv"'
-    writer = csv.writer(response, delimiter=';')
-    writer.writerow(['Folio', 'Título', 'Sistema', 'Módulo', 'Categoría', 'Estado', 'Asignado A', 'Fecha Creación', 'Fecha Asignación', 'Fecha 1ra Respuesta', 'Fecha Resolución', 'Fecha Cierre', 'Tiempo Atención (Min)', 'Tiempo Pausa (Min)'])
-    
+    # 4. Crear Libro y Hoja de openpyxl
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Reporte BI Avanzado"
+    ws.views.sheetView[0].showGridLines = True
+
+    # 5. Encabezados Completos de BI
+    headers = [
+        "Folio", "Título", "Sistema", "Módulo", "Categoría", 
+        "Prioridad", "Estado", "Impacto Proceso", "Usuario Reporta", "Región / Zona",
+        "Técnico Asignado", "Fecha Creación", "Fecha Asignación", 
+        "Fecha 1ra Respuesta", "Fecha Resolución", "Fecha Cierre", 
+        "Tiempo Atención (Min)", "Tiempo Pausa (Min)"
+    ]
+
+    # ESTILOS CORPORATIVOS
+    header_fill = PatternFill(start_color="0F172A", end_color="0F172A", fill_type="solid")  # Slate 900
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    data_font = Font(name="Calibri", size=10)
+    center_align = Alignment(horizontal="center", vertical="center")
+    left_align = Alignment(horizontal="left", vertical="center", wrap_text=True)
+    border_side = Side(border_style="thin", color="CBD5E1")
+    cell_border = Border(left=border_side, right=border_side, top=border_side, bottom=border_side)
+
+    # Escribir Encabezados
+    ws.append(headers)
+    for col_num, _ in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = center_align
+
+    # Helper para formatear fechas nulas de forma segura
+    def _fmt_dt(dt): 
+        return dt.strftime('%Y-%m-%d %H:%M') if dt else '—'
+
+    # 6. Inyectar Filas
     for tk in qs:
-        def _fmt_dt(dt): return dt.strftime('%d/%m/%Y %H:%M') if dt else '—'
-        writer.writerow([tk.folio, tk.titulo, tk.sistema.nombre if tk.sistema else '—', tk.modulo.nombre if tk.modulo else '—', tk.categoria.nombre if tk.categoria else '—', tk.estado.nombre if tk.estado else '—', tk.usuario_asignado.nombre_completo if tk.usuario_asignado else 'Sin Asignar', _fmt_dt(tk.fecha_creacion), _fmt_dt(tk.fecha_asignacion), _fmt_dt(tk.fecha_primera_respuesta), _fmt_dt(tk.fecha_resolucion), _fmt_dt(tk.fecha_cierre), tk.tiempo_atencion_minutos or 0, tk.tiempo_pausa_minutos or 0])
+        impacto_txt = tk.get_impacto_proceso_display() if hasattr(tk, 'get_impacto_proceso_display') else (tk.impacto_proceso or 'Funcional')
+        region_txt = tk.usuario_reporta.region_zona if (tk.usuario_reporta and tk.usuario_reporta.region_zona) else '—'
+
+        row = [
+            tk.folio or f"#{tk.id}",
+            tk.titulo or "—",
+            tk.sistema.nombre if tk.sistema else "—",
+            tk.modulo.nombre if tk.modulo else "—",
+            tk.categoria.nombre if tk.categoria else "—",
+            tk.prioridad.nombre if tk.prioridad else "—",
+            tk.estado.nombre if tk.estado else "—",
+            impacto_txt,
+            tk.usuario_reporta.nombre_completo if tk.usuario_reporta else "—",
+            region_txt,
+            tk.usuario_asignado.nombre_completo if tk.usuario_asignado else "Sin Asignar",
+            _fmt_dt(tk.fecha_creacion),
+            _fmt_dt(tk.fecha_asignacion),
+            _fmt_dt(tk.fecha_primera_respuesta),
+            _fmt_dt(tk.fecha_resolucion),
+            _fmt_dt(tk.fecha_cierre),
+            tk.tiempo_atencion_minutos or 0,
+            tk.tiempo_pausa_minutos or 0
+        ]
+        ws.append(row)
+
+    # 7. Formatear Celdas y Auto-ajustar Columnas
+    for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=len(headers)):
+        for idx, cell in enumerate(row):
+            cell.font = data_font
+            cell.border = cell_border
+            # Centrar Folio, Fechas y Tiempos en Minutos
+            if idx in [0, 11, 12, 13, 14, 15, 16, 17]:
+                cell.alignment = center_align
+            else:
+                cell.alignment = left_align
+
+    for col in ws.columns:
+        max_len = max(len(str(cell.value or '')) for cell in col)
+        col_letter = get_column_letter(col[0].column)
+        ws.column_dimensions[col_letter].width = min(max(max_len + 3, 12), 45)
+
+    # 8. HTTP Response con extensión .xlsx
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="Reporte_BI_Avanzado_{timezone.now().strftime("%Y%m%d_%H%M")}.xlsx"'
+    wb.save(response)
     return response
 
 @login_required
